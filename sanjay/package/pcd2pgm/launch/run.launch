@@ -1,0 +1,24 @@
+<!-- -->
+<launch>
+<node pkg="pcd2pgm" name="pcd2pgm" type="pcd2pgm" output="screen">
+<!-- The path to store the pcd file-->
+<param name="file_directory" value= "/home/ubuntu/Desktop/sample_data/pcd/" />
+<!-- pcd file name-->
+<param name="file_name" value= "ATC_area_3" />
+<!-- Selected range Minimum height-->
+<param name="threshold_z_min" value= "-1.0" />
+<!-- Selected range Maximum height-->
+<param name="threshold_z_max" value= "8" />
+<!--0 selects within the height range, 1 selects outside the height range-->
+<param name="pass_through_flag" value= "0" />
+<!-- Radius of the radius filter-->
+<param name="threshold_radius" value= "0.5" />
+<!-- The number of points required for radius filtering-->
+<param name="threshold_point_Count" value= "2" />
+<!-- The resolution of the stored raster map-->
+<param name="map_resolution" value= "0.05" />
+<!-- The topic of the 2D map published after conversion, map is used by default, and can be saved using map_server-->
+<param name="map_topic_name" value= "map" />
+</node>
+
+</launch>

@@ -1,0 +1,60 @@
+#mapid{
+	/*margin: 0px; padding: 0px;*/
+	width: 600px; height: 600px;
+	/*background-color: gray;*/
+}
+
+
+/* GPSマーカーの色の指定 */
+.icon-red {
+  filter: hue-rotate(150deg);
+
+}
+.icon-yellow {
+  filter: hue-rotate(210deg);
+
+}
+
+/* 十字マーカーの作成 */
+.cross { /* 十字アイコン */
+	color: black;
+	background: transparent;
+	width: 36px; height:: 36px;
+}
+.cross::before {
+
+	content: "";
+	position: absolute;
+	top: -13px; left: 3px;
+	width: 2px; height: 7px;
+	border-top: 13px solid black;
+	border-bottom: 13px solid black;
+	border-radius: 2px;
+}
+.cross::after {
+	content: "";
+	position: absolute;
+	top: 3px; left: -14px;
+	width: 7px; height: 2px;
+	border-left: 13px solid black;
+	border-right: 13px solid black;
+	border-radius: 2px;
+}
+
+/* 初期位置マーカーの作成 */
+.init_pose {
+	width: 36px;
+	height: 36px;
+	background-color: green;
+	border-radius: 50%;
+	text-align: center;
+}
+
+/* 方向マーカーの作成 */
+.second_pose {
+	height: calc(60px / 2 * tan(60deg));
+	width: 60px;
+	clip-path: polygon(50% 0, 100% 100%, 0 100%);
+	background-color: red;
+	transform: rotate(45deg) skew(20deg, 20deg); 
+}

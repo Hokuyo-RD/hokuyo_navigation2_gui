@@ -1,0 +1,112 @@
+.special{
+  color: orange;
+  font-weight: bold;
+}
+
+/* 基本的な要素のスタイル付けを扱う */
+/* -------------------------------------------------------------------------------------------- */
+body {
+  text-align: center;
+  font-size: 85%;
+  font-family: "ＭＳＰゴシック", Osaka, "ヒラギノ角ゴ Pro W3" sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/*------------ヘッダー要素のスタイル付け-----------------*/
+header {
+  height: 96px;
+  background-color: lightcyan;
+  box-sizing: border-box;
+  border: 8px solid blue;
+}
+header h1 > div{
+  display: inline-block;
+}
+
+
+/*------------メニュー要素のスタイル付け-----------------*/
+nav{
+  width: 100%;
+  height: 70px;
+  background-color: dimgray;
+  display: flex;
+}
+nav > ul{
+  display: flex;
+}
+nav > ul > li{
+  list-style: none;
+}
+nav > ul > li > a{
+  display: block;
+  text-decoration: none;
+  color: white;
+  margin-right: 35px;
+}
+nav > form{
+  margin: auto 0 0 auto;
+}
+
+
+/*------------mainコンテンツのスタイル付け-----------------*/
+main {
+  /*  font:
+      1em/150% Helvetica,
+      Arial,
+      sans-serif;
+    padding: 1em;
+    margin: 0 auto;
+    max-width: 33em;
+    flex-direction: column;
+    */
+    display: flex;
+}
+@media (min-width: 70em) {
+    /* 大きな画面やウィンドウで読みやすいように、グローバルフォントの大きさを
+       大きくします。 */
+  main {
+    font-size: 130%;
+  }
+}
+
+
+/*-------記事部分(main内)のスタイル付け-------*/
+article{
+  flex-grow: 1;
+  background-color: palegoldenrod;
+  box-sizing: border-box;
+  border: 8px solid green;
+  /*float: left;*/
+}
+
+
+/*-------サイドバー(main内)のスタイル付け-------*/
+aside{
+  width: 250px;
+  /*
+  margin: 0px 0px 0px 0px;
+  padding: 0px 0px 0px 0px;
+  float: right;
+  */
+  background-color: #d0ad00;
+  color: #000000;
+}
+
+
+/*-------フッター部分のスタイル付け-------*/
+footer{
+  text-align: center;
+  clear: both;
+  margin: 0px 0px 0px 0px;
+  padding: 0px 0px 0px 0px;
+  background-color: #003366;
+  color: #ffffff;
+}
+
+
+/*------フレックスにしたいものを指定-------*/
+#flex{
+  display: flex;
+}
+

@@ -1,0 +1,1 @@
+document.getElementById("js_test").textContent = "このテキストはjsによって書き換えられました。";

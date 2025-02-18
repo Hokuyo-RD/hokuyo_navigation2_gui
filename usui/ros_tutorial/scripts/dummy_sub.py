@@ -16,8 +16,14 @@ def callback(data):
     pose_x = data.pose.x
     pose_y = data.pose.y
     pose_z = data.pose.z 
+    pose_w = data.pose.w
 
-    rospy.loginfo(f"Publishing: ID={id_value},Position_x = {position_x},Position_y = {position_y},Position_z = {position_z},Size = {size}, Velocity={velocity_value}, Density={density_value},Pose_x = {pose_x},Pose_y = {pose_y},Pose_z = {pose_z}")
+    if density_value >= 5:
+        msg_density = "混んでいる"
+    else:
+        msg_density = ""
+
+    rospy.loginfo(f"Publishing: ID={id_value},Position_x = {position_x},Position_y = {position_y},Position_z = {position_z},Size = {size}, Velocity={velocity_value}, Density={density_value},Pose_x = {pose_x},Pose_y = {pose_y},Pose_z = {pose_z},Pose_w = {pose_w},{msg_density}")
 
 def subscriber():
     rospy.init_node('geometry_subscriber', anonymous=True)

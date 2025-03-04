@@ -12,27 +12,26 @@
 #include <proj.h>
 #include <limits>
 #include <iostream>
+#include <Eigen/Dense>
 
 namespace latlon_utm_trans{
 
     // 緯度経度を表す構造体.
-    struct LatLon {
+    struct LatLonAlt {
         double latitude;
         double longitude;
+        double altitude;
     };
-
-    // UTMゾーンとUTM座標を表す構造体.
-    struct UTM {
-        int zone;
-        double x;
-        double y;
-    };
-
 
     class LatlonUtmTrans {
     private:
 
-        bool use_first_zone;
+        bool set_origin_flg;
+        bool set_epsg_flg;
+
+        std::string epsg_code;
+        LatLonAlt orig_pose;
+        Eigen::Matrix3d orig_R;    // 緯度経度の基準姿勢.
 
         // 経度からUTMゾーンを取得する関数.
         int judge_utm_zone(double longitude);
@@ -41,19 +40,19 @@ namespace latlon_utm_trans{
         std::string utm_zone_to_epsg(int utm_zone);
         
     protected:
-    
-        int first_zone;
-    
 
     public:
 
         // 緯度経度からUTMゾーンとUTM座標を求める関数.
-        UTM get_utm_from_latlon(LatLon latlon);
+        Eigen::Vector3d get_xyz_from_latlonalt(LatLonAlt latlonalt);
 
         // UTMゾーンとUTM座標から緯度経度を求める関数.
-        LatLon get_latlon_from_utm(UTM utm);
+        LatLonAlt get_latlonalt_from_xyz(Eigen::Vector3d xyz);
 
-        LatlonUtmTrans(bool zone_is_static);
+        void set_epsg_code(int epsg_code_num);
+        void set_origin( LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_ );
+
+        LatlonUtmTrans();
         ~LatlonUtmTrans();
 
     };

@@ -1,5 +1,17 @@
 #define DEBUG_MODE
-#include <latlon_utm_transform.h>
+#include "expo_latlon2xyz/latlon_utm_transform.h"
+
+
+
+// クォータニオンから回転行列を計算する関数.
+Eigen::Matrix3d RotMatFromQuat(const Eigen::Vector4d& quat){
+    Eigen::Matrix3d Rot;
+        Rot << 2*(quat(0)*quat(0) + quat(3)*quat(3))-1 , 2*(quat(0)*quat(1) - quat(2)*quat(3)), 2*(quat(0)*quat(2) + quat(1)*quat(3)) ,
+        2*(quat(0)*quat(1) + quat(2)*quat(3)) , 2*(quat(1)*quat(1) + quat(3)*quat(3))-1 , 2*(quat(1)*quat(2) - quat(0)*quat(3)) ,
+        2*(quat(0)*quat(2) - quat(1)*quat(3)) , 2*(quat(1)*quat(2) + quat(0)*quat(3)) , 2*(quat(2)*quat(2) + quat(3)*quat(3))-1 ;
+
+    return Rot;
+}
 
 using namespace latlon_utm_trans;
 
@@ -14,47 +26,62 @@ std::string LatlonUtmTrans::utm_zone_to_epsg(int utm_zone){
     return "EPSG:" + std::to_string(epsg_num);
 }
 
-UTM LatlonUtmTrans::get_utm_from_latlon(LatLon latlon){
+
+void LatlonUtmTrans::set_origin(latlon_utm_trans::LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_){
+    set_origin_flg = true;
+    orig_pose = orig_pose_;
+    orig_R = RotMatFromQuat(orig_quat_);
+}
+
+void LatlonUtmTrans::set_epsg_code(int epsg_code_num){
+    epsg_code = "EPSG:" + std::to_string(epsg_code_num);
+    set_epsg_flg = true;
+}
+
+Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
     std::string latlon_debug_msg = "get_latlon";
     DEBUG_PRINT(latlon_debug_msg);
 
-    UTM utm;
+    Eigen::Vector3d xyz = Eigen::Vector3d::Zero();
     
     int utm_zone;
-    std::string epsg_code;
     PJ_CONTEXT *C;
     PJ *P;
     PJ *norm;
     PJ_COORD a, b;
-    if(use_first_zone && first_zone > 0 && first_zone <=60){
-        utm_zone = first_zone;
-    }
-    else{
-        utm_zone = judge_utm_zone(latlon.longitude);
-        first_zone = utm_zone;
-    }
-    epsg_code = utm_zone_to_epsg(utm_zone);
 
-    DEBUG_PRINT(utm_zone);
+    if(!set_epsg_flg){
+        utm_zone = judge_utm_zone(latlonalt.longitude);
+        if(utm_zone > 0 && utm_zone <=60){
+            epsg_code = utm_zone_to_epsg(utm_zone);
+            set_epsg_flg = true;
+        }
+        else{
+            return xyz;
+        }
+    }
+
+    if(!set_origin_flg){
+        return xyz;
+    }
+
     DEBUG_PRINT(epsg_code);
-    DEBUG_PRINT(latlon.latitude);
-    DEBUG_PRINT(latlon.longitude);
+    DEBUG_PRINT(latlonalt.latitude);
+    DEBUG_PRINT(latlonalt.longitude);
 
     C = proj_context_create();
     P = proj_create_crs_to_crs( C, "EPSG:4326", epsg_code.c_str() , NULL);
     if (0 == P) {
         double inf = std::numeric_limits<double>::infinity();
-        utm.x = inf;
-        utm.y = inf;
-        utm.zone = -1;
+        xyz << inf, inf, inf;
     }
     else{
-        a = proj_coord(latlon.latitude, latlon.longitude, 0, 0);
+        a = proj_coord(latlonalt.latitude, latlonalt.longitude, 0, 0);
         b = proj_trans(P, PJ_FWD, a);
 
-        utm.x = b.xy.x;
-        utm.y = b.xy.y;
-        utm.zone = utm_zone;
+        xyz(0) = b.xy.x;
+        xyz(1) = b.xy.y;
+        xyz(2) = latlonalt.altitude;
     }
     
     proj_destroy(P);
@@ -63,44 +90,50 @@ UTM LatlonUtmTrans::get_utm_from_latlon(LatLon latlon){
     latlon_debug_msg = "return utm from latlon";
     DEBUG_PRINT(latlon_debug_msg);
 
-    return utm;
+
+    // ここで座標変換.
+
+    return xyz;
 }
 
-LatLon LatlonUtmTrans::get_latlon_from_utm(UTM utm){
-    std::string latlon_debug_msg = "get_utm";
+LatLonAlt LatlonUtmTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
+    std::string latlon_debug_msg = "get_xy";
     DEBUG_PRINT(latlon_debug_msg);
 
-    LatLon latlon;
+    LatLonAlt latlonalt;
 
-    std::string epsg_code;
     PJ_CONTEXT *C;
     PJ *P;
     PJ *norm;
     PJ_COORD a, b;
 
-    if( first_zone <= 0 || first_zone > 60){
-        first_zone = utm.zone;
+    double inf = std::numeric_limits<double>::infinity();
+    if(!set_origin_flg || !set_epsg_flg){
+        latlonalt.latitude = inf;
+        latlonalt.longitude = inf;
+        latlonalt.altitude = inf;
+        return latlonalt;
     }
-    epsg_code = utm_zone_to_epsg(utm.zone);
+
+    // ここで座標変換.
+
     C = proj_context_create();
     P = proj_create_crs_to_crs( C, epsg_code.c_str() , "EPSG:4326", NULL);
 
-    DEBUG_PRINT(utm.zone);
     DEBUG_PRINT(epsg_code);
-    DEBUG_PRINT(utm.x);
-    DEBUG_PRINT(utm.y);
 
     if (0 == P) {
-        double inf = std::numeric_limits<double>::infinity();
-        latlon.latitude = inf;
-        latlon.longitude = inf;
+        latlonalt.latitude = inf;
+        latlonalt.longitude = inf;
+        latlonalt.altitude = inf;
     }
     else{
-        a = proj_coord(utm.x, utm.y, 0, 0);
+        a = proj_coord(xyz(0), xyz(1), 0, 0);
         b = proj_trans(P, PJ_FWD, a);
 
-        latlon.latitude = b.xy.x;
-        latlon.longitude = b.xy.y;
+        latlonalt.latitude = b.xyz.x;
+        latlonalt.longitude = b.xyz.y;
+        latlonalt.altitude = xyz(2);
     }
 
     proj_destroy(P);
@@ -109,15 +142,14 @@ LatLon LatlonUtmTrans::get_latlon_from_utm(UTM utm){
     latlon_debug_msg = "return latlon from utm";
     DEBUG_PRINT(latlon_debug_msg);
 
-    return latlon;
+    return latlonalt;
 }
 
 
 // 初期化処理.
-LatlonUtmTrans::LatlonUtmTrans(bool zone_is_static) {
-    use_first_zone = zone_is_static;
-    first_zone = -1;
+LatlonUtmTrans::LatlonUtmTrans() {
+    set_origin_flg = false;
+    set_epsg_flg = false ;
 }
-
 LatlonUtmTrans::~LatlonUtmTrans() {
 }

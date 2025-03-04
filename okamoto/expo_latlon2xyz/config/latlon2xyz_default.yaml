@@ -1,0 +1,11 @@
+sub_latlon_topic1: "fix/initialpose"
+sub_utm_topic1: "odometry/utm"
+
+pub_latlon_topic1: "fix/odometry"
+pub_utm_topic1: "/initialpose"
+
+origin_pose: 0.0 0.0 0.0
+origin_quat: 0.0 0.0 0.0 1.0
+
+rot_cov: 1000000000.0
+make_angle_from_movement: true

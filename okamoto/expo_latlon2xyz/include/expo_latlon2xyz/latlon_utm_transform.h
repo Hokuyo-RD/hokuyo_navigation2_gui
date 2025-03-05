@@ -28,10 +28,12 @@ namespace latlon_utm_trans{
 
         bool set_origin_flg;
         bool set_epsg_flg;
+        bool set_origin_vector_flg;
 
         std::string epsg_code;
         LatLonAlt orig_pose;
         Eigen::Matrix3d orig_R;    // 緯度経度の基準姿勢.
+        Eigen::Vector3d orig_vec;
 
         // 経度からUTMゾーンを取得する関数.
         int judge_utm_zone(double longitude);

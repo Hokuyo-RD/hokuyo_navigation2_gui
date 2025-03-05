@@ -65,6 +65,26 @@ Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
         return xyz;
     }
 
+    if(!set_origin_vector_flg){
+        PJ_CONTEXT *C_orig;
+        PJ *P_orig;
+        PJ *norm_orig;
+        PJ_COORD a_orig, b_orig;
+        C_orig = proj_context_create();
+        P_orig = proj_create_crs_to_crs( C_orig, "EPSG:4326", epsg_code.c_str() , NULL);
+        a_orig = proj_coord(orig_pose.latitude, orig_pose.longitude, 0, 0);
+        b_orig = proj_trans(P_orig, PJ_FWD, a_orig);
+
+        orig_vec(0) = b_orig.xy.x;
+        orig_vec(1) = b_orig.xy.y;
+        orig_vec(2) = latlonalt.altitude;
+        DEBUG_PRINT(orig_vec);
+        
+        proj_destroy(P_orig);
+        proj_context_destroy(C_orig);
+        set_origin_vector_flg = true;
+    }
+
     DEBUG_PRINT(epsg_code);
     DEBUG_PRINT(latlonalt.latitude);
     DEBUG_PRINT(latlonalt.longitude);
@@ -92,6 +112,8 @@ Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
 
 
     // ここで座標変換.
+    xyz = xyz - orig_vec;
+    xyz = orig_R * xyz;
 
     return xyz;
 }
@@ -116,6 +138,8 @@ LatLonAlt LatlonUtmTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
     }
 
     // ここで座標変換.
+    xyz = orig_R.transpose() * xyz;
+    xyz = xyz + orig_vec;
 
     C = proj_context_create();
     P = proj_create_crs_to_crs( C, epsg_code.c_str() , "EPSG:4326", NULL);
@@ -150,6 +174,7 @@ LatLonAlt LatlonUtmTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
 LatlonUtmTrans::LatlonUtmTrans() {
     set_origin_flg = false;
     set_epsg_flg = false ;
+    set_origin_vector_flg = false;
 }
 LatlonUtmTrans::~LatlonUtmTrans() {
 }

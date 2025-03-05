@@ -13,6 +13,9 @@
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/String.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <geometry_msgs/Pose.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <proj.h>
 #include "expo_latlon2xyz/latlon_utm_transform.h"
@@ -23,6 +26,7 @@ class LatlonUtmTransNode {
   private:
     
     LatlonUtmTrans l_u_transformer;
+    tf2_ros::Buffer tfBuffer;
 
     std::string debug_msg;
 
@@ -59,6 +63,7 @@ class LatlonUtmTransNode {
 
     std::string origin_pose_str;
     std::string origin_quat_str;
+    std::string map_frame;
 
     int epsg_code_num;
     double rot_cov;

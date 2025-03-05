@@ -12,9 +12,21 @@ void LatlonUtmTransNode::utm_callback1(const nav_msgs::Odometry &msg){
     latlon_utm_trans::LatLonAlt latlonalt;
 
 
-    xyz(0) = msg.pose.pose.position.x ;
-    xyz(1) = msg.pose.pose.position.y ;
-    xyz(2) = msg.pose.pose.position.z ;
+    // フレーム変換.
+    geometry_msgs::TransformStamped transformStamped;
+    try{
+        transformStamped = tfBuffer.lookupTransform(map_frame, msg.header.frame_id, ros::Time(0));
+    }
+    catch (tf2::TransformException& ex){
+        ROS_WARN("%s", ex.what());
+        return;
+    }
+    geometry_msgs::Pose pose_on_map;
+    tf2::doTransform(msg.pose.pose, pose_on_map, transformStamped);
+
+    xyz(0) = pose_on_map.position.x ;
+    xyz(1) = pose_on_map.position.y ;
+    xyz(2) = pose_on_map.position.z ;
 
     latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
 
@@ -98,6 +110,8 @@ void LatlonUtmTransNode::latlon_callback1(const sensor_msgs::NavSatFix &msg){
 // 初期化処理.
 LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
 
+    tf2_ros::TransformListener tfListener(tfBuffer);
+
     // 各rosparamのデフォルト値.
     sub_latlon_topic1 = "fix1";
     sub_latlon_topic2 = "fix2";
@@ -111,6 +125,7 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     pub_utm_topic1 = "odometry/fix1";
     pub_utm_topic2 = "odometry/fix2";
     pub_utm_topic3 = "odometry/fix3";
+    map_frame = "map";
     rot_cov = 1000000000.0;
     make_angle_from_movement = false;
     
@@ -133,12 +148,15 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     pnh.getParam("pub_utm_topic3", pub_utm_topic3);
     pnh.getParam("rot_cov", rot_cov);
     pnh.getParam("make_angle_from_movement", make_angle_from_movement);
+    pnh.getParam("map_frame", map_frame);
     
     if (pnh.getParam("epsg_code_num", epsg_code_num)){
         l_u_transformer.set_epsg_code(epsg_code_num);
     }
 
-    if (pnh.getParam("origin_quat", origin_pose_str) && pnh.getParam("origin_pose", origin_quat_str)){
+    if (pnh.getParam("origin_quat", origin_quat_str) && pnh.getParam("origin_pose", origin_pose_str)){
+        DEBUG_PRINT(origin_pose_str);
+        DEBUG_PRINT(origin_quat_str);
         latlon_utm_trans::LatLonAlt latlonalt;
         double qx = 0.0, qy = 0.0, qz = 0.0, qw = 1.0;
         
@@ -149,6 +167,7 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
         std::replace(origin_quat_str.begin(), origin_quat_str.end(), ',', ' ');
         std::istringstream iss_quat(origin_quat_str);
         iss_quat >> qx >> qy >> qz >> qw;
+        
         origin_quat_ << qx, qy, qz, qw;
         if (origin_quat_.norm() == 0){
             std::cerr << "invalid quaternion" << std::endl;
@@ -157,6 +176,10 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
         else{
             origin_quat_.normalize();
         }
+        DEBUG_PRINT(latlonalt.latitude);
+        DEBUG_PRINT(latlonalt.longitude);
+        DEBUG_PRINT(latlonalt.altitude);
+        DEBUG_PRINT(origin_quat_);
 
         l_u_transformer.set_origin(latlonalt, origin_quat_);
     }

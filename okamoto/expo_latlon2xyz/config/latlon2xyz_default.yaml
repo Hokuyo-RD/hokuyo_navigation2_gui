@@ -4,7 +4,7 @@ sub_utm_topic1: "odometry/utm"
 pub_latlon_topic1: "fix/odometry"
 pub_utm_topic1: "/initialpose"
 
-origin_pose: 0.0 0.0 0.0
+origin_pose: 34.69176319251114 135.49633723119732 0
 origin_quat: 0.0 0.0 0.0 1.0
 
 rot_cov: 1000000000.0

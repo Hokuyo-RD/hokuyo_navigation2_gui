@@ -33,33 +33,33 @@ class LatlonUtmTransNode {
     ros::NodeHandle nh;
     ros::NodeHandle pnh;
     
-    ros::Subscriber latlon_sub1;
-    ros::Subscriber latlon_sub2;
-    ros::Subscriber latlon_sub3;
-    ros::Subscriber utm_sub1;
-    ros::Subscriber utm_sub2;
-    ros::Subscriber utm_sub3;
+    ros::Subscriber latlon_sub1; // -> publisher odom_pub1 
+    ros::Subscriber latlon_sub2; // -> publisher pose_pub2
+    ros::Subscriber latlon_sub3; // -> publisher posecov_pub3
+    ros::Subscriber odom_sub1;   // -> publisher latlon_pub1
+    ros::Subscriber pose_sub2;   // -> publisher latlon_pub2
+    ros::Subscriber posecov_sub3;// -> publisher latlon_pub3
 
     ros::Publisher latlon_pub1;
     ros::Publisher latlon_pub2;
     ros::Publisher latlon_pub3;
-    ros::Publisher utm_pub1;
-    ros::Publisher utm_pub2;
-    ros::Publisher utm_pub3;
+    ros::Publisher odom_pub1;
+    ros::Publisher pose_pub2;
+    ros::Publisher posecov_pub3;
 
     std::string sub_latlon_topic1;
     std::string sub_latlon_topic2;
     std::string sub_latlon_topic3;
-    std::string sub_utm_topic1;
-    std::string sub_utm_topic2;
-    std::string sub_utm_topic3;
+    std::string sub_odom_topic1;
+    std::string sub_pose_topic2;
+    std::string sub_posecov_topic3;
     
     std::string pub_latlon_topic1;
     std::string pub_latlon_topic2;
     std::string pub_latlon_topic3;
-    std::string pub_utm_topic1;
-    std::string pub_utm_topic2;
-    std::string pub_utm_topic3;
+    std::string pub_odom_topic1;
+    std::string pub_pose_topic2;
+    std::string pub_posecov_topic3;
 
     std::string origin_pose_str;
     std::string origin_quat_str;
@@ -72,15 +72,11 @@ class LatlonUtmTransNode {
     bool latlon_isfirst;
     geometry_msgs::Pose last_latlon_pose;
 
-    nav_msgs::Odometry sub_utm_msg;
-    sensor_msgs::NavSatFix sub_latlon_msg;
-
-
   public:
     // utmコールバック関数.
-    void utm_callback1(const nav_msgs::Odometry &msg);
-    void utm_callback2(const nav_msgs::Odometry &msg);
-    void utm_callback3(const nav_msgs::Odometry &msg);
+    void odom_callback1(const nav_msgs::Odometry &msg);
+    void pose_callback2(const geometry_msgs::PoseStamped &msg);
+    void posecov_callback3(const geometry_msgs::PoseWithCovarianceStamped &msg);
 
     // latlonコールバック関数.
     void latlon_callback1(const sensor_msgs::NavSatFix &msg);

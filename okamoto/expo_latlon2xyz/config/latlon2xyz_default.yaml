@@ -1,8 +1,22 @@
-sub_latlon_topic1: "fix/initialpose"
-sub_utm_topic1: "odometry/utm"
+sub_latlon_topic1: "fix1"
+pub_odom_topic1: "odometry/fix1"
 
+sub_latlon_topic2: "fix2"
+pub_pose_topic2: "pose/fix2"
+
+sub_latlon_topic3: "fix3"
+pub_posecov_topic3: "pose_with_covariance/fix3"
+
+
+sub_odom_topic1: "odometry"
 pub_latlon_topic1: "fix/odometry"
-pub_utm_topic1: "/initialpose"
+
+sub_pose_topic2: "pose"
+pub_latlon_topic2: "fix/pose"
+
+sub_posecov_topic3: "pose_with_covariance"
+pub_latlon_topic3: "fix/pose_with_covariance"
+
 
 origin_pose: 34.69176319251114 135.49633723119732 0
 origin_quat: 0.0 0.0 0.0 1.0

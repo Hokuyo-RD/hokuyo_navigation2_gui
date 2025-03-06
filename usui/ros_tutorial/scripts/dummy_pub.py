@@ -12,9 +12,9 @@ def read_csv(file_path):
     with open(file_path, mode='r') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
-            if len(row) == 11:  # ID, 位置（3）、サイズ、速度, 密度、向き（3）の3列があることを確認
+            if len(row) == 11:  # ID, 位置（3）、サイズ、速度, 密度、向き（3）の11列があることを確認
                 try:
-                    data.append([int(row[0]), float(row[1]), float(row[2]),float(row[3]),int(row[4]),float(row[5]),float(row[6]),float(row[7]),float(row[8]),float(row[9]),float(row[10])])
+                    data.append([int(row[0]), int(row[1]), int(row[2]),int(row[3]),int(row[4]),float(row[5]),float(row[6]),float(row[7]),float(row[8]),float(row[9]),float(row[10])])
                 except ValueError:
                     rospy.logwarn(f"無効なデータをスキップ: {row}")
     return data
@@ -22,7 +22,7 @@ def read_csv(file_path):
 def publisher():
     rospy.init_node('csv_data_publisher', anonymous=True)
     pub = rospy.Publisher('data_topic', Area, queue_size=30)
-    rate = rospy.Rate(10)  # 2 Hz（適宜調整可能）
+    rate = rospy.Rate(0.5)
 
     # CSVファイルのパス（適宜変更）
     file_path = "/home/ubuntu/catkin_ws/src/ros_tutorial/scripts/data.csv"

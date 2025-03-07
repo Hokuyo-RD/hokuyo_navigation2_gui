@@ -16,6 +16,10 @@
 #include <geometry_msgs/Pose.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <expo_msgs/Area.h>
+#include <expo_msgs/Person.h>
+#include <expo_fix_msgs/Area_fix.h>
+#include <expo_fix_msgs/Person_fix.h>
 
 #include <proj.h>
 #include "expo_latlon2xyz/latlon_utm_transform.h"
@@ -39,6 +43,10 @@ class LatlonUtmTransNode {
     ros::Subscriber odom_sub1;   // -> publisher latlon_pub1
     ros::Subscriber pose_sub2;   // -> publisher latlon_pub2
     ros::Subscriber posecov_sub3;// -> publisher latlon_pub3
+    ros::Subscriber area_sub;
+    ros::Subscriber person_sub;
+    ros::Subscriber area_fix_sub;
+    ros::Subscriber person_fix_sub;
 
     ros::Publisher latlon_pub1;
     ros::Publisher latlon_pub2;
@@ -46,6 +54,10 @@ class LatlonUtmTransNode {
     ros::Publisher odom_pub1;
     ros::Publisher pose_pub2;
     ros::Publisher posecov_pub3;
+    ros::Publisher area_pub;
+    ros::Publisher person_pub;
+    ros::Publisher area_fix_pub;
+    ros::Publisher person_fix_pub;
 
     std::string sub_latlon_topic1;
     std::string sub_latlon_topic2;
@@ -53,6 +65,10 @@ class LatlonUtmTransNode {
     std::string sub_odom_topic1;
     std::string sub_pose_topic2;
     std::string sub_posecov_topic3;
+    std::string sub_area_topic;
+    std::string sub_person_topic;
+    std::string sub_area_fix_topic;
+    std::string sub_person_fix_topic;
     
     std::string pub_latlon_topic1;
     std::string pub_latlon_topic2;
@@ -60,6 +76,10 @@ class LatlonUtmTransNode {
     std::string pub_odom_topic1;
     std::string pub_pose_topic2;
     std::string pub_posecov_topic3;
+    std::string pub_area_topic;
+    std::string pub_person_topic;
+    std::string pub_area_fix_topic;
+    std::string pub_person_fix_topic;
 
     std::string origin_pose_str;
     std::string origin_quat_str;
@@ -69,19 +89,25 @@ class LatlonUtmTransNode {
     double rot_cov;
     bool make_angle_from_movement;
     
-    bool latlon_isfirst;
-    geometry_msgs::Pose last_latlon_pose;
+    bool fix1_isfirst;
+    bool fix2_isfirst;
+    bool fix3_isfirst;
+    geometry_msgs::Pose last_fix1_pose;
+    geometry_msgs::Pose last_fix2_pose;
+    geometry_msgs::Pose last_fix3_pose;
 
   public:
-    // utmコールバック関数.
+    // コールバック関数.
     void odom_callback1(const nav_msgs::Odometry &msg);
     void pose_callback2(const geometry_msgs::PoseStamped &msg);
     void posecov_callback3(const geometry_msgs::PoseWithCovarianceStamped &msg);
-
-    // latlonコールバック関数.
     void latlon_callback1(const sensor_msgs::NavSatFix &msg);
     void latlon_callback2(const sensor_msgs::NavSatFix &msg);
     void latlon_callback3(const sensor_msgs::NavSatFix &msg);
+    void area_callback(const expo_msgs::Area &msg);
+    void person_callback(const expo_msgs::Person &msg);
+    void area_fix_callback(const expo_fix_msgs::Area_fix &msg);
+    void person_fix_callback(const expo_fix_msgs::Person_fix &msg);
 
     LatlonUtmTransNode();
     ~LatlonUtmTransNode();

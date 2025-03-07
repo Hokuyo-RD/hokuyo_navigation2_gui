@@ -31,8 +31,14 @@ void LatlonUtmTrans::set_origin(latlon_utm_trans::LatLonAlt orig_pose_, Eigen::V
     set_origin_flg = true;
     orig_pose = orig_pose_;
     orig_R = RotMatFromQuat(orig_quat_);
+    int utm_zone = judge_utm_zone(orig_pose.longitude);
+    if(utm_zone > 0 && utm_zone <=60){
+        epsg_code = utm_zone_to_epsg(utm_zone);
+        set_epsg_flg = true;
+    }
 }
 
+// 基本つかわない.
 void LatlonUtmTrans::set_epsg_code(int epsg_code_num){
     epsg_code = "EPSG:" + std::to_string(epsg_code_num);
     set_epsg_flg = true;

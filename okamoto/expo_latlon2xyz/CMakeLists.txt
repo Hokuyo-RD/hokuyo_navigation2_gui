@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2
   tf2_ros
   tf2_geometry_msgs
+  expo_msgs
+  expo_fix_msgs
 )
 
 find_package (Eigen3 REQUIRED)
@@ -33,6 +35,11 @@ add_executable(expo_latlon2xyz
   src/latlon_utm_transform.cpp
   src/latlon_utm_transform_node.cpp
   src/latlon_utm_transform_node_lib.cpp
+)
+
+add_dependencies(expo_latlon2xyz
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
 )
 
 target_link_libraries(expo_latlon2xyz

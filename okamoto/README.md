@@ -49,8 +49,8 @@ catkin_make
 ```
 
 ### 実行手順
-1. parameterを編集する ( 詳細は後述の parameter を参照 )
-    expo_software/okamoto/expo_fix2xyz/config/fix2xyz_default.yaml
+1. parameterファイルを編集する ( 詳細は後述の parameter を参照 )  
+    - expo_software/okamoto/expo_fix2xyz/config/fix2xyz_default.yaml
 2. launch実行
     ```
     source devel/setup.bash

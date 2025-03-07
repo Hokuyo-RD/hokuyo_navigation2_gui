@@ -70,7 +70,7 @@ catkin_make
     - AreaFix型に変換したいareaトピック名  
     [expo_msgs::Area]
 - `pub_area_fix_topic` (default: "area_fix/from_area")
-    - `sub_area_topic`を変換してpublishするarea_fixトピック名
+    - `sub_area_topic`を変換してpublishするarea_fixトピック名  
     [expo_fix_msgs::AreaFix]
 
 #### AreaFix => Area
@@ -78,7 +78,7 @@ catkin_make
     - Area型に変換したいarea_fixトピック名  
     [expo_fix_msgs::AreaFix]
 - `pub_area_topic` (default: "area/from_fix")
-    - `sub_area_fix_topic`を変換してpublishするareaトピック名
+    - `sub_area_fix_topic`を変換してpublishするareaトピック名  
     [expo_msgs::Area]
 
 #### Person => PersonFix
@@ -86,7 +86,7 @@ catkin_make
     - PersonFix型に変換したいpersonトピック名  
     [expo_msgs::Person]
 - `pub_person_fix_topic`(default: "person_fix/from_person")
-    - `sub_person_topic`を変換してpublishするperson_fixトピック名
+    - `sub_person_topic`を変換してpublishするperson_fixトピック名  
     [expo_fix_msgs::PersonFix]
 
 #### PersonFix => Person
@@ -94,7 +94,7 @@ catkin_make
     - Person型に変換したいperson_fixトピック名  
     [expo_fix_msgs::PersonFix]
 - `pub_person_topic` (default: "person/from_fix")
-    - `sub_person_fix_topic`を変換してpublishするpersonトピック名
+    - `sub_person_fix_topic`を変換してpublishするpersonトピック名  
     [expo_msgs::Person]
 
 
@@ -111,7 +111,8 @@ catkin_make
     - NavSatFix型に変換したいodometryトピック名  
     [nav_msgs::Odometry]
 - `pub_fix_topic1` (default: "fix/from_odom1")
-    - `sub_odom_topic1`を変換してpublishするfixトピック名[sensor_Msgs::NavSatFix]
+    - `sub_odom_topic1`を変換してpublishするfixトピック名  
+    [sensor_Msgs::NavSatFix]
 
 #### NavSatFix => PoseStamped
 - `sub_fix_topic2` (default: "fix2")
@@ -140,10 +141,10 @@ catkin_make
 
 #### PoseWithCovarianceStamped => NavSatFix
 - `sub_posecov_topic3` (default: "posecov3")
-    - NavSatFix型に変換したいPoseWithCovarianceStampedトピック名
+    - NavSatFix型に変換したいPoseWithCovarianceStampedトピック名  
     [geometry_msgs::PoseWithCovarianceStamped]
 - `pub_fix_topic3` (default: "fix/from_posecov3")
-    - `sub_posecov_topic3`を変換してpublishするfixトピック名
+    - `sub_posecov_topic3`を変換してpublishするfixトピック名  
     [sensor_msgs::NavSatFix]
 
 #### その他のオプション

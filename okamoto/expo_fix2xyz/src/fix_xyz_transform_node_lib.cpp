@@ -1,6 +1,7 @@
 #define DEBUG_MODE
+#include "expo_fix2xyz/fix_xyz_transform_node_lib.h"
 
-#include "expo_latlon2xyz/latlon_utm_transform_node_lib.h"
+
 
 // odomコールバック関数.
 void LatlonUtmTransNode::odom_callback1(const nav_msgs::Odometry &msg){
@@ -9,7 +10,7 @@ void LatlonUtmTransNode::odom_callback1(const nav_msgs::Odometry &msg){
 
     sensor_msgs::NavSatFix ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
 
     // フレーム変換.
@@ -45,7 +46,7 @@ void LatlonUtmTransNode::odom_callback1(const nav_msgs::Odometry &msg){
     ret_msg.position_covariance[7] = msg.pose.covariance[13];
     ret_msg.position_covariance[8] = msg.pose.covariance[14];
 
-    latlon_pub1.publish(ret_msg);
+    fix_pub1.publish(ret_msg);
 
     debug_msg = "published fix_msg1 from odometry";
     DEBUG_PRINT(debug_msg);
@@ -58,7 +59,7 @@ void LatlonUtmTransNode::pose_callback2(const geometry_msgs::PoseStamped &msg){
 
     sensor_msgs::NavSatFix ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
 
     // フレーム変換.
@@ -85,7 +86,7 @@ void LatlonUtmTransNode::pose_callback2(const geometry_msgs::PoseStamped &msg){
     ret_msg.longitude = latlonalt.longitude;
     ret_msg.altitude = latlonalt.altitude;
 
-    latlon_pub2.publish(ret_msg);
+    fix_pub2.publish(ret_msg);
 
     debug_msg = "published fix_msg2 from pose_stamped";
     DEBUG_PRINT(debug_msg);
@@ -98,7 +99,7 @@ void LatlonUtmTransNode::posecov_callback3(const geometry_msgs::PoseWithCovarian
 
     sensor_msgs::NavSatFix ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
 
     // フレーム変換.
@@ -134,7 +135,7 @@ void LatlonUtmTransNode::posecov_callback3(const geometry_msgs::PoseWithCovarian
     ret_msg.position_covariance[7] = msg.pose.covariance[13];
     ret_msg.position_covariance[8] = msg.pose.covariance[14];
 
-    latlon_pub3.publish(ret_msg);
+    fix_pub3.publish(ret_msg);
 
     debug_msg = "published fix_msg3 from pose_with_covariance_stamped";
     DEBUG_PRINT(debug_msg);
@@ -145,9 +146,9 @@ void LatlonUtmTransNode::area_callback(const expo_msgs::Area &msg){
     debug_msg = "get area_msg";
     DEBUG_PRINT(debug_msg);
 
-    expo_fix_msgs::Area_fix ret_msg;
+    expo_fix_msgs::AreaFix ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
     xyz(0) = msg.position.x ;
     xyz(1) = msg.position.y ;
@@ -177,9 +178,9 @@ void LatlonUtmTransNode::person_callback(const expo_msgs::Person &msg){
     debug_msg = "get person_msg";
     DEBUG_PRINT(debug_msg);
 
-    expo_fix_msgs::Person_fix ret_msg;
+    expo_fix_msgs::PersonFix ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
     xyz(0) = msg.position.x ;
     xyz(1) = msg.position.y ;
@@ -200,13 +201,13 @@ void LatlonUtmTransNode::person_callback(const expo_msgs::Person &msg){
 }
 
 // fixコールバック関数.
-void LatlonUtmTransNode::latlon_callback1(const sensor_msgs::NavSatFix &msg){
+void LatlonUtmTransNode::fix_callback1(const sensor_msgs::NavSatFix &msg){
     debug_msg = "get fix_msg1";
     DEBUG_PRINT(debug_msg);
 
     nav_msgs::Odometry ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
     latlonalt.latitude = msg.latitude;
     latlonalt.longitude = msg.longitude;
@@ -258,13 +259,13 @@ void LatlonUtmTransNode::latlon_callback1(const sensor_msgs::NavSatFix &msg){
 
 
 
-void LatlonUtmTransNode::latlon_callback2(const sensor_msgs::NavSatFix &msg){
+void LatlonUtmTransNode::fix_callback2(const sensor_msgs::NavSatFix &msg){
     debug_msg = "get fix_msg2";
     DEBUG_PRINT(debug_msg);
 
     geometry_msgs::PoseStamped ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
     latlonalt.latitude = msg.latitude;
     latlonalt.longitude = msg.longitude;
@@ -303,13 +304,13 @@ void LatlonUtmTransNode::latlon_callback2(const sensor_msgs::NavSatFix &msg){
 }
 
 
-void LatlonUtmTransNode::latlon_callback3(const sensor_msgs::NavSatFix &msg){
+void LatlonUtmTransNode::fix_callback3(const sensor_msgs::NavSatFix &msg){
     debug_msg = "get fix_msg3";
     DEBUG_PRINT(debug_msg);
 
     geometry_msgs::PoseWithCovarianceStamped ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
     latlonalt.latitude = msg.latitude;
     latlonalt.longitude = msg.longitude;
@@ -360,13 +361,13 @@ void LatlonUtmTransNode::latlon_callback3(const sensor_msgs::NavSatFix &msg){
 }
 
 
-void LatlonUtmTransNode::area_fix_callback(const expo_fix_msgs::Area_fix &msg){
+void LatlonUtmTransNode::area_fix_callback(const expo_fix_msgs::AreaFix &msg){
     debug_msg = "get area_fix_msg";
     DEBUG_PRINT(debug_msg);
 
     expo_msgs::Area ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
     latlonalt.latitude = msg.latitude;
     latlonalt.longitude = msg.longitude;
@@ -389,13 +390,13 @@ void LatlonUtmTransNode::area_fix_callback(const expo_fix_msgs::Area_fix &msg){
     DEBUG_PRINT(debug_msg);
 }
 
-void LatlonUtmTransNode::person_fix_callback(const expo_fix_msgs::Person_fix &msg){
+void LatlonUtmTransNode::person_fix_callback(const expo_fix_msgs::PersonFix &msg){
     debug_msg = "get person_fix_msg";
     DEBUG_PRINT(debug_msg);
 
     expo_msgs::Person ret_msg;
     Eigen::Vector3d xyz;
-    latlon_utm_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::LatLonAlt latlonalt;
 
     latlonalt.latitude = msg.latitude;
     latlonalt.longitude = msg.longitude;
@@ -424,9 +425,9 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     tf2_ros::TransformListener tfListener(tfBuffer);
 
     // 各rosparamのデフォルト値.
-    sub_latlon_topic1 = "fix1";
-    sub_latlon_topic2 = "fix2";
-    sub_latlon_topic3 = "fix3";
+    sub_fix_topic1 = "fix1";
+    sub_fix_topic2 = "fix2";
+    sub_fix_topic3 = "fix3";
     sub_odom_topic1 = "odom1";
     sub_pose_topic2 = "pose2";
     sub_posecov_topic3 = "posecov3";
@@ -435,9 +436,9 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     sub_person_topic = "person";
     sub_person_fix_topic = "person_fix";
 
-    pub_latlon_topic1 = "fix/from_odom1";
-    pub_latlon_topic2 = "fix/from_pose2";
-    pub_latlon_topic3 = "fix/from_posecov3";
+    pub_fix_topic1 = "fix/from_odom1";
+    pub_fix_topic2 = "fix/from_pose2";
+    pub_fix_topic3 = "fix/from_posecov3";
     pub_odom_topic1 = "odometry/from_fix1";
     pub_pose_topic2 = "pose/from_fix2";
     pub_posecov_topic3 = "posecov/from_fix3";
@@ -450,14 +451,14 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     rot_cov = 1000000000.0;
     make_angle_from_movement = false;
     
-    latlon_utm_trans::LatLonAlt origin_latlonalt_;
+    fix_xyz_trans::LatLonAlt origin_latlonalt_;
     Eigen::Vector4d origin_quat_;
     
     
     // rosparamの取得.
-    pnh.getParam("sub_latlon_topic1", sub_latlon_topic1);
-    pnh.getParam("sub_latlon_topic2", sub_latlon_topic2);
-    pnh.getParam("sub_latlon_topic3", sub_latlon_topic3);
+    pnh.getParam("sub_fix_topic1", sub_fix_topic1);
+    pnh.getParam("sub_fix_topic2", sub_fix_topic2);
+    pnh.getParam("sub_fix_topic3", sub_fix_topic3);
     pnh.getParam("sub_odom_topic1", sub_odom_topic1);
     pnh.getParam("sub_pose_topic2", sub_pose_topic2);
     pnh.getParam("sub_posecov_topic3", sub_posecov_topic3);
@@ -467,9 +468,9 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     pnh.getParam("sub_person_topic", sub_person_topic);
     pnh.getParam("sub_person_fix_topic", sub_person_fix_topic);
     
-    pnh.getParam("pub_latlon_topic1", pub_latlon_topic1);
-    pnh.getParam("pub_latlon_topic2", pub_latlon_topic2);
-    pnh.getParam("pub_latlon_topic3", pub_latlon_topic3);
+    pnh.getParam("pub_fix_topic1", pub_fix_topic1);
+    pnh.getParam("pub_fix_topic2", pub_fix_topic2);
+    pnh.getParam("pub_fix_topic3", pub_fix_topic3);
     pnh.getParam("pub_oodm_topic1", pub_odom_topic1);
     pnh.getParam("pub_pose_topic2", pub_pose_topic2);
     pnh.getParam("pub_posecov_topic3", pub_posecov_topic3);
@@ -489,7 +490,7 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     if (pnh.getParam("origin_quat", origin_quat_str) && pnh.getParam("origin_pose", origin_pose_str)){
         DEBUG_PRINT(origin_pose_str);
         DEBUG_PRINT(origin_quat_str);
-        latlon_utm_trans::LatLonAlt latlonalt;
+        fix_xyz_trans::LatLonAlt latlonalt;
         double qx = 0.0, qy = 0.0, qz = 0.0, qw = 1.0;
         
         std::replace(origin_pose_str.begin(), origin_pose_str.end(), ',', ' ');
@@ -517,9 +518,9 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     }
 
     // publisher,subscriberの設定.
-    latlon_sub1 = nh.subscribe(sub_latlon_topic1, 10, &LatlonUtmTransNode::latlon_callback1, this);
-    latlon_sub2 = nh.subscribe(sub_latlon_topic2, 10, &LatlonUtmTransNode::latlon_callback2, this);
-    latlon_sub3 = nh.subscribe(sub_latlon_topic3, 10, &LatlonUtmTransNode::latlon_callback3, this);
+    fix_sub1 = nh.subscribe(sub_fix_topic1, 10, &LatlonUtmTransNode::fix_callback1, this);
+    fix_sub2 = nh.subscribe(sub_fix_topic2, 10, &LatlonUtmTransNode::fix_callback2, this);
+    fix_sub3 = nh.subscribe(sub_fix_topic3, 10, &LatlonUtmTransNode::fix_callback3, this);
     odom_sub1 = nh.subscribe(sub_odom_topic1, 10, &LatlonUtmTransNode::odom_callback1, this);
     pose_sub2 = nh.subscribe(sub_pose_topic2, 10, &LatlonUtmTransNode::pose_callback2, this);
     posecov_sub3 = nh.subscribe(sub_posecov_topic3, 10, &LatlonUtmTransNode::posecov_callback3, this);
@@ -529,17 +530,17 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     person_sub = nh.subscribe(sub_person_topic, 10, &LatlonUtmTransNode::person_callback, this);
     person_fix_sub = nh.subscribe(sub_person_fix_topic, 10, &LatlonUtmTransNode::person_fix_callback, this);
 
-    latlon_pub1 = nh.advertise<sensor_msgs::NavSatFix>(pub_latlon_topic1, 10);
-    latlon_pub2 = nh.advertise<sensor_msgs::NavSatFix>(pub_latlon_topic2, 10);
-    latlon_pub3 = nh.advertise<sensor_msgs::NavSatFix>(pub_latlon_topic3, 10);
+    fix_pub1 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic1, 10);
+    fix_pub2 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic2, 10);
+    fix_pub3 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic3, 10);
     odom_pub1 = nh.advertise<nav_msgs::Odometry>(pub_odom_topic1, 10);
     pose_pub2 = nh.advertise<geometry_msgs::PoseStamped>(pub_pose_topic2, 10);
     posecov_pub3 = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>(pub_posecov_topic3, 10);
 
     area_pub = nh.advertise<expo_msgs::Area>(pub_area_topic, 10);
-    area_fix_pub = nh.advertise<expo_fix_msgs::Area_fix>(pub_area_fix_topic, 10);
+    area_fix_pub = nh.advertise<expo_fix_msgs::AreaFix>(pub_area_fix_topic, 10);
     person_pub = nh.advertise<expo_msgs::Person>(pub_person_topic, 10);
-    person_fix_pub = nh.advertise<expo_fix_msgs::Person_fix>(pub_person_fix_topic, 10);
+    person_fix_pub = nh.advertise<expo_fix_msgs::PersonFix>(pub_person_fix_topic, 10);
 
     fix1_isfirst = true;
     fix2_isfirst = true;

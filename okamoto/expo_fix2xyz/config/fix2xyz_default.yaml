@@ -1,11 +1,16 @@
-# expo_msgs::Area <=> expo_fix_msgs::Area_fix
-sub_area_topic: "area"
+# マップ原点の設定
+origin_pose: 34.69176319251114,135.49633723119732,0 # 緯度 経度 高度
+origin_quat: 0.0,0.0,0.0,1.0
+
+
+# expo_msgs::Area <=> expo_fix_msgs::AreaFix
+sub_area_topic: "data_topic"
 pub_area_fix_topic: "area_fix/from_area"
 
 sub_area_fix_topic: "area_fix"
 pub_area_topic: "area/from_fix"
 
-# expo_msgs::Person <=> expo_fix_msgs::Person_fix
+# expo_msgs::Person <=> expo_fix_msgs::PersonFix
 sub_person_topic: "person"
 pub_person_fix_topic: "person_fix/from_person"
 
@@ -13,29 +18,25 @@ sub_person_fix_topic: "person_fix"
 pub_person_topic: "person/from_fix"
 
 # sensor_msgs::NavSatFix <=> nav_msgs::Odometry
-sub_latlon_topic1: "fix1"
+sub_fix_topic1: "fix1"
 pub_odom_topic1: "odometry/from_fix1"
 
 sub_odom_topic1: "odom1"
-pub_latlon_topic1: "fix/from_odom1"
+pub_fix_topic1: "fix/from_odom1"
 
 # sensor_msgs::NavSatFix <=> geometry_msgs::PoseStamped
-sub_latlon_topic2: "fix2"
+sub_fix_topic2: "fix2"
 pub_pose_topic2: "pose/from_fix2"
 
 sub_pose_topic2: "pose2"
-pub_latlon_topic2: "fix/from_pose2"
+pub_fix_topic2: "fix/from_pose2"
 
 # sensor_msgs::NavSatFix <=> geometry_msgs::PoseWithCovarianceStamped
-sub_latlon_topic3: "fix3"
+sub_fix_topic3: "fix3"
 pub_posecov_topic3: "posecov/from_fix3"
 
 sub_posecov_topic3: "posecov3"
-pub_latlon_topic3: "fix/from_posecov3"
-
-# マップ座標原点の 緯度 経度 高度
-origin_pose: 34.69176319251114 135.49633723119732 0
-origin_quat: 0.0 0.0 0.0 1.0
+pub_fix_topic3: "fix/from_posecov3"
 
 # その他のオプション
 rot_cov: 1000000000.0

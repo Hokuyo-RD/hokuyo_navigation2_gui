@@ -50,8 +50,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  Person_fix.msg
-  Area_fix.msg
+  PersonFix.msg
+  AreaFix.msg
 )
 
 ## Generate services in the 'srv' folder

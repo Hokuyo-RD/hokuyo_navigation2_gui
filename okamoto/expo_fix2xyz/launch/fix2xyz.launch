@@ -2,14 +2,14 @@
 
 <launch>
     <!--パラメーターファイル-->
-    <arg name="param_file" default="$(find expo_latlon2xyz)/config/latlon2xyz_default.yaml" />
+    <arg name="param_file" default="$(find expo_fix2xyz)/config/fix2xyz_default.yaml" />
 
     <!--ノード名-->
-    <arg name="name" default="expo_latlon2xyz" />
+    <arg name="name" default="expo_fix2xyz" />
     
     <arg name="output_option" default="screen" />
     
-    <node pkg="expo_latlon2xyz" type="expo_latlon2xyz" name="$(arg name)" output="$(arg output_option)">
+    <node pkg="expo_fix2xyz" type="expo_fix2xyz" name="$(arg name)" output="$(arg output_option)">
             <rosparam command="load" file="$(arg param_file)"/>
     </node>
     

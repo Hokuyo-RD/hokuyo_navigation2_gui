@@ -14,7 +14,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 
-namespace latlon_utm_trans{
+namespace fix_xyz_trans{
 
     // 緯度経度を表す構造体.
     struct LatLonAlt {

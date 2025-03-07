@@ -18,13 +18,13 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <expo_msgs/Area.h>
 #include <expo_msgs/Person.h>
-#include <expo_fix_msgs/Area_fix.h>
-#include <expo_fix_msgs/Person_fix.h>
+#include <expo_fix_msgs/AreaFix.h>
+#include <expo_fix_msgs/PersonFix.h>
 
 #include <proj.h>
-#include "expo_latlon2xyz/latlon_utm_transform.h"
+#include "expo_fix2xyz/fix_xyz_transform.h"
 
-using namespace latlon_utm_trans;
+using namespace fix_xyz_trans;
 
 class LatlonUtmTransNode {
   private:
@@ -37,20 +37,20 @@ class LatlonUtmTransNode {
     ros::NodeHandle nh;
     ros::NodeHandle pnh;
     
-    ros::Subscriber latlon_sub1; // -> publisher odom_pub1 
-    ros::Subscriber latlon_sub2; // -> publisher pose_pub2
-    ros::Subscriber latlon_sub3; // -> publisher posecov_pub3
-    ros::Subscriber odom_sub1;   // -> publisher latlon_pub1
-    ros::Subscriber pose_sub2;   // -> publisher latlon_pub2
-    ros::Subscriber posecov_sub3;// -> publisher latlon_pub3
+    ros::Subscriber fix_sub1; // -> publisher odom_pub1 
+    ros::Subscriber fix_sub2; // -> publisher pose_pub2
+    ros::Subscriber fix_sub3; // -> publisher posecov_pub3
+    ros::Subscriber odom_sub1;   // -> publisher fix_pub1
+    ros::Subscriber pose_sub2;   // -> publisher fix_pub2
+    ros::Subscriber posecov_sub3;// -> publisher fix_pub3
     ros::Subscriber area_sub;
     ros::Subscriber person_sub;
     ros::Subscriber area_fix_sub;
     ros::Subscriber person_fix_sub;
 
-    ros::Publisher latlon_pub1;
-    ros::Publisher latlon_pub2;
-    ros::Publisher latlon_pub3;
+    ros::Publisher fix_pub1;
+    ros::Publisher fix_pub2;
+    ros::Publisher fix_pub3;
     ros::Publisher odom_pub1;
     ros::Publisher pose_pub2;
     ros::Publisher posecov_pub3;
@@ -59,9 +59,9 @@ class LatlonUtmTransNode {
     ros::Publisher area_fix_pub;
     ros::Publisher person_fix_pub;
 
-    std::string sub_latlon_topic1;
-    std::string sub_latlon_topic2;
-    std::string sub_latlon_topic3;
+    std::string sub_fix_topic1;
+    std::string sub_fix_topic2;
+    std::string sub_fix_topic3;
     std::string sub_odom_topic1;
     std::string sub_pose_topic2;
     std::string sub_posecov_topic3;
@@ -70,9 +70,9 @@ class LatlonUtmTransNode {
     std::string sub_area_fix_topic;
     std::string sub_person_fix_topic;
     
-    std::string pub_latlon_topic1;
-    std::string pub_latlon_topic2;
-    std::string pub_latlon_topic3;
+    std::string pub_fix_topic1;
+    std::string pub_fix_topic2;
+    std::string pub_fix_topic3;
     std::string pub_odom_topic1;
     std::string pub_pose_topic2;
     std::string pub_posecov_topic3;
@@ -101,13 +101,13 @@ class LatlonUtmTransNode {
     void odom_callback1(const nav_msgs::Odometry &msg);
     void pose_callback2(const geometry_msgs::PoseStamped &msg);
     void posecov_callback3(const geometry_msgs::PoseWithCovarianceStamped &msg);
-    void latlon_callback1(const sensor_msgs::NavSatFix &msg);
-    void latlon_callback2(const sensor_msgs::NavSatFix &msg);
-    void latlon_callback3(const sensor_msgs::NavSatFix &msg);
+    void fix_callback1(const sensor_msgs::NavSatFix &msg);
+    void fix_callback2(const sensor_msgs::NavSatFix &msg);
+    void fix_callback3(const sensor_msgs::NavSatFix &msg);
     void area_callback(const expo_msgs::Area &msg);
     void person_callback(const expo_msgs::Person &msg);
-    void area_fix_callback(const expo_fix_msgs::Area_fix &msg);
-    void person_fix_callback(const expo_fix_msgs::Person_fix &msg);
+    void area_fix_callback(const expo_fix_msgs::AreaFix &msg);
+    void person_fix_callback(const expo_fix_msgs::PersonFix &msg);
 
     LatlonUtmTransNode();
     ~LatlonUtmTransNode();

@@ -1,5 +1,5 @@
-#define DEBUG_MODE
-#include "expo_latlon2xyz/latlon_utm_transform.h"
+// #define DEBUG_MODE
+#include "expo_fix2xyz/fix_xyz_transform.h"
 
 
 
@@ -13,7 +13,7 @@ Eigen::Matrix3d RotMatFromQuat(const Eigen::Vector4d& quat){
     return Rot;
 }
 
-using namespace latlon_utm_trans;
+using namespace fix_xyz_trans;
 
 int LatlonUtmTrans::judge_utm_zone(double longitude){
     //経度を6で割って切り上げ.
@@ -27,15 +27,33 @@ std::string LatlonUtmTrans::utm_zone_to_epsg(int utm_zone){
 }
 
 
-void LatlonUtmTrans::set_origin(latlon_utm_trans::LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_){
+void LatlonUtmTrans::set_origin(fix_xyz_trans::LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_){
     set_origin_flg = true;
     orig_pose = orig_pose_;
     orig_R = RotMatFromQuat(orig_quat_);
-    int utm_zone = judge_utm_zone(orig_pose.longitude);
+    int utm_zone = judge_utm_zone(orig_pose_.longitude);
     if(utm_zone > 0 && utm_zone <=60){
         epsg_code = utm_zone_to_epsg(utm_zone);
         set_epsg_flg = true;
     }
+
+    PJ_CONTEXT *C_orig;
+    PJ *P_orig;
+    PJ *norm_orig;
+    PJ_COORD a_orig, b_orig;
+    C_orig = proj_context_create();
+    P_orig = proj_create_crs_to_crs( C_orig, "EPSG:4326", epsg_code.c_str() , NULL);
+    a_orig = proj_coord(orig_pose.latitude, orig_pose.longitude, 0, 0);
+    b_orig = proj_trans(P_orig, PJ_FWD, a_orig);
+
+    orig_vec(0) = b_orig.xy.x;
+    orig_vec(1) = b_orig.xy.y;
+    orig_vec(2) = orig_pose.altitude;
+    DEBUG_PRINT(orig_vec);
+    
+    proj_destroy(P_orig);
+    proj_context_destroy(C_orig);
+    set_origin_vector_flg = true;
 }
 
 // 基本つかわない.
@@ -45,8 +63,8 @@ void LatlonUtmTrans::set_epsg_code(int epsg_code_num){
 }
 
 Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
-    std::string latlon_debug_msg = "get_latlon";
-    DEBUG_PRINT(latlon_debug_msg);
+    std::string fix_debug_msg = "get_fix";
+    DEBUG_PRINT(fix_debug_msg);
 
     Eigen::Vector3d xyz = Eigen::Vector3d::Zero();
     
@@ -67,28 +85,8 @@ Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
         }
     }
 
-    if(!set_origin_flg){
+    if(!set_origin_flg || !set_origin_vector_flg){
         return xyz;
-    }
-
-    if(!set_origin_vector_flg){
-        PJ_CONTEXT *C_orig;
-        PJ *P_orig;
-        PJ *norm_orig;
-        PJ_COORD a_orig, b_orig;
-        C_orig = proj_context_create();
-        P_orig = proj_create_crs_to_crs( C_orig, "EPSG:4326", epsg_code.c_str() , NULL);
-        a_orig = proj_coord(orig_pose.latitude, orig_pose.longitude, 0, 0);
-        b_orig = proj_trans(P_orig, PJ_FWD, a_orig);
-
-        orig_vec(0) = b_orig.xy.x;
-        orig_vec(1) = b_orig.xy.y;
-        orig_vec(2) = latlonalt.altitude;
-        DEBUG_PRINT(orig_vec);
-        
-        proj_destroy(P_orig);
-        proj_context_destroy(C_orig);
-        set_origin_vector_flg = true;
     }
 
     DEBUG_PRINT(epsg_code);
@@ -113,8 +111,8 @@ Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
     proj_destroy(P);
     proj_context_destroy(C);
 
-    latlon_debug_msg = "return utm from latlon";
-    DEBUG_PRINT(latlon_debug_msg);
+    fix_debug_msg = "return xyz from fix";
+    DEBUG_PRINT(fix_debug_msg);
 
 
     // ここで座標変換.
@@ -125,8 +123,8 @@ Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
 }
 
 LatLonAlt LatlonUtmTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
-    std::string latlon_debug_msg = "get_xy";
-    DEBUG_PRINT(latlon_debug_msg);
+    std::string fix_debug_msg = "get_xy";
+    DEBUG_PRINT(fix_debug_msg);
 
     LatLonAlt latlonalt;
 
@@ -169,8 +167,8 @@ LatLonAlt LatlonUtmTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
     proj_destroy(P);
     proj_context_destroy(C);
 
-    latlon_debug_msg = "return latlon from utm";
-    DEBUG_PRINT(latlon_debug_msg);
+    fix_debug_msg = "return fix from xyz";
+    DEBUG_PRINT(fix_debug_msg);
 
     return latlonalt;
 }

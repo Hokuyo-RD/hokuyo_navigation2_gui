@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(expo_latlon2xyz)
+project(expo_fix2xyz)
 
 find_package(catkin REQUIRED COMPONENTS
   nav_msgs
@@ -31,18 +31,18 @@ include_directories(
   ${PROJ_INCLUDE_DIRS}
 )
 
-add_executable(expo_latlon2xyz
-  src/latlon_utm_transform.cpp
-  src/latlon_utm_transform_node.cpp
-  src/latlon_utm_transform_node_lib.cpp
+add_executable(expo_fix2xyz
+  src/fix_xyz_transform.cpp
+  src/fix_xyz_transform_node.cpp
+  src/fix_xyz_transform_node_lib.cpp
 )
 
-add_dependencies(expo_latlon2xyz
+add_dependencies(expo_fix2xyz
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
 
-target_link_libraries(expo_latlon2xyz
+target_link_libraries(expo_fix2xyz
   ${catkin_LIBRARIES}
   ${PROJ_LIBRARIES}
 )

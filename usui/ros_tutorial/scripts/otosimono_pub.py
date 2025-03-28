@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import rospy
+from pyproj import Transformer
 import csv
 import random
 from geometry_msgs.msg import Vector3
 from geometry_msgs.msg import Point
 from expo_msgs.msg import Area
+from expo_msgs.msg import PositionFix
 
 def read_csv(file_path):
     """CSVファイルからデータを読み取る"""
@@ -18,6 +20,30 @@ def read_csv(file_path):
                 except ValueError:
                     rospy.logwarn(f"無効なデータをスキップ: {row}")
     return data
+def xyz_to_latlon(x, y, z):
+    #x, y, z (m)を 緯度経度高度 (lat, lon, alt) に変換する
+
+    #基準点の緯度経度高度
+    lat0 = 34.69176319251114
+    lon0 = 135.49633723119732
+    alt0 = 0
+
+    #  基準点の緯度経度を UTM に変換
+    transformer_to_utm = Transformer.from_crs("EPSG:4326", "EPSG:32654", always_xy=True)
+    x0, y0 = transformer_to_utm.transform(lon0, lat0)
+
+    #  新しいUTM座標
+    x_new = x0 + x
+    y_new = y0 + y
+
+    #  UTM を 緯度経度 に変換
+    transformer_to_latlon = Transformer.from_crs("EPSG:32654", "EPSG:4326", always_xy=True)
+    lon, lat = transformer_to_latlon.transform(x_new, y_new)
+
+    #  高度を加算
+    alt = alt0 + z
+
+    return lat, lon, alt
 
 def publisher():
     rospy.init_node('csv_data_publisher', anonymous=True)
@@ -42,11 +68,9 @@ def publisher():
             # 現在のデータを取得
             position_x,position_y,position_z= data[index]
             
-            # Vector3メッセージを作成
+            # メッセージを作成
             msg = Point()
-            msg.x = position_x
-            msg.y = position_y
-            msg.z = position_z
+            msg.x,msg.y,msg.z = xyz_to_latlon(position_x,position_y,position_z)
 
             # パブリッシュ
             rospy.loginfo(f"Publishing: Position_x = {msg.x},Position_y = {msg.y},Position_z = {msg.z}")

@@ -86,13 +86,30 @@
             </article>
 
             <aside>
-                <h2>サイドバー</h2>
+                <h2>表示切替</h2>
+                    <div class="iconButton">
                 <ul>
-                    <li><input type="checkbox" id="self_position" name="scales" checked onclick/><a href="#">自己位置</a></li>
-                    <li><input type="checkbox" id="stray" name="scales" checked onclick = "stray_control.visibleChanged(this.checked)" /><a href="#">迷子検知</a></li>
-                    <li><input type="checkbox" id="lost_property" name="scales" checked onclick = "lost_prop_control.visibleChanged(this.checked)" /><a href="#">落とし物検知</a></li>
-                    <li><input type="checkbox" id="congestion_level" name="scales" checked onclick="crowd_control.visibleChanged(this.checked)"/><a href="#">混雑度検知</a></li>
-                </ul>
+                    
+                        <li><input type="checkbox" checked id="self_position" name="scales" checked onclick />
+                        <label for="self_position">
+                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン1"> 　自己位置
+                        </label></li>
+                    
+                        <li><input type="checkbox" checked id="stray" name="scales" checked onclick= "stray_control.visibleChanged(this.checked)"/>
+                        <label for="stray">
+                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　迷子検知
+                        </label></li>
+                    
+                    　　<li><input type="checkbox" checked id="lost_property" name="scales" checked onclick= "lost_prop_control.visibleChanged(this.checked)"/>
+                        <label for="lost_property">
+                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　落とし物検知
+                        </label></li>
+                    
+                    　　<li><input type="checkbox" checked id="congestion_level" name="scales" checked onclick= "crowd_control.visibleChanged(this.checked)"/>
+                        <label for="congestion_level">
+                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　混雑度検知
+                        </label></li>
+                    </ul></div>
             </aside>
         </main>
 

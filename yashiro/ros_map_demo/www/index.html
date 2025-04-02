@@ -17,10 +17,14 @@
         crossorigin=""/>        
         <link rel="stylesheet" href="./css/leaflet_styles.css">
 
+
         <!-- leaflet用JavaScript -->
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
+
+        <!-- Leaflet-Rotate -->
+		<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 
         <!--座標変換ライブラリproj4js-->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.10.0/proj4.js" integrity="sha512-e3rsOu6v8lmVnZylXpOq3DO/UxrCgoEMqosQxGygrgHlves9HTwQzVQ/dLO+nwSbOSAecjRD7Y/c4onmiBVo6w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -48,13 +52,12 @@
     <body>
         
         <header>
-            <h1>万博mapデモ</h1>
+            <h1><img id="h_logo" src=https://www.hokuyo-aut.co.jp/assets/img/common/h_logo.png > </h1>
         </header>
 
         <nav>
             <ul>
                 <li><a href="/index.html">ホーム</a></li>
-                
             </ul>
         </nav>
 
@@ -74,15 +77,13 @@
                 </p> -->
 
                 <p>マーカー全削除:
-                    <button type="button" onClick="delete_all_markers();">マーカー削除</button>
+                    <button type="button" onClick="rotationSwitch()">マーカー削除</button>
                 </p>
 
-                <div id="flex">
-                    <div id="mapid"></div>
-                    <canvas id="myCanvas" ></canvas>
+                <div >
+                    <div id="mapid" ></div>
+                    <!-- <canvas id="myCanvas" ></canvas> -->
                 </div>
-                
-                <p id="processing">ここに処理進捗が表示されます</p>
             </article>
 
             <aside>
@@ -100,12 +101,12 @@
                             <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　迷子検知
                         </label></li>
                     
-                    　　<li><input type="checkbox" checked id="lost_property" name="scales" checked onclick= "lost_prop_control.visibleChanged(this.checked)"/>
+                        <li><input type="checkbox" checked id="lost_property" name="scales" checked onclick= "lost_prop_control.visibleChanged(this.checked)"/>
                         <label for="lost_property">
                             <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　落とし物検知
                         </label></li>
                     
-                    　　<li><input type="checkbox" checked id="congestion_level" name="scales" checked onclick= "crowd_control.visibleChanged(this.checked)"/>
+                        <li><input type="checkbox" checked id="congestion_level" name="scales" checked onclick= "crowd_control.visibleChanged(this.checked)"/>
                         <label for="congestion_level">
                             <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　混雑度検知
                         </label></li>

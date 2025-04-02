@@ -1,7 +1,13 @@
 #mapid{
 	/*margin: 0px; padding: 0px;*/
-	width: 600px; height: 600px;
-	/*background-color: gray;*/
+	grid-auto-flow:dense;
+	width: 1200px; height: 600px;
+	background-color: gray;
+	border-color: rgba(0, 238, 255, 0.805);
+	max-width:100%;
+	/* max-height:100%; */
+	border-radius: 12px;
+	border-style: outset;
 }
 
 
@@ -12,32 +18,32 @@
 }
 .icon-yellow {
   filter: hue-rotate(210deg);
-
 }
 
 /* 十字マーカーの作成 */
 .cross { /* 十字アイコン */
 	color: black;
 	background: transparent;
-	width: 36px; height:: 36px;
+	width: 36px;
+	height: 36px;
 }
 .cross::before {
 
 	content: "";
 	position: absolute;
-	top: -13px; left: 3px;
-	width: 2px; height: 7px;
-	border-top: 13px solid black;
-	border-bottom: 13px solid black;
-	border-radius: 2px;
+	top: -12px; left: 3px;
+	width: 3px; height: 7px;
+	border-top: 13px solid rgb(24, 174, 201);
+	border-bottom: 13px solid rgb(24, 174, 201);
+	border-radius: 0.1px;
 }
 .cross::after {
 	content: "";
 	position: absolute;
-	top: 3px; left: -14px;
-	width: 7px; height: 2px;
-	border-left: 13px solid black;
-	border-right: 13px solid black;
+	top: 3px; left: -12px;
+	width: 7px; height: 3px;
+	border-left: 13px solid rgb(24, 174, 201);
+	border-right: 13px solid rgb(24, 174, 201);
 	border-radius: 2px;
 }
 

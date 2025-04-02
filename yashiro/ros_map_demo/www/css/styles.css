@@ -3,6 +3,13 @@
   font-weight: bold;
 }
 
+#h_logo{
+  position:relative;
+  bottom: 11px;
+  height:75px;
+  image-rendering:smooth;
+  filter: brightness(0) saturate(100%) invert(76%) sepia(68%) saturate(2715%) hue-rotate(136deg) brightness(101%) contrast(108%) ;
+}
 /* 基本的な要素のスタイル付けを扱う */
 /* -------------------------------------------------------------------------------------------- */
 body {
@@ -18,7 +25,8 @@ header {
   height: 96px;
   background-color: lightcyan;
   box-sizing: border-box;
-  border: 8px solid blue;
+  border: 6px solid rgba(153, 153, 153, 0.5);
+  border-style: ridge;
 }
 header h1 > div{
   display: inline-block;
@@ -61,6 +69,7 @@ main {
     flex-direction: column;
     */
     display: flex;
+    box-sizing: border-box;
 }
 @media (min-width: 70em) {
     /* 大きな画面やウィンドウで読みやすいように、グローバルフォントの大きさを
@@ -76,7 +85,7 @@ article{
   flex-grow: 1;
   background-color: palegoldenrod;
   box-sizing: border-box;
-  border: 8px solid green;
+  border: 8px solid rgb(107, 107, 107);
   border-style:groove;
   /*float: left;*/
 }
@@ -111,13 +120,18 @@ footer{
   display: flex;
 }
 
+/*------ブロックにしたいものを指定-------*/
+#block{
+  display: block;
+}
+
 /*------アイコン付きボタン-------*/
 .iconButton label{
   user-select: none;
   display: block;
   width: 200px;
   height: 75px; /* 画像サイズに合わせて調整 */
-  background: #c8eac3;
+  background: #eac3c3;
   color: #000;
   padding: 10px;
   margin: 10px;
@@ -132,7 +146,7 @@ footer{
   cursor: pointer;
 }
 .iconButton input:checked+label{
-  background: #1a720d;
+  background: hsl(336, 100%, 50%);
   color: #FFF;
 }
 .iconButton input{

@@ -1,10 +1,10 @@
 
+
 class LayerControlAdmin {
   constructor(layerName, isVisible, markers) {
     this.layerName = layerName;
     this.isVisible = isVisible;
     this.markers = markers;
-
   }
   markers = [];
 
@@ -35,6 +35,16 @@ class LayerControlAdmin {
   }
 }
 
+function rotationSwitch(){
+  if(map.rotate){
+    map.setBearing (0);
+    map.rotate = false;
+  }
+  else{
+    map.rotate = true;
+  }
+}
+
 let center_latLng;
 let init_mark;
 let initMark;
@@ -45,10 +55,6 @@ let gps_second_pub;
 
 let gps_markers = [];
 let latest_gps_marker;
-let gps_layer_group = L.layerGroup(gps_markers);
-let overlayLayerControls = {
-  '自己位置': gps_layer_group,
-};
 let odom_markers = [];
 let latest_odom_marker;
 let filtered_markers = [];
@@ -62,6 +68,9 @@ let polygon_points = [start_point,
 const number_of_rows = 10;
 const number_of_lines = 10;
 let crowding_polygones = [];
+let map_rotate_angle ;
+let previos_message;
+const earth_radius = 6387137;
 
 let gps_control = new LayerControlAdmin("自己位置", true, []);
 let stray_control = new LayerControlAdmin("stray", true, []);
@@ -123,10 +132,6 @@ window.onload = (event) => {
     console.log(center_latLng);
     document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）";
   });
-  ///レイヤコントロール追加
-  let layerController = L.control.layers(null, overlayLayerControls, {
-    collapsed: false,
-  }).addTo(map);
   ///polygon追加
   crowding_polygones.push(L.polygon(polygon_points, { color: "#" + Math.floor(Math.random() * 16777215).toString(16), weight: 5, fill: true, fillColor: "#ff8000", opacity: Math.random() }).addTo(map));
 
@@ -140,6 +145,7 @@ window.onload = (event) => {
     }
     polygon_points[3] = [start_point[0] + length_per_side[0] * i, start_point[1]];
   };
+
   crowd_control = new LayerControlAdmin("crowd",true,crowding_polygones);
 
   // ROSとの接続.
@@ -241,27 +247,29 @@ window.onload = (event) => {
 
   gps_sub.subscribe(function (message) {
     console.log("subscribed gps!!!");
-
+    map.panTo([message.latitude, message.longitude]);
+    let tempxy;
     //最新点だけ表示.
-    if (latest_gps_marker != null) { map.removeLayer(latest_gps_marker); }
-    latest_gps_marker = L.circleMarker([message.latitude, message.longitude], latestGpsIcon).addTo(map);
-
+    if (latest_gps_marker != null) { 
+            map.removeLayer(latest_gps_marker); }
+    latest_gps_marker = L.marker([message.latitude, message.longitude], { icon: redIcon }).addTo(map);
+    if(previos_message != null){
+      var latest_latlng ={longitude:message.longitude*(180/Math.PI),latitude:message.latitude*(180/Math.PI)};
+      var previos_latlng ={longitude:previos_message.longitude*(180/Math.PI),latitude:previos_message.latitude*(180/Math.PI)};
+      ///最新点と１つ前の点からセンサの進行方向を計算
+      var dx = earth_radius*(latest_latlng.longitude - previos_latlng.longitude)*Math.cos((previos_latlng.latitude + latest_latlng.latitude)/2);
+      var dy = earth_radius*(latest_latlng.latitude - previos_latlng.latitude);
+      map_rotate_angle = -Math.atan2(dx,dy)* (180 / Math.PI);
+      //map_rotate_angle = Math.atan2(message.latitude - previos_message.latitude,message.longitude - previos_message.longitude)* (180 / Math.PI);
+      map.setBearing(map_rotate_angle);
+    }
+    previos_message = message;
     //gpsのマーカー作成して、odometry側フラグの操作.
     if (count_gps % per_ == 0) {
-      map.panTo([message.latitude, message.longitude]);
-      var random = 100 * Math.random();
+      var random = Math.random()*100;
+      //100 * Math.random();
       if (random < 33) {
         gps_markers.push(L.marker([message.latitude, message.longitude], { icon: redIcon }).addTo(map));
-        gps_layer_group = L.layerGroup(gps_markers);
-        overlayLayerControls = {
-          '自己位置': gps_layer_group,
-        }//   レイヤコントロールを更新
-        if (layerController != null) {
-          map.removeControl(layerController);
-        }
-        layerController = L.control.layers(null, overlayLayerControls, {
-          collapsed: false,
-        }).addTo(map);
       }
       else if (random < 66) {
         stray_control.addToLayer(L.marker([message.latitude, message.longitude], { icon: strayIcon }));
@@ -419,10 +427,8 @@ function pub_second_pose() {
           covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         }
       });
-
       // publish
       gps_second_pub.publish(second_pose);
-
     }
   }
 }

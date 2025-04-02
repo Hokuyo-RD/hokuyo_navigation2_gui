@@ -1,6 +1,7 @@
     // マップを作る
-    var map = L.map("mapid").setView([34.69176319251114, 135.49633723119732], 16);
+    var map = L.map("mapid",{rotate:true }).setView([34.69176319251114, 135.49633723119732], 16);
 
+    
     // マップの設定
 
     //国土地理院航空写真.
@@ -128,5 +129,16 @@
     tooltipAnchor: [16, -28],
     shadowSize: [41, 41],
     className: "icon-lostProp", // <= ここでクラス名を指定
+  });
+  const arrowIcon = L.icon({
+    iconUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiKRNwRm8OhKM-Td-r63pdwv32DJFhDJrDjpYIOO3XpAQJLrkaHtUus1wKaYmFaHxSmgt9Xwg257gpRfymAtHPGhnrZkUdl7bmvcKGsYpd69qjzE08CQhLn2B-IoHLQqDX4dKfqg7uYJzkx/s800/computer_cursor_arrow_black.png",
+    //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiKRNwRm8OhKM-Td-r63pdwv32DJFhDJrDjpYIOO3XpAQJLrkaHtUus1wKaYmFaHxSmgt9Xwg257gpRfymAtHPGhnrZkUdl7bmvcKGsYpd69qjzE08CQhLn2B-IoHLQqDX4dKfqg7uYJzkx/s800/computer_cursor_arrow_black.png",
+    shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
+    iconSize: [60, 60],
+    iconAnchor: [30, 60],
+    popupAnchor: [1, -34],
+    tooltipAnchor: [16, -28],
+    shadowSize: [41, 41],
+    className: "icon-arrow", // <= ここでクラス名を指定
   });
   

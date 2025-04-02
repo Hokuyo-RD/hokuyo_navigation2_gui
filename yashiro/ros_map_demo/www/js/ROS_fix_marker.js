@@ -1,6 +1,6 @@
 
-
-class LayerControlAdmin {
+///アイコンを一括で管理するためのクラス
+class IconControlAdmin {
   constructor(layerName, isVisible, markers) {
     this.layerName = layerName;
     this.isVisible = isVisible;
@@ -36,12 +36,13 @@ class LayerControlAdmin {
 }
 
 function rotationSwitch(){
-  if(map.rotate){
+  if(isRotationON){
     map.setBearing (0);
-    map.rotate = false;
+    isRotationON = false;
   }
   else{
-    map.rotate = true;
+    isRotationON = true;
+    map.setBearing(map_rotate_angle);
   }
 }
 
@@ -72,9 +73,10 @@ let map_rotate_angle ;
 let previos_message;
 const earth_radius = 6387137;
 
-let gps_control = new LayerControlAdmin("自己位置", true, []);
-let stray_control = new LayerControlAdmin("stray", true, []);
-let lost_prop_control = new LayerControlAdmin("lost_property", true, []);
+let gps_control = new IconControlAdmin("自己位置", true, []);
+let stray_control = new IconControlAdmin("stray", true, []);
+let lost_prop_control = new IconControlAdmin("lost_property", true, []);
+let isRotationON = true;
 
 function delete_all_markers() {
 
@@ -146,7 +148,7 @@ window.onload = (event) => {
     polygon_points[3] = [start_point[0] + length_per_side[0] * i, start_point[1]];
   };
 
-  crowd_control = new LayerControlAdmin("crowd",true,crowding_polygones);
+  crowd_control = new IconControlAdmin("crowd",true,crowding_polygones);
 
   // ROSとの接続.
   let count_gps = 0;
@@ -247,13 +249,13 @@ window.onload = (event) => {
 
   gps_sub.subscribe(function (message) {
     console.log("subscribed gps!!!");
-    map.panTo([message.latitude, message.longitude]);
     let tempxy;
     //最新点だけ表示.
     if (latest_gps_marker != null) { 
             map.removeLayer(latest_gps_marker); }
     latest_gps_marker = L.marker([message.latitude, message.longitude], { icon: redIcon }).addTo(map);
-    if(previos_message != null){
+    if(previos_message != null && isRotationON){
+      map.panTo([message.latitude, message.longitude]);      
       var latest_latlng ={longitude:message.longitude*(180/Math.PI),latitude:message.latitude*(180/Math.PI)};
       var previos_latlng ={longitude:previos_message.longitude*(180/Math.PI),latitude:previos_message.latitude*(180/Math.PI)};
       ///最新点と１つ前の点からセンサの進行方向を計算
@@ -268,10 +270,7 @@ window.onload = (event) => {
     if (count_gps % per_ == 0) {
       var random = Math.random()*100;
       //100 * Math.random();
-      if (random < 33) {
-        gps_markers.push(L.marker([message.latitude, message.longitude], { icon: redIcon }).addTo(map));
-      }
-      else if (random < 66) {
+      if (random < 50) {
         stray_control.addToLayer(L.marker([message.latitude, message.longitude], { icon: strayIcon }));
       }
       else {
@@ -282,7 +281,7 @@ window.onload = (event) => {
     }
     count_gps++;
   });
-  document.getElementById("processing").textContent = "緯度経度テストjs読み込み完";
+  //document.getElementById("processing").textContent = "緯度経度テストjs読み込み完";
 };
 
 

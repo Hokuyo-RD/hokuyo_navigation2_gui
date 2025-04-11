@@ -19,9 +19,9 @@ def stop_run():
 
 @app.route('/tools')
 def tools_run():
-    return render_template('toools.html')
+    return render_template('tools.html')
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/wizurg', methods=['GET', 'POST'])
 def trigger_script():
     if request.method == 'GET':
         return render_template('index.html')
@@ -40,6 +40,8 @@ def trigger_script():
         elif command == "tools":
             subprocess.run(["/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_start.sh"])
             return render_template('tools.html')
+        elif command == "map":
+            return render_template('map.html')
         else:
             print(command)
             return "Unknown command", 400

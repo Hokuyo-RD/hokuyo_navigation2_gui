@@ -1,6 +1,7 @@
 
+
 ///アイコンを一括で管理するためのクラス
-class IconControlAdmin {
+class LayerControlAdmin {
   constructor(layerName, isVisible, markers) {
     this.layerName = layerName;
     this.isVisible = isVisible;
@@ -12,14 +13,17 @@ class IconControlAdmin {
 
   layerName = "";
 
+
   addToLayer = function (marker) {
     if (this.isVisible) {
-      this.markers.push(marker.addTo(map));
+      this.markers.push(marker);
+      marker.addTo(map);
     }
     else {
       this.markers.push(marker);
     }
   }
+
   visibleChanged = function (checked) {
     this.isVisible = checked;
     if (this.isVisible) {
@@ -29,9 +33,64 @@ class IconControlAdmin {
     }
     else {
       for (var i = 0;i< this.markers.length ;i++) {
-        map.removeLayer(this.markers[i]);
+        if(this.markers[i].marker != null){
+        map.removeLayer(this.markers[i].marker);}
+        else{
+          map.removeLayer(this.markers[i]);
+        }
       }
     }
+  }
+
+  ///マーカーの表示最大時間を過ぎたマーカーを削除する
+  deleteTimeOverMarker = function(){
+    var now  = new Date();
+    var nowTime = now.getTime();
+  for(var i =0; i< this.markers.length;i++){
+    var elapsedTime = this.markers[i].getElapsedTime(nowTime);
+    if(elapsedTime < maxMarkerTime){
+      this.markers.splice(0,i);
+      return;
+  }
+  else{
+      map.removeLayer(this.markers[i].marker);
+  }
+}
+this.markers.splice(0,i);
+return;
+  }
+}
+
+// class crowdMarker extends AdvancedMarker{
+//   constructor(...args){
+//     super(args);
+//   }
+//   velocity;
+//   angle;
+// }
+
+///マーカーの追加機能を実装するためのクラス
+class AdvancedMarker{
+  constructor(marker){
+    this.marker = marker;
+    var now = new Date();
+    this.startTime = now.getTime();
+  }
+  marker;
+  //マーカーを置いた時刻
+  startTime;
+  //マーカーを置いたときからの経過時間を計算
+  getElapsedTime = function (nowTime){
+    var ret = nowTime - this.startTime;
+    if(ret>=0){
+      return ret;
+    }
+    else{
+      return 0;
+    }
+  }
+  addTo = function(map){
+    return this.marker.addTo(map);
   }
 }
 
@@ -61,7 +120,7 @@ let latest_odom_marker;
 let filtered_markers = [];
 let latest_filtered_marker;
 const length_per_side = [0.000045, 0.0000625];
-let start_point = [34.636875765664946, 135.41315674781802];
+let start_point = [34.64695159902189, 135.37847645406802];
 let polygon_points = [start_point,
   [start_point[0] + length_per_side[0], start_point[1]],
   [start_point[0] + length_per_side[0], start_point[1] + length_per_side[1]],
@@ -73,10 +132,13 @@ let map_rotate_angle ;
 let previos_message;
 const earth_radius = 6387137;
 
-let gps_control = new IconControlAdmin("自己位置", true, []);
-let stray_control = new IconControlAdmin("stray", true, []);
-let lost_prop_control = new IconControlAdmin("lost_property", true, []);
+let gps_control = new LayerControlAdmin("自己位置", true, []);
+let stray_control = new LayerControlAdmin("stray", true, []);
+let lost_prop_control = new LayerControlAdmin("lost_property", true, []);
+let crowd_control ;
 let isRotationON = true;
+let maxMarkerTime = 3000;
+let wayPointMarker;
 
 function delete_all_markers() {
 
@@ -108,10 +170,25 @@ function delete_all_markers() {
 function pub_init_pose() { }
 window.onload = (event) => {
 
+  //アラートの宣言
+  var approachingAlert = new AlertAdmin("approachingAlert");
+  
+  var Alert2 = new AlertAdmin("Alert2");
+
+  var Alert3 = new AlertAdmin("Alert3");
+
+  approachingAlert.setAlertLevel(0);
+
+  Alert2.setAlertLevel(1);
+
+  Alert3.setAlertLevel(2);
+
+  map.addControl(new DragControl({ position: 'topright' }));
+
   center_latLng = map.getCenter();
-  document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）"
+  //document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）"
 
-
+  
   // init_posのマーカーアイコン作成.
   init_mark = L.divIcon({ // CSSを使ったDivIconを作成
     className: 'init_pose',
@@ -132,23 +209,9 @@ window.onload = (event) => {
     center_latLng = map.getCenter();
     crossMark.setLatLng(center_latLng);
     console.log(center_latLng);
-    document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）";
+    //document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）";
   });
-  ///polygon追加
-  crowding_polygones.push(L.polygon(polygon_points, { color: "#" + Math.floor(Math.random() * 16777215).toString(16), weight: 5, fill: true, fillColor: "#ff8000", opacity: Math.random() }).addTo(map));
 
-  for (var i = 1; i < number_of_rows; i++) {
-    for (var j = 1; j < number_of_lines; j++) {
-      polygon_points = [polygon_points[3],
-      [polygon_points[3][0] + length_per_side[0], polygon_points[3][1]],
-      [polygon_points[3][0] + length_per_side[0], polygon_points[3][1] + length_per_side[1]],
-      [polygon_points[3][0], polygon_points[3][1] + length_per_side[1]]];
-      crowding_polygones.push(L.polygon(polygon_points, { color: "#" + Math.floor(Math.random() * 16777215).toString(16), weight: 5, fill: true, fillColor: "#" + Math.floor(Math.random() * 16777215).toString(16), opacity: Math.random() }).addTo(map));
-    }
-    polygon_points[3] = [start_point[0] + length_per_side[0] * i, start_point[1]];
-  };
-
-  crowd_control = new IconControlAdmin("crowd",true,crowding_polygones);
 
   // ROSとの接続.
   let count_gps = 0;
@@ -185,7 +248,21 @@ window.onload = (event) => {
     name: '/odometry/gps_second',
     messageType: 'nav_msgs/Odometry'
   });
-
+  autoMobile_start_pub = new ROSLIB.Topic({
+    ros:ros,
+    name: '/expo_start',
+    messageType: 'std_msgs/string'
+  });
+  autoMobile_stop_pub = new ROSLIB.Topic({
+    ros:ros,
+    name: '/expo_stop',
+    messageType: 'std_msgs/string'
+  });
+  wayPoint_pub = new ROSLIB.Topic({
+    ros:ros,
+    name: '/expo_waypoint',
+    messageType: 'sensor_msgs/NavSatFix'
+  });
 
   // subscriberの設定.
   let odom_sub = new ROSLIB.Topic({
@@ -254,6 +331,11 @@ window.onload = (event) => {
     if (latest_gps_marker != null) { 
             map.removeLayer(latest_gps_marker); }
     latest_gps_marker = L.marker([message.latitude, message.longitude], { icon: redIcon }).addTo(map);
+
+    //時間を過ぎたマーカーを削除
+    stray_control.deleteTimeOverMarker();
+    lost_prop_control.deleteTimeOverMarker();
+
     if(previos_message != null && isRotationON){
       map.panTo([message.latitude, message.longitude]);      
       var latest_latlng ={longitude:message.longitude*(180/Math.PI),latitude:message.latitude*(180/Math.PI)};
@@ -271,163 +353,182 @@ window.onload = (event) => {
       var random = Math.random()*100;
       //100 * Math.random();
       if (random < 50) {
-        stray_control.addToLayer(L.marker([message.latitude, message.longitude], { icon: strayIcon }));
+        stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
       }
       else {
-        lost_prop_control.addToLayer(L.marker([message.latitude, message.longitude],{icon: lostPropIcon}));
+        lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude],{icon: lostPropIcon})));
       }
       mark_odom_flg = true;
       mark_filtered_flg = true;
     }
     count_gps++;
   });
-  //document.getElementById("processing").textContent = "緯度経度テストjs読み込み完";
+  //document.getElementById("processing").textContent = "緯度経度テストjs読み込み完";]
+  crowd_control = new generateTileGroup([34.64695159902189, 135.37847645406802],0.00045,0.00045,30,30);
 };
 
 
 
 // publish用関数(HTMLから呼び出すためにwindow.onload外で定義)
-function pub_init_pose() {
-
-  // ===== 既存マーカーがある場合は削除====
-  if (initMark != null) {
-    map.removeLayer(initMark);
-    initMark = null;
-  }
-  // ====== mapマーカー作成======
-  initMark = L.marker(center_latLng, { // マーカ登録.
-    icon: init_mark, zIndexOffset: 100, interactive: false
-  }).addTo(map);
-
-  // ====== 標準偏差の取得======
-  const sigma_element = document.getElementById('sigma');
-  const sigma = sigma_element.value;
-
-  // ====== 高度情報の取得とpublish. ======
-  // ブラウザの入力から地上高を取得
-  const ground_height_element = document.getElementById('ground_height');
-  const ground_height = ground_height_element.value
-
-  // ====== proj4jsでUTM座標に変換 ======
-  const utm_zone = judge_UTM_zone(center_latLng.lng);
-  console.log("EPSG_code = " + UTM_zone_to_epsg(utm_zone));
-  const utm_xy = proj4(UTM_zone_to_epsg(utm_zone)).forward([center_latLng.lng, center_latLng.lat]);
-  if (center_latLng.lat < 0) { xy_y += 10000000.0; }
-
-  // ====== utm_odometry_nodeの形式に合わせたフレームIDの作成 ======
-  const utm_frame_id = `utm/utm_${utm_zone}Z`;
-
-  console.log(`frame_id = ${utm_frame_id}`);
-
-
-  // geolonia の高度取得APIを使用して、指定座標のジオイド高＋標高＋地上高を計算.
-  // https://blog.geolonia.com/2023/04/14/geoid-api.html
-  const Http = new XMLHttpRequest();
-  const url = `https://api-vt.geolonia.com/api/altitude?lat=${center_latLng.lat}&lng=${center_latLng.lng}`;
-  Http.open("GET", url);
-  Http.send();
-  Http.onreadystatechange = function () {
-    if (this.readyState == 4 && this.status == 200) {
-      console.log(Http.responseText);
-
-      //geoloniaから取得したJSON形式テキストをjavascriptオブジェクトに変換.
-      const alt_obj = JSON.parse(Http.responseText);
-
-      //ジオイド高(geoid),標高(altitude),地上高(ground_height)
-      const pub_altitude = Number(alt_obj.geoid) + Number(alt_obj.altitude) + Number(ground_height);
-      console.log(`publish altitude = ${pub_altitude}`);
-
-      // publishメッセージの作成.
-      let init_pose = new ROSLIB.Message({
-        header: {
-          frame_id: utm_frame_id
-        },
-        child_frame_id: '',
-        pose: {
-          // 姿勢情報
-          pose: {
-            position: {
-              x: utm_xy[0],
-              y: utm_xy[1],
-              z: pub_altitude
-            }
-          },
-          covariance: [sigma * sigma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, sigma * sigma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, sigma * sigma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        }
-      });
-
-      // publish
-      gps_init_pub.publish(init_pose);
-
-    }
-  }
+function pub_expo_start(){
+  var message = new ROSLIB.Message({
+    data:'start'
+  })
+  autoMobile_start_pub.publish(message);
 }
 
-// second_pose 
-//publish用関数
-function pub_second_pose() {
-
-  // ===== 既存マーカーがある場合は削除====
-  if (secondMark != null) {
-    map.removeLayer(secondMark);
-    secondMark = null;
-  }
-  // ====== mapマーカー作成======
-  secondMark = L.marker(center_latLng, { // マーカ登録.
-    icon: second_mark, zIndexOffset: 100, interactive: false
-  }).addTo(map);
-
-  // ====== 高度情報の取得とpublish. ======
-  // ブラウザの入力から地上高を取得
-  const ground_height_element = document.getElementById('ground_height');
-  const ground_height = ground_height_element.value
-
-  // ====== proj4jsでUTM座標に変換 ======
-  const utm_zone = judge_UTM_zone(center_latLng.lng);
-  console.log("EPSG_code = " + UTM_zone_to_epsg(utm_zone));
-  const utm_xy = proj4(UTM_zone_to_epsg(utm_zone)).forward([center_latLng.lng, center_latLng.lat]);
-  if (center_latLng.lat < 0) { xy_y += 10000000.0; }
-
-  // ====== utm_odometry_nodeの形式に合わせたフレームIDの作成 ======
-  const utm_frame_id = `utm/utm_${utm_zone}Z`;
-
-  // geolonia の高度取得APIを使用して、指定座標のジオイド高＋標高＋地上高を計算.
-  // https://blog.geolonia.com/2023/04/14/geoid-api.html
-  const Http = new XMLHttpRequest();
-  const url = `https://api-vt.geolonia.com/api/altitude?lat=${center_latLng.lat}&lng=${center_latLng.lng}`;
-  Http.open("GET", url);
-  Http.send();
-  Http.onreadystatechange = function () {
-    if (this.readyState == 4 && this.status == 200) {
-      console.log(Http.responseText);
-
-      //geoloniaから取得したJSON形式テキストをjavascriptオブジェクトに変換.
-      const alt_obj = JSON.parse(Http.responseText);
-
-      //ジオイド高(geoid),標高(altitude),地上高(ground_height)
-      const pub_altitude = Number(alt_obj.geoid) + Number(alt_obj.altitude) + Number(ground_height);
-      console.log(`publish altitude = ${pub_altitude}`);
-
-      // publishメッセージの作成.
-      let second_pose = new ROSLIB.Message({
-        header: {
-          frame_id: utm_frame_id
-        },
-        child_frame_id: '',
-        pose: {
-          // 姿勢情報
-          pose: {
-            position: {
-              x: utm_xy[0],
-              y: utm_xy[1],
-              z: pub_altitude
-            }
-          },
-          covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        }
-      });
-      // publish
-      gps_second_pub.publish(second_pose);
-    }
-  }
+function pub_expo_stop(){
+  var message = new ROSLIB.Message({
+    data:'stop'
+  })
+  autoMobile_start_pub.publish(message);
 }
+
+function pub_expo_wayPoint(){
+  //TODO:ウェイポイント送信（メッセージ型を聞く）
+  return;
+}
+// function pub_init_pose() {
+
+//   // ===== 既存マーカーがある場合は削除====
+//   if (initMark != null) {
+//     map.removeLayer(initMark);
+//     initMark = null;
+//   }
+//   // ====== mapマーカー作成======
+//   initMark = L.marker(center_latLng, { // マーカ登録.
+//     icon: init_mark, zIndexOffset: 100, interactive: false
+//   }).addTo(map);
+
+//   // ====== 標準偏差の取得======
+//   const sigma_element = document.getElementById('sigma');
+//   const sigma = sigma_element.value;
+
+//   // ====== 高度情報の取得とpublish. ======
+//   // ブラウザの入力から地上高を取得
+//   const ground_height_element = document.getElementById('ground_height');
+//   const ground_height = ground_height_element.value
+
+//   // ====== proj4jsでUTM座標に変換 ======
+//   const utm_zone = judge_UTM_zone(center_latLng.lng);
+//   console.log("EPSG_code = " + UTM_zone_to_epsg(utm_zone));
+//   const utm_xy = proj4(UTM_zone_to_epsg(utm_zone)).forward([center_latLng.lng, center_latLng.lat]);
+//   if (center_latLng.lat < 0) { xy_y += 10000000.0; }
+
+//   // ====== utm_odometry_nodeの形式に合わせたフレームIDの作成 ======
+//   const utm_frame_id = `utm/utm_${utm_zone}Z`;
+
+//   console.log(`frame_id = ${utm_frame_id}`);
+
+
+//   // geolonia の高度取得APIを使用して、指定座標のジオイド高＋標高＋地上高を計算.
+//   // https://blog.geolonia.com/2023/04/14/geoid-api.html
+//   const Http = new XMLHttpRequest();
+//   const url = `https://api-vt.geolonia.com/api/altitude?lat=${center_latLng.lat}&lng=${center_latLng.lng}`;
+//   Http.open("GET", url);
+//   Http.send();
+//   Http.onreadystatechange = function () {
+//     if (this.readyState == 4 && this.status == 200) {
+//       console.log(Http.responseText);
+
+//       //geoloniaから取得したJSON形式テキストをjavascriptオブジェクトに変換.
+//       const alt_obj = JSON.parse(Http.responseText);
+
+//       //ジオイド高(geoid),標高(altitude),地上高(ground_height)
+//       const pub_altitude = Number(alt_obj.geoid) + Number(alt_obj.altitude) + Number(ground_height);
+//       console.log(`publish altitude = ${pub_altitude}`);
+
+//       // publishメッセージの作成.
+//       let init_pose = new ROSLIB.Message({
+//         header: {
+//           frame_id: utm_frame_id
+//         },
+//         child_frame_id: '',
+//         pose: {
+//           // 姿勢情報
+//           pose: {
+//             position: {
+//               x: utm_xy[0],
+//               y: utm_xy[1],
+//               z: pub_altitude
+//             }
+//           },
+//           covariance: [sigma * sigma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, sigma * sigma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, sigma * sigma, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+//         }
+//       });
+
+//       // publish
+//       gps_init_pub.publish(init_pose);
+
+//     }
+//   }
+// }
+
+// // second_pose 
+// //publish用関数
+// function pub_second_pose() {
+
+//   // ===== 既存マーカーがある場合は削除====
+//   if (secondMark != null) {
+//     map.removeLayer(secondMark);
+//     secondMark = null;
+//   }
+//   // ====== mapマーカー作成======
+//   secondMark = L.marker(center_latLng, { // マーカ登録.
+//     icon: second_mark, zIndexOffset: 100, interactive: false
+//   }).addTo(map);
+
+//   // ====== 高度情報の取得とpublish. ======
+//   // ブラウザの入力から地上高を取得
+//   const ground_height_element = document.getElementById('ground_height');
+//   const ground_height = ground_height_element.value
+
+//   // ====== proj4jsでUTM座標に変換 ======
+//   const utm_zone = judge_UTM_zone(center_latLng.lng);
+//   console.log("EPSG_code = " + UTM_zone_to_epsg(utm_zone));
+//   const utm_xy = proj4(UTM_zone_to_epsg(utm_zone)).forward([center_latLng.lng, center_latLng.lat]);
+//   if (center_latLng.lat < 0) { xy_y += 10000000.0; }
+
+//   // ====== utm_odometry_nodeの形式に合わせたフレームIDの作成 ======
+//   const utm_frame_id = `utm/utm_${utm_zone}Z`;
+
+//   // geolonia の高度取得APIを使用して、指定座標のジオイド高＋標高＋地上高を計算.
+//   // https://blog.geolonia.com/2023/04/14/geoid-api.html
+//   const Http = new XMLHttpRequest();
+//   const url = `https://api-vt.geolonia.com/api/altitude?lat=${center_latLng.lat}&lng=${center_latLng.lng}`;
+//   Http.open("GET", url);
+//   Http.send();
+//   Http.onreadystatechange = function () {
+//     if (this.readyState == 4 && this.status == 200) {
+//       console.log(Http.responseText);
+
+//       //geoloniaから取得したJSON形式テキストをjavascriptオブジェクトに変換.
+//       const alt_obj = JSON.parse(Http.responseText);
+
+//       //ジオイド高(geoid),標高(altitude),地上高(ground_height)
+//       const pub_altitude = Number(alt_obj.geoid) + Number(alt_obj.altitude) + Number(ground_height);
+//       console.log(`publish altitude = ${pub_altitude}`);
+
+//       // publishメッセージの作成.
+//       let second_pose = new ROSLIB.Message({
+//         header: {
+//           frame_id: utm_frame_id
+//         },
+//         child_frame_id: '',
+//         pose: {
+//           // 姿勢情報
+//           pose: {
+//             position: {
+//               x: utm_xy[0],
+//               y: utm_xy[1],
+//               z: pub_altitude
+//             }
+//           },
+//           covariance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+//         }
+//       });
+//       // publish
+//       gps_second_pub.publish(second_pose);
+//     }
+//   }
+// }

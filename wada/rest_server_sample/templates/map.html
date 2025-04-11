@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="author" content="Tatsuya Okamoto"/>
+        <meta 
+            name="description" 
+            content="万博mapデモ."
+        />
+
+        <title>万博mapデモ</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+
+        <!-- leaflet用CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>        
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/leaflet_styles.css') }}">
+
+
+        <!-- leaflet用JavaScript -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+        <!-- Leaflet-Rotate -->
+		<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
+
+        <!--座標変換ライブラリproj4js-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.10.0/proj4.js" integrity="sha512-e3rsOu6v8lmVnZylXpOq3DO/UxrCgoEMqosQxGygrgHlves9HTwQzVQ/dLO+nwSbOSAecjRD7Y/c4onmiBVo6w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+        <!--日本座標系の追加用スクリプト-->
+        <script src="{{ url_for('static', filename='js/japanege_EPSG.js') }}"></script>
+        <!--UTM座標系の追加用スクリプト-->
+        <script src="{{ url_for('static', filename='js/UTM_EPSG.js') }}"></script>
+
+        <!--three.js 関連の読み込み-->
+        <script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
+        <script src="https://unpkg.com/three@0.147.0/examples/js/loaders/PCDLoader.js"></script>
+
+        <!--javascriptの読み込み-->
+        <script src="{{ url_for('static', filename='js/three_test.js') }}"></script>
+
+        <!--roslibjs-->
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+
+        <!--rosから緯度経度を取得してピンを立てるだけのスクリプト-->
+        <script src="{{ url_for('static', filename='js/ROS_fix_marker.js') }}"></script>
+
+    </head>
+    <body>
+        
+        <header>
+            <h1><img id="h_logo" src=https://www.hokuyo-aut.co.jp/assets/img/common/h_logo.png > </h1>
+        </header>
+
+        <nav>
+            <ul>
+                <li><a href="/wizurg">ホーム</a></li>
+            </ul>
+        </nav>
+
+        
+        <main>
+            <article>
+                 <p id="center">中心座標：( , )</p>
+                <!--
+                <p>地上高(地面からの高さを入力)： <input type="text" id="ground_height" value="0" placeholder="地面からの高さを入力"/>[m]</p>
+                <p>信頼度（上記が真値の半径何[m]以内か）：<input type="text" id="sigma" value="10" placeholder="信頼度を入力"/>[m]</p>
+                
+                <p>中心座標、地上高、信頼度を初期位置として指定する:
+                    <button type="button" onClick="pub_init_pose();">初期位置指定</button>
+                </p>
+                <p>中心座標、地上高、信頼度を向きとして指定する:
+                    <button type="button" onClick="pub_second_pose();">向き指定</button>
+                </p> -->
+
+                <p　class="iconButton">マーカー全削除:
+                    <button type="button" onClick="delete_all_marker()">マーカー削除</button>
+                    視点切り替え:
+                    <button type="button" onClick="rotationSwitch()">ロボット/俯瞰</button>
+                </p>
+
+                <div >
+                    <div id="mapid" ></div>
+                    <!-- <canvas id="myCanvas" ></canvas> -->
+                </div>
+            </article>
+
+            <aside>
+                <h2>表示切替</h2>
+                    <div class="iconButton">
+                <ul>
+                    
+                        <li><input type="checkbox" checked id="self_position" name="scales" checked onclick />
+                        <label for="self_position">
+                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン1"> 　自己位置
+                        </label></li>
+                    
+                        <li><input type="checkbox" checked id="stray" name="scales" checked onclick= "stray_control.visibleChanged(this.checked)"/>
+                        <label for="stray">
+                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　迷子検知
+                        </label></li>
+                    
+                        <li><input type="checkbox" checked id="lost_property" name="scales" checked onclick= "lost_prop_control.visibleChanged(this.checked)"/>
+                        <label for="lost_property">
+                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　落とし物検知
+                        </label></li>
+                    
+                        <li><input type="checkbox" checked id="congestion_level" name="scales" checked onclick= "crowd_control.visibleChanged(this.checked)"/>
+                        <label for="congestion_level">
+                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> 　混雑度検知
+                        </label></li>
+                    </ul></div>
+            </aside>
+        </main>
+
+
+
+        <footer>
+            <p>フッター要素</p>
+            <p>©Copyright 2050 by nobody. All rights reversed.</p>
+        </footer>
+
+
+    <!--地図作成スクリプト-->
+    <script src="{{ url_for('static', filename='js/leaflet_script.js') }}"></script>      
+    </body>
+</html>

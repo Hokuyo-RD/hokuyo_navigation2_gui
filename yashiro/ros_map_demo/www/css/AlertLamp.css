@@ -1,0 +1,29 @@
+.approachingAlert{
+    position:relative;
+    left: 8px;
+    width: 40px;
+    height: 40px;
+    border-radius: 100%;
+    --bg-color: gray;
+    background-color: var(--bg-color);
+  }
+
+  .Alert2{
+    position:relative;
+    left: 8px;
+    width: 40px;
+    height: 40px;
+    border-radius: 100%;
+    --bg-color: gray;
+    background-color: var(--bg-color);
+  }
+
+  .Alert3{
+    position:relative;
+    left: 8px;
+    width: 40px;
+    height: 40px;
+    border-radius: 100%;
+    --bg-color: gray;
+    background-color: var(--bg-color);
+  }

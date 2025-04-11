@@ -23,7 +23,7 @@ namespace fix_xyz_trans{
         double altitude;
     };
 
-    class LatlonUtmTrans {
+    class LLAXYZTrans {
     private:
 
         bool set_origin_flg;
@@ -54,8 +54,8 @@ namespace fix_xyz_trans{
         void set_epsg_code(int epsg_code_num);
         void set_origin( LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_ );
 
-        LatlonUtmTrans();
-        ~LatlonUtmTrans();
+        LLAXYZTrans();
+        ~LLAXYZTrans();
 
     };
 }

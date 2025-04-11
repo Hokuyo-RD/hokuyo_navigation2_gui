@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!--パラメーターファイル-->
+    <arg name="param_file" default="$(find expo_fix2xyz)/config/xyz2fix_default.yaml" />
+
+    <!--ノード名-->
+    <arg name="name" default="expo_xyz2fix" />
+    
+    <arg name="output_option" default="screen" />
+    
+    <node pkg="expo_fix2xyz" type="expo_xyz2fix" name="$(arg name)" output="$(arg output_option)">
+            <rosparam command="load" file="$(arg param_file)"/>
+    </node>
+    
+    
+       
+</launch>

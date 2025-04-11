@@ -15,19 +15,19 @@ Eigen::Matrix3d RotMatFromQuat(const Eigen::Vector4d& quat){
 
 using namespace fix_xyz_trans;
 
-int LatlonUtmTrans::judge_utm_zone(double longitude){
+int LLAXYZTrans::judge_utm_zone(double longitude){
     //経度を6で割って切り上げ.
     int zone = (int)(longitude + 180.0 + 5 )/6;
     return zone;
 }
 
-std::string LatlonUtmTrans::utm_zone_to_epsg(int utm_zone){
+std::string LLAXYZTrans::utm_zone_to_epsg(int utm_zone){
     int epsg_num = utm_zone + 32600;
     return "EPSG:" + std::to_string(epsg_num);
 }
 
 
-void LatlonUtmTrans::set_origin(fix_xyz_trans::LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_){
+void LLAXYZTrans::set_origin(fix_xyz_trans::LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_){
     set_origin_flg = true;
     orig_pose = orig_pose_;
     orig_R = RotMatFromQuat(orig_quat_);
@@ -57,12 +57,12 @@ void LatlonUtmTrans::set_origin(fix_xyz_trans::LatLonAlt orig_pose_, Eigen::Vect
 }
 
 // 基本つかわない.
-void LatlonUtmTrans::set_epsg_code(int epsg_code_num){
+void LLAXYZTrans::set_epsg_code(int epsg_code_num){
     epsg_code = "EPSG:" + std::to_string(epsg_code_num);
     set_epsg_flg = true;
 }
 
-Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
+Eigen::Vector3d LLAXYZTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
     std::string fix_debug_msg = "get_fix";
     DEBUG_PRINT(fix_debug_msg);
 
@@ -122,7 +122,7 @@ Eigen::Vector3d LatlonUtmTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
     return xyz;
 }
 
-LatLonAlt LatlonUtmTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
+LatLonAlt LLAXYZTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
     std::string fix_debug_msg = "get_xy";
     DEBUG_PRINT(fix_debug_msg);
 
@@ -175,10 +175,10 @@ LatLonAlt LatlonUtmTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
 
 
 // 初期化処理.
-LatlonUtmTrans::LatlonUtmTrans() {
+LLAXYZTrans::LLAXYZTrans() {
     set_origin_flg = false;
     set_epsg_flg = false ;
     set_origin_vector_flg = false;
 }
-LatlonUtmTrans::~LatlonUtmTrans() {
+LLAXYZTrans::~LLAXYZTrans() {
 }

@@ -1,207 +1,10 @@
 #define DEBUG_MODE
-#include "expo_fix2xyz/fix_xyz_transform_node_lib.h"
+#include "expo_fix2xyz/fix2xyz_node_lib.h"
 
 
-
-// odomコールバック関数.
-void LatlonUtmTransNode::odom_callback1(const nav_msgs::Odometry &msg){
-    debug_msg = "get odom_msg";
-    DEBUG_PRINT(debug_msg);
-
-    sensor_msgs::NavSatFix ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
-
-
-    // フレーム変換.
-    geometry_msgs::TransformStamped transformStamped;
-    try{
-        transformStamped = tfBuffer.lookupTransform(map_frame, msg.header.frame_id, ros::Time(0));
-    }
-    catch (tf2::TransformException& ex){
-        ROS_WARN("%s", ex.what());
-        return;
-    }
-    geometry_msgs::Pose pose_on_map;
-    tf2::doTransform(msg.pose.pose, pose_on_map, transformStamped);
-
-    xyz(0) = pose_on_map.position.x ;
-    xyz(1) = pose_on_map.position.y ;
-    xyz(2) = pose_on_map.position.z ;
-
-    latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
-
-    ret_msg.header = msg.header ;
-    ret_msg.header.frame_id = "" ;
-    ret_msg.latitude = latlonalt.latitude;
-    ret_msg.longitude = latlonalt.longitude;
-    ret_msg.altitude = latlonalt.altitude;
-    ret_msg.position_covariance[0] = msg.pose.covariance[0];
-    ret_msg.position_covariance[1] = msg.pose.covariance[1];
-    ret_msg.position_covariance[2] = msg.pose.covariance[2];
-    ret_msg.position_covariance[3] = msg.pose.covariance[6];
-    ret_msg.position_covariance[4] = msg.pose.covariance[7];
-    ret_msg.position_covariance[5] = msg.pose.covariance[8];
-    ret_msg.position_covariance[6] = msg.pose.covariance[12];
-    ret_msg.position_covariance[7] = msg.pose.covariance[13];
-    ret_msg.position_covariance[8] = msg.pose.covariance[14];
-
-    fix_pub1.publish(ret_msg);
-
-    debug_msg = "published fix_msg1 from odometry";
-    DEBUG_PRINT(debug_msg);
-}
-
-
-void LatlonUtmTransNode::pose_callback2(const geometry_msgs::PoseStamped &msg){
-    debug_msg = "get odom_msg";
-    DEBUG_PRINT(debug_msg);
-
-    sensor_msgs::NavSatFix ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
-
-
-    // フレーム変換.
-    geometry_msgs::TransformStamped transformStamped;
-    try{
-        transformStamped = tfBuffer.lookupTransform(map_frame, msg.header.frame_id, ros::Time(0));
-    }
-    catch (tf2::TransformException& ex){
-        ROS_WARN("%s", ex.what());
-        return;
-    }
-    geometry_msgs::Pose pose_on_map;
-    tf2::doTransform(msg.pose, pose_on_map, transformStamped);
-
-    xyz(0) = pose_on_map.position.x ;
-    xyz(1) = pose_on_map.position.y ;
-    xyz(2) = pose_on_map.position.z ;
-
-    latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
-
-    ret_msg.header = msg.header ;
-    ret_msg.header.frame_id = "" ;
-    ret_msg.latitude = latlonalt.latitude;
-    ret_msg.longitude = latlonalt.longitude;
-    ret_msg.altitude = latlonalt.altitude;
-
-    fix_pub2.publish(ret_msg);
-
-    debug_msg = "published fix_msg2 from pose_stamped";
-    DEBUG_PRINT(debug_msg);
-}
-
-
-void LatlonUtmTransNode::posecov_callback3(const geometry_msgs::PoseWithCovarianceStamped &msg){
-    debug_msg = "get odom_msg";
-    DEBUG_PRINT(debug_msg);
-
-    sensor_msgs::NavSatFix ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
-
-
-    // フレーム変換.
-    geometry_msgs::TransformStamped transformStamped;
-    try{
-        transformStamped = tfBuffer.lookupTransform(map_frame, msg.header.frame_id, ros::Time(0));
-    }
-    catch (tf2::TransformException& ex){
-        ROS_WARN("%s", ex.what());
-        return;
-    }
-    geometry_msgs::Pose pose_on_map;
-    tf2::doTransform(msg.pose.pose, pose_on_map, transformStamped);
-
-    xyz(0) = pose_on_map.position.x ;
-    xyz(1) = pose_on_map.position.y ;
-    xyz(2) = pose_on_map.position.z ;
-
-    latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
-
-    ret_msg.header = msg.header ;
-    ret_msg.header.frame_id = "" ;
-    ret_msg.latitude = latlonalt.latitude;
-    ret_msg.longitude = latlonalt.longitude;
-    ret_msg.altitude = latlonalt.altitude;
-    ret_msg.position_covariance[0] = msg.pose.covariance[0];
-    ret_msg.position_covariance[1] = msg.pose.covariance[1];
-    ret_msg.position_covariance[2] = msg.pose.covariance[2];
-    ret_msg.position_covariance[3] = msg.pose.covariance[6];
-    ret_msg.position_covariance[4] = msg.pose.covariance[7];
-    ret_msg.position_covariance[5] = msg.pose.covariance[8];
-    ret_msg.position_covariance[6] = msg.pose.covariance[12];
-    ret_msg.position_covariance[7] = msg.pose.covariance[13];
-    ret_msg.position_covariance[8] = msg.pose.covariance[14];
-
-    fix_pub3.publish(ret_msg);
-
-    debug_msg = "published fix_msg3 from pose_with_covariance_stamped";
-    DEBUG_PRINT(debug_msg);
-}
-
-// areaコールバック
-void LatlonUtmTransNode::area_callback(const expo_msgs::Area &msg){
-    debug_msg = "get area_msg";
-    DEBUG_PRINT(debug_msg);
-
-    expo_fix_msgs::AreaFix ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
-
-    xyz(0) = msg.position.x ;
-    xyz(1) = msg.position.y ;
-    xyz(2) = msg.position.z ;
-
-    latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
-
-    ret_msg.id = msg.id;
-    ret_msg.latitude = latlonalt.latitude;
-    ret_msg.longitude = latlonalt.longitude;
-    ret_msg.altitude = latlonalt.altitude;
-    ret_msg.size = msg.size;
-    ret_msg.velocity = msg.velocity;
-    ret_msg.density = msg.density;
-    ret_msg.pose = msg.pose;
-
-    
-    area_fix_pub.publish(ret_msg);
-
-    debug_msg = "published area_fix_msg from area_msg";
-    DEBUG_PRINT(debug_msg);
-}
-
-
-// personコールバック
-void LatlonUtmTransNode::person_callback(const expo_msgs::Person &msg){
-    debug_msg = "get person_msg";
-    DEBUG_PRINT(debug_msg);
-
-    expo_fix_msgs::PersonFix ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
-
-    xyz(0) = msg.position.x ;
-    xyz(1) = msg.position.y ;
-    xyz(2) = msg.position.z ;
-
-    latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
-
-    ret_msg.latitude = latlonalt.latitude;
-    ret_msg.longitude = latlonalt.longitude;
-    ret_msg.altitude = latlonalt.altitude;
-    ret_msg.orientation = msg.orientation;
-    ret_msg.velocity = msg.velocity;
-
-    person_fix_pub.publish(ret_msg);
-
-    debug_msg = "published person_fix_msg from person_msg";
-    DEBUG_PRINT(debug_msg);
-}
 
 // fixコールバック関数.
-void LatlonUtmTransNode::fix_callback1(const sensor_msgs::NavSatFix &msg){
+void LLAXYZTransNode::fix_callback1(const sensor_msgs::NavSatFix &msg){
     debug_msg = "get fix_msg1";
     DEBUG_PRINT(debug_msg);
 
@@ -259,7 +62,7 @@ void LatlonUtmTransNode::fix_callback1(const sensor_msgs::NavSatFix &msg){
 
 
 
-void LatlonUtmTransNode::fix_callback2(const sensor_msgs::NavSatFix &msg){
+void LLAXYZTransNode::fix_callback2(const sensor_msgs::NavSatFix &msg){
     debug_msg = "get fix_msg2";
     DEBUG_PRINT(debug_msg);
 
@@ -304,7 +107,7 @@ void LatlonUtmTransNode::fix_callback2(const sensor_msgs::NavSatFix &msg){
 }
 
 
-void LatlonUtmTransNode::fix_callback3(const sensor_msgs::NavSatFix &msg){
+void LLAXYZTransNode::fix_callback3(const sensor_msgs::NavSatFix &msg){
     debug_msg = "get fix_msg3";
     DEBUG_PRINT(debug_msg);
 
@@ -361,7 +164,7 @@ void LatlonUtmTransNode::fix_callback3(const sensor_msgs::NavSatFix &msg){
 }
 
 
-void LatlonUtmTransNode::area_fix_callback(const expo_fix_msgs::AreaFix &msg){
+void LLAXYZTransNode::area_fix_callback(const expo_fix_msgs::AreaFix &msg){
     debug_msg = "get area_fix_msg";
     DEBUG_PRINT(debug_msg);
 
@@ -390,7 +193,7 @@ void LatlonUtmTransNode::area_fix_callback(const expo_fix_msgs::AreaFix &msg){
     DEBUG_PRINT(debug_msg);
 }
 
-void LatlonUtmTransNode::person_fix_callback(const expo_fix_msgs::PersonFix &msg){
+void LLAXYZTransNode::person_fix_callback(const expo_fix_msgs::PersonFix &msg){
     debug_msg = "get person_fix_msg";
     DEBUG_PRINT(debug_msg);
 
@@ -420,7 +223,7 @@ void LatlonUtmTransNode::person_fix_callback(const expo_fix_msgs::PersonFix &msg
 
 
 // 初期化処理.
-LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
+LLAXYZTransNode::LLAXYZTransNode( ) : nh(), pnh("~") {
 
     tf2_ros::TransformListener tfListener(tfBuffer);
 
@@ -428,24 +231,14 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     sub_fix_topic1 = "fix1";
     sub_fix_topic2 = "fix2";
     sub_fix_topic3 = "fix3";
-    sub_odom_topic1 = "odom1";
-    sub_pose_topic2 = "pose2";
-    sub_posecov_topic3 = "posecov3";
-    sub_area_topic = "area";
     sub_area_fix_topic = "area_fix";
-    sub_person_topic = "person";
     sub_person_fix_topic = "person_fix";
 
-    pub_fix_topic1 = "fix/from_odom1";
-    pub_fix_topic2 = "fix/from_pose2";
-    pub_fix_topic3 = "fix/from_posecov3";
     pub_odom_topic1 = "odometry/from_fix1";
     pub_pose_topic2 = "pose/from_fix2";
     pub_posecov_topic3 = "posecov/from_fix3";
     pub_area_topic = "area/from_fix";
-    pub_area_fix_topic = "area_fix/from_area";
     pub_person_topic = "person/from_person_fix";
-    pub_person_fix_topic = "person_fix/from_person";
 
     map_frame = "map";
     rot_cov = 1000000000.0;
@@ -459,30 +252,19 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     pnh.getParam("sub_fix_topic1", sub_fix_topic1);
     pnh.getParam("sub_fix_topic2", sub_fix_topic2);
     pnh.getParam("sub_fix_topic3", sub_fix_topic3);
-    pnh.getParam("sub_odom_topic1", sub_odom_topic1);
-    pnh.getParam("sub_pose_topic2", sub_pose_topic2);
-    pnh.getParam("sub_posecov_topic3", sub_posecov_topic3);
-
-    pnh.getParam("sub_area_topic", sub_area_topic);
     pnh.getParam("sub_area_fix_topic", sub_area_fix_topic);
-    pnh.getParam("sub_person_topic", sub_person_topic);
     pnh.getParam("sub_person_fix_topic", sub_person_fix_topic);
     
-    pnh.getParam("pub_fix_topic1", pub_fix_topic1);
-    pnh.getParam("pub_fix_topic2", pub_fix_topic2);
-    pnh.getParam("pub_fix_topic3", pub_fix_topic3);
     pnh.getParam("pub_oodm_topic1", pub_odom_topic1);
     pnh.getParam("pub_pose_topic2", pub_pose_topic2);
     pnh.getParam("pub_posecov_topic3", pub_posecov_topic3);
+    pnh.getParam("pub_area_topic", pub_area_topic);
+    pnh.getParam("pub_person_topic", pub_person_topic);
+
     pnh.getParam("rot_cov", rot_cov);
     pnh.getParam("make_angle_from_movement", make_angle_from_movement);
     pnh.getParam("map_frame", map_frame);
 
-    pnh.getParam("pub_area_topic", pub_area_topic);
-    pnh.getParam("pub_area_fix_topic", pub_area_fix_topic);
-    pnh.getParam("pub_person_topic", pub_person_topic);
-    pnh.getParam("pub_person_fix_topic", pub_person_fix_topic);
-    
     if (pnh.getParam("epsg_code_num", epsg_code_num)){
         l_u_transformer.set_epsg_code(epsg_code_num);
     }
@@ -518,29 +300,17 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
     }
 
     // publisher,subscriberの設定.
-    fix_sub1 = nh.subscribe(sub_fix_topic1, 10, &LatlonUtmTransNode::fix_callback1, this);
-    fix_sub2 = nh.subscribe(sub_fix_topic2, 10, &LatlonUtmTransNode::fix_callback2, this);
-    fix_sub3 = nh.subscribe(sub_fix_topic3, 10, &LatlonUtmTransNode::fix_callback3, this);
-    odom_sub1 = nh.subscribe(sub_odom_topic1, 10, &LatlonUtmTransNode::odom_callback1, this);
-    pose_sub2 = nh.subscribe(sub_pose_topic2, 10, &LatlonUtmTransNode::pose_callback2, this);
-    posecov_sub3 = nh.subscribe(sub_posecov_topic3, 10, &LatlonUtmTransNode::posecov_callback3, this);
+    fix_sub1 = nh.subscribe(sub_fix_topic1, 10, &LLAXYZTransNode::fix_callback1, this);
+    fix_sub2 = nh.subscribe(sub_fix_topic2, 10, &LLAXYZTransNode::fix_callback2, this);
+    fix_sub3 = nh.subscribe(sub_fix_topic3, 10, &LLAXYZTransNode::fix_callback3, this);
+    area_fix_sub = nh.subscribe(sub_area_fix_topic, 10, &LLAXYZTransNode::area_fix_callback, this);
+    person_fix_sub = nh.subscribe(sub_person_fix_topic, 10, &LLAXYZTransNode::person_fix_callback, this);
 
-    area_sub = nh.subscribe(sub_area_topic, 10, &LatlonUtmTransNode::area_callback, this);
-    area_fix_sub = nh.subscribe(sub_area_fix_topic, 10, &LatlonUtmTransNode::area_fix_callback, this);
-    person_sub = nh.subscribe(sub_person_topic, 10, &LatlonUtmTransNode::person_callback, this);
-    person_fix_sub = nh.subscribe(sub_person_fix_topic, 10, &LatlonUtmTransNode::person_fix_callback, this);
-
-    fix_pub1 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic1, 10);
-    fix_pub2 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic2, 10);
-    fix_pub3 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic3, 10);
     odom_pub1 = nh.advertise<nav_msgs::Odometry>(pub_odom_topic1, 10);
     pose_pub2 = nh.advertise<geometry_msgs::PoseStamped>(pub_pose_topic2, 10);
     posecov_pub3 = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>(pub_posecov_topic3, 10);
-
     area_pub = nh.advertise<expo_msgs::Area>(pub_area_topic, 10);
-    area_fix_pub = nh.advertise<expo_fix_msgs::AreaFix>(pub_area_fix_topic, 10);
     person_pub = nh.advertise<expo_msgs::Person>(pub_person_topic, 10);
-    person_fix_pub = nh.advertise<expo_fix_msgs::PersonFix>(pub_person_fix_topic, 10);
 
     fix1_isfirst = true;
     fix2_isfirst = true;
@@ -548,5 +318,5 @@ LatlonUtmTransNode::LatlonUtmTransNode( ) : nh(), pnh("~") {
 
 }
 
-LatlonUtmTransNode::~LatlonUtmTransNode() {
+LLAXYZTransNode::~LLAXYZTransNode() {
 }

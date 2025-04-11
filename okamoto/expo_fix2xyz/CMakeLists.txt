@@ -33,16 +33,29 @@ include_directories(
 
 add_executable(expo_fix2xyz
   src/fix_xyz_transform.cpp
-  src/fix_xyz_transform_node.cpp
-  src/fix_xyz_transform_node_lib.cpp
+  src/fix2xyz_node.cpp
+  src/fix2xyz_node_lib.cpp
+)
+add_executable(expo_xyz2fix
+  src/fix_xyz_transform.cpp
+  src/xyz2fix_node.cpp
+  src/xyz2fix_node_lib.cpp
 )
 
 add_dependencies(expo_fix2xyz
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
+add_dependencies(expo_xyz2fix
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
 
 target_link_libraries(expo_fix2xyz
+  ${catkin_LIBRARIES}
+  ${PROJ_LIBRARIES}
+)
+target_link_libraries(expo_xyz2fix
   ${catkin_LIBRARIES}
   ${PROJ_LIBRARIES}
 )

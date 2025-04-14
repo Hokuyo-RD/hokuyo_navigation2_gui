@@ -1,0 +1,173 @@
+/* static/style.css */
+
+body {
+    font-family: sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.header {
+    background-color: #222;
+    color: #eee;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2em;
+    font-weight: bold;
+}
+
+.content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* 垂直方向中央寄せ */
+    gap: 15px;
+    flex-grow: 1;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 15px 30px; /* PC デフォルト */
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+    width: 200px; /* PC デフォルト */
+    height: 100px;
+    box-sizing: border-box;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+a {
+    color: #007bff;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.footer {
+    background-color: #333;
+    color: #eee;
+    text-align: center;
+    padding: 10px;
+    font-size: 0.9em;
+    margin-top: 20px;
+}
+
+button[value="stop"] {
+    background-color: #dc3545;
+}
+
+button[value="stop"]:hover {
+    background-color: #c82333;
+}
+
+button[value="map"] {
+    background-color: #28a745;
+}
+
+button[value="map"]:hover {
+    background-color: #1e7e34;
+}
+
+.index-page-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+}
+
+.index-page-container button {
+    font-size: 1.2em;
+}
+
+/* スマートフォン向けのスタイル (最大幅 767px) */
+@media screen and (max-width: 767px) {
+    .header h1 {
+        font-size: 1.8em;
+    }
+
+    .content {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    button {
+        width: 100%;
+        height: auto;
+        padding-top: 50px; /* 縦のパディングを大きく */
+        padding-bottom: 50px; /* 縦のパディングを大きく */
+        padding-left: 15px;
+        padding-right: 15px;
+        font-size: 1.1em;
+    }
+
+    .footer {
+        font-size: 0.8em;
+    }
+
+    .index-page-container {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .index-page-container button {
+        width: 100%;
+        padding-top: 50px; /* 縦のパディングを大きく */
+        padding-bottom: 50px; /* 縦のパディングを大きく */
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+/* PC 向けのスタイル (最小幅 768px) */
+@media screen and (min-width: 768px) {
+    .header h1 {
+        font-size: 2.2em;
+    }
+
+    .content {
+        padding: 30px;
+        gap: 20px;
+    }
+
+    button {
+        width: 300px;
+        height: 120px;
+        font-size: 1.2em;
+        padding: 20px 40px; /* PC 用のパディング */
+    }
+
+    .footer {
+        font-size: 1em;
+    }
+
+    .index-page-container button {
+        width: 500px;
+    }
+}

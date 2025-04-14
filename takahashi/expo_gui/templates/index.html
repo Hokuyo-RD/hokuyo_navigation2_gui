@@ -9,23 +9,22 @@ wizurg_setting
 {% endblock header %}
 
 {% block content %}
-<form method="post" action="/wizurg">
-    <button type="submit" name="command" value="indoor_run" style="width:200px;height:100px">屋内開始(単一地図)</button>
-</form>
-<form method="post" action="/wizurg">
-    <button type="submit" name="command" value="outdoor_run" style="width:200px;height:100px">屋外開始(複数地図)</button>
-</form>
-<form method="post" action="/wizurg">
-    <button type="submit" name="command" value="stop" style="width:200px;height:100px">プログラム停止</button>
-</form>
-<form method="post" action="/wizurg">
-    <button type="submit" name="command" value="tools" style="width:200px;height:100px">設定ツール起動</button>
-</form>
-<form method="post" action="/wizurg">
-    <button type="submit" name="command" value="map" style="width:200px;height:100px;">マップ</button>
-</form>
-<!-- <br>
-<a href="http://192.168.137.28:5000/">Vizanti</a> -->
+<div class="index-page-container">
+    <form method="post" action="/wizurg">
+        <button type="submit" name="command" value="indoor_run">屋内開始(単一地図)</button>
+    </form>
+    <form method="post" action="/wizurg">
+        <button type="submit" name="command" value="outdoor_run">屋外開始(複数地図)</button>
+    </form>
+    <form method="post" action="/wizurg">
+        <button type="submit" name="command" value="stop">プログラム停止</button>
+    </form>
+    <form method="post" action="/wizurg">
+        <button type="submit" name="command" value="map">マップ</button>
+    </form>
+    <br>
+    <a href="http://100.80.95.15:5000/">自律走行経路確認用Viewer</a>
+</div>
 {% endblock  %}
 
 {% block footer %}

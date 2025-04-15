@@ -8,15 +8,19 @@ void XYZLLATransNode::odom_callback1(const nav_msgs::Odometry &msg){
     debug_msg = "get odom_msg";
     DEBUG_PRINT(debug_msg);
 
-    sensor_msgs::NavSatFix ret_msg;
+    expo_fix_msgs::FixWithOrientation ret_msg;
+    sensor_msgs::NavSatFix fix_msg;
     Eigen::Vector3d xyz;
     fix_xyz_trans::LatLonAlt latlonalt;
+    std::string lio_frame = msg.header.frame_id;
+    std::cout << "map_frame : " << map_frame << std::endl;
+    std::cout << "tar_frame : " << lio_frame << std::endl;
 
 
     // フレーム変換.
     geometry_msgs::TransformStamped transformStamped;
     try{
-        transformStamped = tfBuffer.lookupTransform(map_frame, msg.header.frame_id, ros::Time(0));
+        transformStamped = tfBuffer.lookupTransform(map_frame, lio_frame, ros::Time(0));
     }
     catch (tf2::TransformException& ex){
         ROS_WARN("%s", ex.what());
@@ -31,20 +35,23 @@ void XYZLLATransNode::odom_callback1(const nav_msgs::Odometry &msg){
 
     latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
 
-    ret_msg.header = msg.header ;
-    ret_msg.header.frame_id = "" ;
-    ret_msg.latitude = latlonalt.latitude;
-    ret_msg.longitude = latlonalt.longitude;
-    ret_msg.altitude = latlonalt.altitude;
-    ret_msg.position_covariance[0] = msg.pose.covariance[0];
-    ret_msg.position_covariance[1] = msg.pose.covariance[1];
-    ret_msg.position_covariance[2] = msg.pose.covariance[2];
-    ret_msg.position_covariance[3] = msg.pose.covariance[6];
-    ret_msg.position_covariance[4] = msg.pose.covariance[7];
-    ret_msg.position_covariance[5] = msg.pose.covariance[8];
-    ret_msg.position_covariance[6] = msg.pose.covariance[12];
-    ret_msg.position_covariance[7] = msg.pose.covariance[13];
-    ret_msg.position_covariance[8] = msg.pose.covariance[14];
+    fix_msg.header = msg.header ;
+    fix_msg.header.frame_id = "" ;
+    fix_msg.latitude = latlonalt.latitude;
+    fix_msg.longitude = latlonalt.longitude;
+    fix_msg.altitude = latlonalt.altitude;
+    fix_msg.position_covariance[0] = msg.pose.covariance[0];
+    fix_msg.position_covariance[1] = msg.pose.covariance[1];
+    fix_msg.position_covariance[2] = msg.pose.covariance[2];
+    fix_msg.position_covariance[3] = msg.pose.covariance[6];
+    fix_msg.position_covariance[4] = msg.pose.covariance[7];
+    fix_msg.position_covariance[5] = msg.pose.covariance[8];
+    fix_msg.position_covariance[6] = msg.pose.covariance[12];
+    fix_msg.position_covariance[7] = msg.pose.covariance[13];
+    fix_msg.position_covariance[8] = msg.pose.covariance[14];
+
+    ret_msg.fix = fix_msg;
+    ret_msg.orientation = msg.pose.pose.orientation;
 
     fix_pub1.publish(ret_msg);
 
@@ -254,9 +261,7 @@ void XYZLLATransNode::otosimono_callback(const geometry_msgs::Point &msg){
 
 
 // 初期化処理.
-XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~") {
-
-    tf2_ros::TransformListener tfListener(tfBuffer);
+XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
 
     // 各rosparamのデフォルト値.
     sub_odom_topic1 = "odom1";
@@ -343,7 +348,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~") {
     maigo_sub = nh.subscribe(sub_maigo_topic, 10, &XYZLLATransNode::maigo_callback, this);
     otosimono_sub = nh.subscribe(sub_otosimono_topic, 10, &XYZLLATransNode::otosimono_callback, this);
 
-    fix_pub1 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic1, 10);
+    fix_pub1 = nh.advertise<expo_fix_msgs::FixWithOrientation>(pub_fix_topic1, 10);
     fix_pub2 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic2, 10);
     fix_pub3 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic3, 10);
     area_fix_pub = nh.advertise<expo_fix_msgs::AreaFix>(pub_area_fix_topic, 10);

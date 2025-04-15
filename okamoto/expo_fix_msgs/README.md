@@ -18,3 +18,9 @@
     altitude | [float64] | 高度[m] 
     orientation | [geometry_msgs/Quaternion] | 姿勢 
     velocity | [float32] | 速度 
+- expo_fix_msgs::FixWithOrientation
+    メンバ変数 | 型 | 説明  
+    -| - | -
+    fix | [sensor_msgs/NavSatFix] | 緯度経度 
+    orientation | [geometry_msgs/Quaternion] | 姿勢 
+    

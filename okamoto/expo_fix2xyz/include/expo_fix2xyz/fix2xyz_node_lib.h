@@ -20,6 +20,7 @@
 #include <expo_msgs/Person.h>
 #include <expo_fix_msgs/AreaFix.h>
 #include <expo_fix_msgs/PersonFix.h>
+#include <expo_fix_msgs/FixWithOrientation.h>
 
 #include <proj.h>
 #include "expo_fix2xyz/fix_xyz_transform.h"
@@ -31,6 +32,7 @@ class LLAXYZTransNode {
     
     LLAXYZTrans l_u_transformer;
     tf2_ros::Buffer tfBuffer;
+    tf2_ros::TransformListener tfListener;
 
     std::string debug_msg;
 
@@ -78,7 +80,7 @@ class LLAXYZTransNode {
 
   public:
     // コールバック関数.
-    void fix_callback1(const sensor_msgs::NavSatFix &msg);
+    void fix_callback1(const expo_fix_msgs::FixWithOrientation &msg);
     void fix_callback2(const sensor_msgs::NavSatFix &msg);
     void fix_callback3(const sensor_msgs::NavSatFix &msg);
     void area_fix_callback(const expo_fix_msgs::AreaFix &msg);

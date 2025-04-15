@@ -1,5 +1,5 @@
 # マップ原点の設定
-origin_pose: 34.69176319251114,135.49633723119732,0 # 緯度 経度 高度
+origin_pose: 34.648955532,135.3864642795,47.4248278253 #万博下見のデータ
 origin_quat: 0.0,0.0,0.0,1.0
 
 
@@ -19,9 +19,9 @@ pub_maigo_fix_topic: "maigo_fix"
 sub_otosimono_topic: "otosimono"
 pub_otosimono_fix_topic: "otosimono_fix"
 
-# nav_msgs::Odometry => sensor_msgs::NavSatFix
-sub_odom_topic1: "odometry"
-pub_fix_topic1: "fix/from_odom"
+# nav_msgs::Odometry => expo_fix_msgs::FixWithOrientation
+sub_odom_topic1: "hokuyo_lio/sync_odom"
+pub_fix_topic1: "odom_fix"
 
 # geometry_msgs::PoseStamped => sensor_msgs::NavSatFix
 sub_pose_topic2: "pose"

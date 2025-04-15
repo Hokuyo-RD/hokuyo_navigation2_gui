@@ -36,6 +36,19 @@ catkin_make
     ```
     ダミートピック`data_topic`,`maigo`,`otosimono`をそれぞれ緯度経度に変換したトピック`data_fix_topic`,`maigo_fix`,`otosimono_fix`がパブリッシュされる
 
+## 実行手順 ( expo_wizurg_localizationの自己位置を緯度経度に変換する )
+1. wizurg_localizationの実行、またはrosbagの再生(rosbag必要な場合は岡本まで)
+    ```
+    rosbag play test.bag
+    ```
+2. xyz2fixの実行
+    ```
+    source devel/setup.bash
+    roslaunch expo_fix2xyz xyz2fix.launch
+    ```
+    オドメトリトピック`hokuyo_lio/lidar_odom`を緯度経度に変換したトピック`odom_fix[expo_fix_msgs::FixWithOrientation]`がパブリッシュされる。
+    odom_fixの角度(.orientation)は、東方向が基準となっている。適宜90度回転させること。
+
 ## parameter
 expo_software/okamoto/expo_fix2xyz/config/xyz2fix_default.yaml  
 マップ原点の緯度経度と各種トピック名の設定

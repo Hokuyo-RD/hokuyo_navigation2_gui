@@ -158,8 +158,9 @@ window.onload = (event) => {
   let ros = new ROSLIB.Ros({
     //url : 'ws://192.168.137.31:9090'
     //url : 'ws://192.168.0.157:9090'
-    //url : 'ws://localhost:9090'
-    url: 'ws://' + location.hostname + ':9090'
+    url : 'ws://100.80.95.15:9090'
+    //url: 'ws://' + location.hostname + ':9090'
+    //url: 'ws://192.168.0.8:9090'
   });
 
   ros.on('connection', function () {

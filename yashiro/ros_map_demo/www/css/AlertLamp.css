@@ -1,28 +1,23 @@
-.approachingAlert{
-    position:relative;
-    left: 8px;
-    width: 40px;
-    height: 40px;
+.alert{
+  position:relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 100%;
+}
+
+.alert.approach{
     border-radius: 100%;
     --bg-color: gray;
     background-color: var(--bg-color);
   }
 
-  .Alert2{
-    position:relative;
-    left: 8px;
-    width: 40px;
-    height: 40px;
+  .alert.alert2{
     border-radius: 100%;
     --bg-color: gray;
     background-color: var(--bg-color);
   }
 
-  .Alert3{
-    position:relative;
-    left: 8px;
-    width: 40px;
-    height: 40px;
+  .alert.alert3{
     border-radius: 100%;
     --bg-color: gray;
     background-color: var(--bg-color);

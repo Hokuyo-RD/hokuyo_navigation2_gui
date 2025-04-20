@@ -10,13 +10,16 @@ wizurg_setting
 
 {% block content %}
 <div class="index-page-container">
-    <p>自律走行プログラムを終了します... 5秒後に自動的にメインページに戻ります。</p>
+    <p>自律走行プログラムを終了します... 2秒後に自動的にメインページに戻ります。</p>
 </div>
 
 <script>
+    const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
+
     setTimeout(function() {
-        window.location.replace('/wizurg');
-    }, 5000); // 5000ミリ秒 = 5秒
+        reloadChannel.postMessage({ action: 'reload' });
+        window.close();
+    }, 2000);
 </script>
 
 {% endblock  %}

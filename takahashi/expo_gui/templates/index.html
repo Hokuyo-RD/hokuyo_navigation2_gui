@@ -11,7 +11,7 @@ wizurg_setting
 {% block content %}
 <div class="index-page-container">
     <button id="indoorRunBtn">自律走行設定</button>
-    <form method="post" action="/wizurg"　target="_blank">
+    <form method="post" action="/wizurg" target="_blank">
         <button type="submit" name="command" value="stop">自律走行停止</button>
     </form>
     <form method="post" action="/wizurg" target="_blank">
@@ -29,11 +29,44 @@ wizurg_setting
 </div>
 
 <script>
+    const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
     const indoorRunBtn = document.getElementById('indoorRunBtn');
     const popupContainer = document.getElementById('popupContainer');
     const popupContent = document.getElementById('popupContent');
     const indoorRunContent = document.getElementById('indoorRunContent');
     const closePopupBtn = document.getElementById('closePopupBtn');
+
+    reloadChannel.onmessage = function(event) {
+        if (event.data && event.data.action === 'reload') {
+            window.location.reload();
+        }
+    };
+
+    indoorRunBtn.addEventListener('click', () => {
+        fetch('/indoor_run_popup')
+            .then(response => response.text())
+            .then(data => {
+                indoorRunContent.innerHTML = data;
+                popupContainer.style.display = 'flex';
+                initializeIndoorRunPopup();
+            })
+            .catch(error => {
+                console.error('Error fetching indoor_run.html:', error);
+                alert('自律走行設定の読み込みに失敗しました。');
+            });
+    });
+
+    closePopupBtn.addEventListener('click', () => {
+        popupContainer.style.display = 'none';
+        indoorRunContent.innerHTML = '';
+    });
+
+    popupContainer.addEventListener('click', (event) => {
+        if (event.target === popupContainer) {
+            popupContainer.style.display = 'none';
+            indoorRunContent.innerHTML = '';
+        }
+    });
 
     function initializeIndoorRunPopup() {
         const popupIndoorRunForm = document.getElementById('indoorRunForm');
@@ -78,32 +111,6 @@ wizurg_setting
 
         updatePopupExecuteButtonState(); // 初期状態を反映
     }
-
-    indoorRunBtn.addEventListener('click', () => {
-        fetch('/indoor_run_popup')
-            .then(response => response.text())
-            .then(data => {
-                indoorRunContent.innerHTML = data;
-                popupContainer.style.display = 'flex';
-                initializeIndoorRunPopup(); // ポップアップの内容が読み込まれた後に初期化
-            })
-            .catch(error => {
-                console.error('Error fetching indoor_run.html:', error);
-                alert('自律走行設定の読み込みに失敗しました。');
-            });
-    });
-
-    closePopupBtn.addEventListener('click', () => {
-        popupContainer.style.display = 'none';
-        indoorRunContent.innerHTML = '';
-    });
-
-    popupContainer.addEventListener('click', (event) => {
-        if (event.target === popupContainer) {
-            popupContainer.style.display = 'none';
-            indoorRunContent.innerHTML = '';
-        }
-    });
 </script>
 {% endblock  %}
 

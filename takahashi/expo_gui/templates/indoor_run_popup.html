@@ -1,9 +1,6 @@
 <div class="indoor-run-popup-content">
     <p>屋内自律移動の開始前に設定を確認してください。</p>
-    {% if error %}
-    <p style="color: red;">{{ error }}</p>
-    {% endif %}
-    <form id="indoorRunForm" method="post" action="/wizurg">
+    <form id="indoorRunForm" method="post" action="/wizurg" target="_blank">
         <div>
             <input type="checkbox" id="check1" name="check1" value="checked">
             <label for="check1">Check Item 1</label><br>
@@ -24,26 +21,6 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // すべてのチェックボックスを取得
-        const checkboxes = document.querySelectorAll('#indoorRunContent input[type="checkbox"]');
-        // 自律走行開始ボタンを取得
-        const executeBtn = document.getElementById('executeBtn');
-
-        // チェックボックスの状態をリセット
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
-
-        // 自律走行開始ボタンが存在する場合
-        if (executeBtn) {
-            // disabled 属性を設定
-            executeBtn.disabled = true;
-            // クラスを inactive-button に設定し、active-button を削除
-            executeBtn.classList.add('inactive-button');
-            executeBtn.classList.remove('active-button');
-        }
-    });
     const popupIndoorRunForm = document.getElementById('indoorRunForm');
     const popupCheck1 = document.getElementById('check1');
     const popupCheck2 = document.getElementById('check2');
@@ -70,6 +47,9 @@
         if (!popupCheck1.checked || !popupCheck2.checked || !popupCheck3.checked) {
             event.preventDefault();
             alert('すべてのチェック項目にチェックを入れてください。');
+        } else {
+            document.getElementById('popupContainer').style.display = 'none';
+            document.getElementById('indoorRunContent').innerHTML = '';
         }
     });
 

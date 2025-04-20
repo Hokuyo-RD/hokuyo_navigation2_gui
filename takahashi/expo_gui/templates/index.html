@@ -2,7 +2,7 @@
 
 {% block title %}
 wizurg_setting
-{% endblock  %}
+{% endblock  %}
 
 {% block header %}
 <h1>WizURG操作画面</h1>
@@ -10,23 +10,103 @@ wizurg_setting
 
 {% block content %}
 <div class="index-page-container">
-    <form method="post" action="/wizurg">
-        <button type="submit" name="command" value="indoor_run">屋内開始(単一地図)</button>
+    <button id="indoorRunBtn">自律走行設定</button>
+    <form method="post" action="/wizurg"　target="_blank">
+        <button type="submit" name="command" value="stop">自律走行停止</button>
     </form>
-    <form method="post" action="/wizurg">
-        <button type="submit" name="command" value="outdoor_run">屋外開始(複数地図)</button>
-    </form>
-    <form method="post" action="/wizurg">
-        <button type="submit" name="command" value="stop">プログラム停止</button>
-    </form>
-    <form method="post" action="/wizurg">
+    <form method="post" action="/wizurg" target="_blank">
         <button type="submit" name="command" value="map">マップ</button>
     </form>
     <br>
-    <a href="http://100.80.95.15:5000/">自律走行経路確認用Viewer</a>
+    <a href="http://100.80.95.15:5000/" target="_blank" >自律走行経路確認Viewer</a>
+    <div id="popupContainer" class="popup-container">
+        <div id="popupContent" class="popup-content">
+            <button id="closePopupBtn" class="close-button">閉じる</button>
+            <div id="indoorRunContent">
+            </div>
+        </div>
+    </div>
 </div>
-{% endblock  %}
+
+<script>
+    const indoorRunBtn = document.getElementById('indoorRunBtn');
+    const popupContainer = document.getElementById('popupContainer');
+    const popupContent = document.getElementById('popupContent');
+    const indoorRunContent = document.getElementById('indoorRunContent');
+    const closePopupBtn = document.getElementById('closePopupBtn');
+
+    function initializeIndoorRunPopup() {
+        const popupIndoorRunForm = document.getElementById('indoorRunForm');
+        const popupCheck1 = document.getElementById('check1');
+        const popupCheck2 = document.getElementById('check2');
+        const popupCheck3 = document.getElementById('check3');
+        const popupExecuteBtn = document.getElementById('executeBtn');
+
+        function updatePopupExecuteButtonState() {
+            if (popupCheck1 && popupCheck2 && popupCheck3 && popupExecuteBtn) {
+                if (popupCheck1.checked && popupCheck2.checked && popupCheck3.checked) {
+                    popupExecuteBtn.disabled = false;
+                    popupExecuteBtn.classList.remove('inactive-button');
+                    popupExecuteBtn.classList.add('active-button');
+                } else {
+                    popupExecuteBtn.disabled = true;
+                    popupExecuteBtn.classList.add('inactive-button');
+                    popupExecuteBtn.classList.remove('active-button');
+                }
+            }
+        }
+
+        if (popupCheck1 && popupCheck2 && popupCheck3) {
+            popupCheck1.addEventListener('change', updatePopupExecuteButtonState);
+            popupCheck2.addEventListener('change', updatePopupExecuteButtonState);
+            popupCheck3.addEventListener('change', updatePopupExecuteButtonState);
+        }
+
+        if (popupIndoorRunForm) {
+            popupIndoorRunForm.addEventListener('submit', (event) => {
+                if (popupCheck1 && popupCheck2 && popupCheck3) {
+                    if (!popupCheck1.checked || !popupCheck2.checked || !popupCheck3.checked) {
+                        event.preventDefault();
+                        alert('すべてのチェック項目にチェックを入れてください。');
+                    }
+                } else {
+                    event.preventDefault(); // チェックボックスが見つからない場合も送信を防ぐ
+                    alert('エラー: チェック項目が見つかりません。');
+                }
+            });
+        }
+
+        updatePopupExecuteButtonState(); // 初期状態を反映
+    }
+
+    indoorRunBtn.addEventListener('click', () => {
+        fetch('/indoor_run_popup')
+            .then(response => response.text())
+            .then(data => {
+                indoorRunContent.innerHTML = data;
+                popupContainer.style.display = 'flex';
+                initializeIndoorRunPopup(); // ポップアップの内容が読み込まれた後に初期化
+            })
+            .catch(error => {
+                console.error('Error fetching indoor_run.html:', error);
+                alert('自律走行設定の読み込みに失敗しました。');
+            });
+    });
+
+    closePopupBtn.addEventListener('click', () => {
+        popupContainer.style.display = 'none';
+        indoorRunContent.innerHTML = '';
+    });
+
+    popupContainer.addEventListener('click', (event) => {
+        if (event.target === popupContainer) {
+            popupContainer.style.display = 'none';
+            indoorRunContent.innerHTML = '';
+        }
+    });
+</script>
+{% endblock  %}
 
 {% block footer %}
 index_footer
-{% endblock  %}
+{% endblock  %}

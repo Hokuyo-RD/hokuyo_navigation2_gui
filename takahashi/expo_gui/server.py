@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template, redirect
 from flask_sockets import Sockets
 import asyncio
 import websockets
@@ -9,34 +9,23 @@ from threading import Thread
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 from geventwebsocket.websocket import WebSocket
-import ssl
 
 app = Flask(__name__)
 sockets = Sockets(app)
 
-ROSBRIDGE_URI = "ws://localhost:9090"  # 内部の ROSBridge WebSocket サーバーの URI
+ROSBRIDGE_URI = "ws://localhost:9090"
 
 async def forward(ws, target):
     try:
         while True:
             try:
-                if isinstance(ws, websockets.legacy.client.WebSocketClientProtocol):
-                    message = await ws.recv()  # websockets の受信
-                    await target.send(message)
-                elif isinstance(ws, WebSocket):  # gevent-websocket の受信
-                    message = ws.receive()
-                    if message is None:
-                        print(f"Forwarder (gevent): Received None, connection closed: {ws}")
-                        break
-                    await target.send(message)
-                else:
-                    print(f"Forwarder: Unknown WebSocket type: {type(ws)}")
+                message = await ws.recv() if isinstance(ws, websockets.legacy.client.WebSocketClientProtocol) else ws.receive()
+                if message is None and isinstance(ws, WebSocket):
+                    print(f"Forwarder (gevent): Received None, connection closed: {ws}")
                     break
-            except websockets.exceptions.ConnectionClosedOK:
-                print(f"Forwarder: Connection closed gracefully: {ws}")
-                break
-            except websockets.exceptions.ConnectionClosedError as e:
-                print(f"Forwarder: Connection closed unexpectedly: {ws}, error: {e}")
+                await target.send(message)
+            except (websockets.exceptions.ConnectionClosedOK, websockets.exceptions.ConnectionClosedError) as e:
+                print(f"Forwarder: Connection closed: {ws}, error: {e}")
                 break
             except Exception as e:
                 print(f"Forwarder: Error during receive/send on {ws}: {e}, type: {e.__class__.__name__}")
@@ -70,6 +59,10 @@ def websocket_handler(ws):
 def indoor_run():
     return render_template('indoor_run.html')
 
+@app.route('/indoor_run_popup')
+def indoor_run_popup():
+    return render_template('indoor_run_popup.html')
+
 @app.route('/outdoor_run')
 def outdoor_run():
     return render_template('outdoor_run.html')
@@ -85,17 +78,27 @@ def tools_run():
 def run_subprocess(command_list):
     subprocess.run(command_list)
 
+@app.route('/program_executed')
+def program_executed():
+    return render_template('program_executed.html', message="自律走行が開始されました。周囲の安全に気をつけて下さい。")
+
 @app.route('/wizurg', methods=['GET', 'POST'])
 def trigger_script():
     if request.method == 'GET':
         return render_template('index.html')
     elif request.method == 'POST':
         command = request.form.get("command") or request.get_json().get("command")
-        if command == "indoor_run":
-            Thread(target=run_subprocess, args=([
-                "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_in.sh"
-            ],)).start()
-            return render_template('indoor_run.html')
+        if command == "execute_indoor_run":
+            check1 = request.form.get("check1")
+            check2 = request.form.get("check2")
+            check3 = request.form.get("check3")
+            if check1 == 'checked' and check2 == 'checked' and check3 == 'checked':
+                Thread(target=run_subprocess, args=([
+                    "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_in.sh"
+                ],)).start()
+                return redirect('/program_executed')
+            else:
+                return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
         elif command == "outdoor_run":
             Thread(target=run_subprocess, args=([
                 "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_out.sh"
@@ -116,7 +119,7 @@ if __name__ == '__main__':
     from gevent import pywsgi
     from geventwebsocket.handler import WebSocketHandler
     from geventwebsocket.websocket import WebSocket
-    import ssl
+    from flask import redirect
 
     server = pywsgi.WSGIServer(('0.0.0.0', 5050), app, handler_class=WebSocketHandler)
     print("WebSocket Proxy server started at ws://0.0.0.0:5050/ws")

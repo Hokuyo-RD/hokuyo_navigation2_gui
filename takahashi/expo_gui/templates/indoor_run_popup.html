@@ -1,0 +1,93 @@
+<div class="indoor-run-popup-content">
+    <p>屋内自律移動の開始前に設定を確認してください。</p>
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+    <form id="indoorRunForm" method="post" action="/wizurg">
+        <div>
+            <input type="checkbox" id="check1" name="check1" value="checked">
+            <label for="check1">Check Item 1</label><br>
+        </div>
+        <div>
+            <input type="checkbox" id="check2" name="check2" value="checked">
+            <label for="check2">Check Item 2</label><br>
+        </div>
+        <div>
+            <input type="checkbox" id="check3" name="check3" value="checked">
+            <label for="check3">Check Item 3</label><br>
+        </div>
+        <input type="hidden" name="command" value="execute_indoor_run">
+        <div style="text-align: center; margin-top: 20px;">
+            <button type="submit" id="executeBtn" class="special inactive-button" disabled style="font-size: 200%;">自律走行開始</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // すべてのチェックボックスを取得
+        const checkboxes = document.querySelectorAll('#indoorRunContent input[type="checkbox"]');
+        // 自律走行開始ボタンを取得
+        const executeBtn = document.getElementById('executeBtn');
+
+        // チェックボックスの状態をリセット
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // 自律走行開始ボタンが存在する場合
+        if (executeBtn) {
+            // disabled 属性を設定
+            executeBtn.disabled = true;
+            // クラスを inactive-button に設定し、active-button を削除
+            executeBtn.classList.add('inactive-button');
+            executeBtn.classList.remove('active-button');
+        }
+    });
+    const popupIndoorRunForm = document.getElementById('indoorRunForm');
+    const popupCheck1 = document.getElementById('check1');
+    const popupCheck2 = document.getElementById('check2');
+    const popupCheck3 = document.getElementById('check3');
+    const popupExecuteBtn = document.getElementById('executeBtn');
+
+    function updatePopupExecuteButtonState() {
+        if (popupCheck1.checked && popupCheck2.checked && popupCheck3.checked) {
+            popupExecuteBtn.disabled = false;
+            popupExecuteBtn.classList.remove('inactive-button');
+            popupExecuteBtn.classList.add('active-button');
+        } else {
+            popupExecuteBtn.disabled = true;
+            popupExecuteBtn.classList.add('inactive-button');
+            popupExecuteBtn.classList.remove('active-button');
+        }
+    }
+
+    popupCheck1.addEventListener('change', updatePopupExecuteButtonState);
+    popupCheck2.addEventListener('change', updatePopupExecuteButtonState);
+    popupCheck3.addEventListener('change', updatePopupExecuteButtonState);
+
+    popupIndoorRunForm.addEventListener('submit', (event) => {
+        if (!popupCheck1.checked || !popupCheck2.checked || !popupCheck3.checked) {
+            event.preventDefault();
+            alert('すべてのチェック項目にチェックを入れてください。');
+        }
+    });
+
+    updatePopupExecuteButtonState(); // 初期状態を反映
+</script>
+
+<style>
+    .indoor-run-popup-content {
+        text-align: center;
+        padding: 20px;
+    }
+
+    .indoor-run-popup-content div {
+        margin-bottom: 10px;
+        text-align: left;
+    }
+
+    .indoor-run-popup-content label {
+        margin-left: 5px;
+    }
+</style>

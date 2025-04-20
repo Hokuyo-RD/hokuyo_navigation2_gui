@@ -312,7 +312,7 @@ button[value="map"]:hover {
 }
 
 #indoorRunForm > div {
-    margin-bottom: 10px;
+    margin-bottom: 40px;
 }
 
 #indoorRunForm > div:last-of-type {
@@ -322,8 +322,8 @@ button[value="map"]:hover {
 
 #indoorRunForm > div[style*="text-align: center;"] {
     /* 「自律走行開始」ボタンの div */
-    margin-top: 20px;
-    margin-bottom: 10px; /* 閉じるボタンとの間隔 */
+    margin-top: 30px;
+    margin-bottom: 5px; /* 閉じるボタンとの間隔 */
     order: 1; /* 「自律走行開始」ボタンより前に配置 */
 }
 

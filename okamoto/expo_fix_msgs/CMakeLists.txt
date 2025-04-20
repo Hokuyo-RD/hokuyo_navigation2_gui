@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   message_runtime
   std_msgs
+  sensor_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -52,6 +53,7 @@ add_message_files(
   FILES
   PersonFix.msg
   AreaFix.msg
+  FixWithOrientation.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -73,6 +75,7 @@ generate_messages(
   DEPENDENCIES
   geometry_msgs
   std_msgs
+  sensor_msgs
 )
 
 ################################################

@@ -27,15 +27,16 @@ class LayerControlAdmin {
   visibleChanged = function (checked) {
     this.isVisible = checked;
     if (this.isVisible) {
-      for (var i = 0;i< this.markers.length ;i++) {
+      for (var i = 0; i < this.markers.length; i++) {
         this.markers[i].addTo(map);
       }
     }
     else {
-      for (var i = 0;i< this.markers.length ;i++) {
-        if(this.markers[i].marker != null){
-        map.removeLayer(this.markers[i].marker);}
-        else{
+      for (var i = 0; i < this.markers.length; i++) {
+        if (this.markers[i].marker != null) {
+          map.removeLayer(this.markers[i].marker);
+        }
+        else {
           map.removeLayer(this.markers[i]);
         }
       }
@@ -43,21 +44,21 @@ class LayerControlAdmin {
   }
 
   ///マーカーの表示最大時間を過ぎたマーカーを削除する
-  deleteTimeOverMarker = function(){
-    var now  = new Date();
+  deleteTimeOverMarker = function () {
+    var now = new Date();
     var nowTime = now.getTime();
-  for(var i =0; i< this.markers.length;i++){
-    var elapsedTime = this.markers[i].getElapsedTime(nowTime);
-    if(elapsedTime < maxMarkerTime){
-      this.markers.splice(0,i);
-      return;
-  }
-  else{
-      map.removeLayer(this.markers[i].marker);
-  }
-}
-this.markers.splice(0,i);
-return;
+    for (var i = 0; i < this.markers.length; i++) {
+      var elapsedTime = this.markers[i].getElapsedTime(nowTime);
+      if (elapsedTime < maxMarkerTime) {
+        this.markers.splice(0, i);
+        return;
+      }
+      else {
+        map.removeLayer(this.markers[i].marker);
+      }
+    }
+    this.markers.splice(0, i);
+    return;
   }
 }
 
@@ -70,8 +71,8 @@ return;
 // }
 
 ///マーカーの追加機能を実装するためのクラス
-class AdvancedMarker{
-  constructor(marker){
+class AdvancedMarker {
+  constructor(marker) {
     this.marker = marker;
     var now = new Date();
     this.startTime = now.getTime();
@@ -80,38 +81,38 @@ class AdvancedMarker{
   //マーカーを置いた時刻
   startTime;
   //マーカーを置いたときからの経過時間を計算
-  getElapsedTime = function (nowTime){
+  getElapsedTime = function (nowTime) {
     var ret = nowTime - this.startTime;
-    if(ret>=0){
+    if (ret >= 0) {
       return ret;
     }
-    else{
+    else {
       return 0;
     }
   }
-  addTo = function(map){
+  addTo = function (map) {
     return this.marker.addTo(map);
   }
 }
 
-function rotationSwitch(){
-  if(isRotationON){
-    map.setBearing (0);
+function rotationSwitch() {
+  if (isRotationON) {
+    map.setBearing(0);
     isRotationON = false;
   }
-  else{
+  else {
     isRotationON = true;
     map.setBearing(map_rotate_angle);
   }
 }
 
 let center_latLng;
-let init_mark;
-let initMark;
-let second_mark;
-let secondMark;
-let gps_init_pub;
-let gps_second_pub;
+// let init_mark;
+// let initMark;
+// let second_mark;
+// let secondMark;
+// let gps_init_pub;
+// let gps_second_pub;
 
 let gps_markers = [];
 let latest_gps_marker;
@@ -121,24 +122,33 @@ let filtered_markers = [];
 let latest_filtered_marker;
 const length_per_side = [0.000045, 0.0000625];
 let start_point = [34.64695159902189, 135.37847645406802];
-let polygon_points = [start_point,
-  [start_point[0] + length_per_side[0], start_point[1]],
-  [start_point[0] + length_per_side[0], start_point[1] + length_per_side[1]],
-  [start_point[0], start_point[1] + length_per_side[1]]];
 const number_of_rows = 10;
 const number_of_lines = 10;
 let crowding_polygones = [];
-let map_rotate_angle ;
-let previos_message;
+let map_rotate_angle;
 const earth_radius = 6387137;
 
 let gps_control = new LayerControlAdmin("自己位置", true, []);
 let stray_control = new LayerControlAdmin("stray", true, []);
 let lost_prop_control = new LayerControlAdmin("lost_property", true, []);
-let crowd_control ;
+let crowd_control;
 let isRotationON = true;
-let maxMarkerTime = 3000;
+let maxMarkerTime = 600000;
 let wayPointMarker;
+let isGPSVisible;
+
+function changeGPSMarkerVisible(checked){
+  isGPSVisible=checked;
+  if(!latest_gps_marker){
+    return;
+  }
+  if(!isGPSVisible){
+    map.removeLayer(latest_gps_marker);
+  }
+  else{
+    latest_gps_marker.addTo(map);
+  }
+}
 
 function delete_all_markers() {
 
@@ -170,12 +180,14 @@ function delete_all_markers() {
 function pub_init_pose() { }
 window.onload = (event) => {
 
-  //アラートの宣言
-  var approachingAlert = new AlertAdmin("approachingAlert");
-  
-  var Alert2 = new AlertAdmin("Alert2");
+  isGPSVisible = true;
 
-  var Alert3 = new AlertAdmin("Alert3");
+  //アラートの宣言
+  var approachingAlert = new AlertAdmin("alert approach");
+
+  var Alert2 = new AlertAdmin("alert alert2");
+
+  var Alert3 = new AlertAdmin("alert alert3");
 
   approachingAlert.setAlertLevel(0);
 
@@ -188,7 +200,7 @@ window.onload = (event) => {
   center_latLng = map.getCenter();
   //document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）"
 
-  
+
   // init_posのマーカーアイコン作成.
   init_mark = L.divIcon({ // CSSを使ったDivIconを作成
     className: 'init_pose',
@@ -249,145 +261,177 @@ window.onload = (event) => {
     messageType: 'nav_msgs/Odometry'
   });
   autoMobile_start_pub = new ROSLIB.Topic({
-    ros:ros,
+    ros: ros,
     name: '/expo_start',
     messageType: 'std_msgs/string'
   });
   autoMobile_stop_pub = new ROSLIB.Topic({
-    ros:ros,
+    ros: ros,
     name: '/expo_stop',
     messageType: 'std_msgs/string'
   });
   wayPoint_pub = new ROSLIB.Topic({
-    ros:ros,
+    ros: ros,
     name: '/expo_waypoint',
     messageType: 'sensor_msgs/NavSatFix'
   });
 
-  // subscriberの設定.
-  let odom_sub = new ROSLIB.Topic({
+  // // subscriberの設定.
+  // let odom_sub = new ROSLIB.Topic({
+  //   ros: ros,
+  //   name: '/fix/utm',
+  //   messageType: 'sensor_msgs/NavSatFix'
+  // });
+  // let filtered_sub = new ROSLIB.Topic({
+  //   ros: ros,
+  //   name: '/odometry/utm_filtered',
+  //   messageType: 'nav_msgs/Odometry'
+  // });
+  let odom_fix_sub = new ROSLIB.Topic({
     ros: ros,
-    name: '/fix/utm',
+    name: '/odom_fix',
+    messageType: 'expo_fix_msgs/FixWithOrientation'
+  });
+
+  let maigo_sub = new ROSLIB.Topic({
+    ros: ros,
+    name: '/maigo_fix',
     messageType: 'sensor_msgs/NavSatFix'
   });
-  let filtered_sub = new ROSLIB.Topic({
+
+  let otosimono_sub = new ROSLIB.Topic({
     ros: ros,
-    name: '/odometry/utm_filtered',
-    messageType: 'nav_msgs/Odometry'
-  });
-  let gps_sub = new ROSLIB.Topic({
-    ros: ros,
-    name: '/fix',
+    name: '/otosimono_fix',
     messageType: 'sensor_msgs/NavSatFix'
   });
+  // // callback関数.
+  // odom_sub.subscribe(function (message) {
+  //   console.log("subscribed odom!!!");
 
-  // callback関数.
-  odom_sub.subscribe(function (message) {
-    console.log("subscribed odom!!!");
+  //   //最新点だけ表示.
+  //   if (latest_odom_marker != null) { map.removeLayer(latest_odom_marker); }
+  //   latest_odom_marker = L.circleMarker([message.latitude, message.longitude], latestOdomIcon).addTo(map);
+  //   map.setView([message.latitude, message.longitude]);
 
-    //最新点だけ表示.
-    if (latest_odom_marker != null) { map.removeLayer(latest_odom_marker); }
-    latest_odom_marker = L.circleMarker([message.latitude, message.longitude], latestOdomIcon).addTo(map);
-    map.setView([message.latitude, message.longitude]);
+  //   //gpsと同じ間隔でodometryマーカー作成.
+  //   if (mark_odom_flg) {
+  //     odom_markers.push(L.marker([message.latitude, message.longitude], { icon: blueIcon }).addTo(map));
+  //     document.getElementById("processing").textContent = "(緯度:経度) = (" + message.latitude + ":" + message.longitude + ")";
+  //     console.log("(緯度:経度) = (" + message.latitude + ":" + message.longitude + ")");
+  //     mark_odom_flg = false;
+  //   }
+  // });
 
-    //gpsと同じ間隔でodometryマーカー作成.
-    if (mark_odom_flg) {
-      odom_markers.push(L.marker([message.latitude, message.longitude], { icon: blueIcon }).addTo(map));
-      document.getElementById("processing").textContent = "(緯度:経度) = (" + message.latitude + ":" + message.longitude + ")";
-      console.log("(緯度:経度) = (" + message.latitude + ":" + message.longitude + ")");
-      mark_odom_flg = false;
-    }
-  });
+  // filtered_sub.subscribe(function (message) {
+  //   console.log("subscribed odom!!!");
+  //   //msgからUTMゾーン情報を取得.
+  //   const sub_frame_id = message.header.frame_id;
+  //   const firstNum = sub_frame_id.indexOf('_') + 1;
+  //   const lastNum = sub_frame_id.length - 1;
+  //   let utm_zone = Number(sub_frame_id.substr(firstNum, (lastNum - firstNum)));
+  //   console.log(utm_zone);
 
-  filtered_sub.subscribe(function (message) {
-    console.log("subscribed odom!!!");
-    //msgからUTMゾーン情報を取得.
-    const sub_frame_id = message.header.frame_id;
-    const firstNum = sub_frame_id.indexOf('_') + 1;
-    const lastNum = sub_frame_id.length - 1;
-    let utm_zone = Number(sub_frame_id.substr(firstNum, (lastNum - firstNum)));
-    console.log(utm_zone);
+  //   //proj4jsにUTMゾーンとUTM座標を渡して緯度経度に変換.
+  //   let message_xy = [message.pose.pose.position.x, message.pose.pose.position.y];
+  //   let lon_lat = proj4(UTM_zone_to_epsg(utm_zone)).inverse(message_xy);
 
-    //proj4jsにUTMゾーンとUTM座標を渡して緯度経度に変換.
-    let message_xy = [message.pose.pose.position.x, message.pose.pose.position.y];
-    let lon_lat = proj4(UTM_zone_to_epsg(utm_zone)).inverse(message_xy);
+  //   //最新点だけ表示.
+  //   if (latest_filtered_marker != null) { map.removeLayer(latest_filtered_marker); }
+  //   latest_filtered_marker = L.circleMarker([lon_lat[1], lon_lat[0]], latestfilteredIcon).addTo(map);
 
-    //最新点だけ表示.
-    if (latest_filtered_marker != null) { map.removeLayer(latest_filtered_marker); }
-    latest_filtered_marker = L.circleMarker([lon_lat[1], lon_lat[0]], latestfilteredIcon).addTo(map);
-
-    //gpsと同じ間隔でodometryマーカー作成.
-    if (mark_filtered_flg) {
-      filtered_markers.push(L.marker([lon_lat[1], lon_lat[0]], { icon: yellowIcon }).addTo(map));
-      mark_filtered_flg = false;
-    }
-  });
+  //   //gpsと同じ間隔でodometryマーカー作成.
+  //   if (mark_filtered_flg) {
+  //     filtered_markers.push(L.marker([lon_lat[1], lon_lat[0]], { icon: yellowIcon }).addTo(map));
+  //     mark_filtered_flg = false;
+  //   }
+  // });
 
 
-  gps_sub.subscribe(function (message) {
+  odom_fix_sub.subscribe(function (message) {
     console.log("subscribed gps!!!");
     let tempxy;
     //最新点だけ表示.
-    if (latest_gps_marker != null) { 
-            map.removeLayer(latest_gps_marker); }
-    latest_gps_marker = L.marker([message.latitude, message.longitude], { icon: redIcon }).addTo(map);
-
+    if (latest_gps_marker != null) {
+      map.removeLayer(latest_gps_marker);
+    }
+    latest_gps_marker = L.marker([message.fix.latitude, message.fix.longitude], { icon: redIcon });
+    if(isGPSVisible){
+      latest_gps_marker.addTo(map);
+    }
+    // L.marker([message.fix.latitude, message.fix.longitude],{icon:redIcon}).addTo(map);
     //時間を過ぎたマーカーを削除
     stray_control.deleteTimeOverMarker();
     lost_prop_control.deleteTimeOverMarker();
 
-    if(previos_message != null && isRotationON){
-      map.panTo([message.latitude, message.longitude]);      
-      var latest_latlng ={longitude:message.longitude*(180/Math.PI),latitude:message.latitude*(180/Math.PI)};
-      var previos_latlng ={longitude:previos_message.longitude*(180/Math.PI),latitude:previos_message.latitude*(180/Math.PI)};
-      ///最新点と１つ前の点からセンサの進行方向を計算
-      var dx = earth_radius*(latest_latlng.longitude - previos_latlng.longitude)*Math.cos((previos_latlng.latitude + latest_latlng.latitude)/2);
-      var dy = earth_radius*(latest_latlng.latitude - previos_latlng.latitude);
-      map_rotate_angle = -Math.atan2(dx,dy)* (180 / Math.PI);
+    if (isRotationON) {
+      map.panTo([message.fix.latitude, message.fix.longitude]);
+      // var latest_latlng = { longitude: message.longitude * (180 / Math.PI), latitude: message.latitude * (180 / Math.PI) };
+      // var previos_latlng = { longitude: previos_message.longitude * (180 / Math.PI), latitude: previos_message.latitude * (180 / Math.PI) };
+      // ///最新点と１つ前の点からセンサの進行方向を計算
+      // var dx = earth_radius * (latest_latlng.longitude - previos_latlng.longitude) * Math.cos((previos_latlng.latitude + latest_latlng.latitude) / 2);
+      // var dy = earth_radius * (latest_latlng.latitude - previos_latlng.latitude);
+      // map_rotate_angle = -Math.atan2(dx, dy) * (180 / Math.PI);
       //map_rotate_angle = Math.atan2(message.latitude - previos_message.latitude,message.longitude - previos_message.longitude)* (180 / Math.PI);
-      map.setBearing(map_rotate_angle);
+      
+      map.setBearing(2*Math.acos(message.orientation.w)* (180 / Math.PI) - 90);
     }
     previos_message = message;
     //gpsのマーカー作成して、odometry側フラグの操作.
-    if (count_gps % per_ == 0) {
-      var random = Math.random()*100;
-      //100 * Math.random();
-      if (random < 50) {
-        stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
-      }
-      else {
-        lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude],{icon: lostPropIcon})));
-      }
+    // if (count_gps % per_ == 0) {
+    //   var random = Math.random() * 100;
+    //   //100 * Math.random();
+    //   if (random < 50) {
+    //     stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
+    //   }
+    //   else {
+    //     lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
+    //   }
+    //s}
       mark_odom_flg = true;
       mark_filtered_flg = true;
-    }
     count_gps++;
   });
   //document.getElementById("processing").textContent = "緯度経度テストjs読み込み完";]
-  crowd_control = new generateTileGroup([34.64695159902189, 135.37847645406802],0.00045,0.00045,30,30);
+  crowd_control = new generateTileGroup([34.64695159902189, 135.37847645406802], 0.00045, 0.00045, 30, 30);
+  
+  maigo_sub.subscribe(function (message) {
+    //map.panTo([message.latitude, message.longitude]);
+    stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
+  })
+
+  otosimono_sub.subscribe(function (message) {
+    //map.panTo([message.latitude, message.longitude]);
+    lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
+  })
 };
 
 
 
 // publish用関数(HTMLから呼び出すためにwindow.onload外で定義)
-function pub_expo_start(){
+function pub_expo_start() {
   var message = new ROSLIB.Message({
-    data:'start'
+    data: 'start'
   })
   autoMobile_start_pub.publish(message);
 }
 
-function pub_expo_stop(){
+function pub_expo_stop() {
   var message = new ROSLIB.Message({
-    data:'stop'
+    data: 'stop'
   })
   autoMobile_start_pub.publish(message);
 }
 
-function pub_expo_wayPoint(){
-  //TODO:ウェイポイント送信（メッセージ型を聞く）
-  return;
+function pub_expo_wayPoint() {
+  if (wayPointMarker) {
+    var message = new ROSLIB.Message({
+      latitude: wayPointMarker.getLatLng().lat,
+      longitude: wayPointMarker.getLatLng().lng
+    });
+  }
+  wayPoint_pub.publish(message);
 }
+
 // function pub_init_pose() {
 
 //   // ===== 既存マーカーがある場合は削除====
@@ -464,7 +508,7 @@ function pub_expo_wayPoint(){
 //   }
 // }
 
-// // second_pose 
+// // second_pose
 // //publish用関数
 // function pub_second_pose() {
 

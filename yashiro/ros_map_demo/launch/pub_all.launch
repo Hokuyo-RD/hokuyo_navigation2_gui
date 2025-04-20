@@ -1,0 +1,8 @@
+<launch>
+　　<include file="$(find roswww)/launch/roswww.launch" />
+  　<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+  　<include file="$(find expo_fix2xyz)/launch/xyz2fix.launch" />
+    <node pkg="ros_tutorial" name="otosimono" type="otosimono_xyz_pub.py" />
+    <node pkg="ros_tutorial" name="maigo" type="maigo_xyz_pub.py" />
+    <node pkg="ros_tutorial" name="data_topic" type="dummy_xyz_pub.py" />
+</launch>

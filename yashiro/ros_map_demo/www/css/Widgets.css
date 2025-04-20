@@ -1,0 +1,36 @@
+.widget{
+    position: absolute;
+    background-color: rgba(255,255,255,0.8);
+    padding: 0.25vh;
+    border-radius: 10px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    z-index:1000;
+}
+.widget.title{
+    position: absolute;
+    top:10px;
+    left:10px;
+}
+
+.widget.title>ul{
+    padding-left: 10px;
+}
+.widget.toolBar{
+    position: absolute;
+    max-width: 20vw;
+    min-width: 20vw;
+    max-height: 45vh;
+    top: 30%;
+    right:10px;
+    overflow: scroll;
+}
+.widget.alarm{
+    position: absolute;
+    bottom: 10px;
+    left:10px;
+}
+
+.widget.alarm li{
+    align-items: center;
+    justify-content: center;
+}

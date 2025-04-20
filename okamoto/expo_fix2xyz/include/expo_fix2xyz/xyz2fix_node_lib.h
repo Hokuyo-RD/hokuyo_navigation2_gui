@@ -20,6 +20,7 @@
 #include <expo_msgs/Person.h>
 #include <expo_fix_msgs/AreaFix.h>
 #include <expo_fix_msgs/PersonFix.h>
+#include <expo_fix_msgs/FixWithOrientation.h>
 
 #include <proj.h>
 #include "expo_fix2xyz/fix_xyz_transform.h"
@@ -31,6 +32,7 @@ class XYZLLATransNode {
     
     LLAXYZTrans l_u_transformer;
     tf2_ros::Buffer tfBuffer;
+    tf2_ros::TransformListener tfListener;
 
     std::string debug_msg;
 

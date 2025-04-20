@@ -4,55 +4,39 @@
 
 
 // fixコールバック関数.
-void LLAXYZTransNode::fix_callback1(const sensor_msgs::NavSatFix &msg){
+void LLAXYZTransNode::fix_callback1(const expo_fix_msgs::FixWithOrientation &msg){
     debug_msg = "get fix_msg1";
     DEBUG_PRINT(debug_msg);
 
+    sensor_msgs::NavSatFix fix_msg = msg.fix;
     nav_msgs::Odometry ret_msg;
     Eigen::Vector3d xyz;
     fix_xyz_trans::LatLonAlt latlonalt;
 
-    latlonalt.latitude = msg.latitude;
-    latlonalt.longitude = msg.longitude;
-    latlonalt.altitude = msg.altitude;
+    latlonalt.latitude = fix_msg.latitude;
+    latlonalt.longitude = fix_msg.longitude;
+    latlonalt.altitude = fix_msg.altitude;
 
     xyz = l_u_transformer.get_xyz_from_latlonalt(latlonalt);
 
-    ret_msg.header = msg.header;
+    ret_msg.header = fix_msg.header;
     ret_msg.header.frame_id = map_frame;
     ret_msg.pose.pose.position.x = xyz(0);
     ret_msg.pose.pose.position.y = xyz(1);
     ret_msg.pose.pose.position.z = xyz(2);
-    ret_msg.pose.pose.orientation.w = 1.0;
-    ret_msg.pose.covariance[0] = msg.position_covariance[0];
-    ret_msg.pose.covariance[1] = msg.position_covariance[1];
-    ret_msg.pose.covariance[2] = msg.position_covariance[2];
-    ret_msg.pose.covariance[6] = msg.position_covariance[3];
-    ret_msg.pose.covariance[7] = msg.position_covariance[4];
-    ret_msg.pose.covariance[8] = msg.position_covariance[5];
-    ret_msg.pose.covariance[12] = msg.position_covariance[6];
-    ret_msg.pose.covariance[13] = msg.position_covariance[7];
-    ret_msg.pose.covariance[14] = msg.position_covariance[8];
+    ret_msg.pose.pose.orientation = msg.orientation;
+    ret_msg.pose.covariance[0] = fix_msg.position_covariance[0];
+    ret_msg.pose.covariance[1] = fix_msg.position_covariance[1];
+    ret_msg.pose.covariance[2] = fix_msg.position_covariance[2];
+    ret_msg.pose.covariance[6] = fix_msg.position_covariance[3];
+    ret_msg.pose.covariance[7] = fix_msg.position_covariance[4];
+    ret_msg.pose.covariance[8] = fix_msg.position_covariance[5];
+    ret_msg.pose.covariance[12] = fix_msg.position_covariance[6];
+    ret_msg.pose.covariance[13] = fix_msg.position_covariance[7];
+    ret_msg.pose.covariance[14] = fix_msg.position_covariance[8];
     ret_msg.pose.covariance[21] = rot_cov;
     ret_msg.pose.covariance[28] = rot_cov;
     ret_msg.pose.covariance[35] = rot_cov;
-
-    // 姿勢推定.
-    if(fix1_isfirst){
-        fix1_isfirst = false;
-    }
-    else{
-        // 移動量がある程度ある場合に角度推定.
-        double movement_x = xyz(0) - last_fix1_pose.position.x;
-        double movement_y = xyz(1) - last_fix1_pose.position.y;
-        double movement = movement_x * movement_x + movement_y * movement_y;
-        if(movement > 0.1){
-            double theta = std::atan2(movement_y , movement_x);
-            ret_msg.pose.pose.orientation.z = std::sin(0.5*theta);
-            ret_msg.pose.pose.orientation.w = std::cos(0.5*theta);
-        }
-    }
-    last_fix1_pose = ret_msg.pose.pose;
 
     odom_pub1.publish(ret_msg);
     
@@ -223,9 +207,7 @@ void LLAXYZTransNode::person_fix_callback(const expo_fix_msgs::PersonFix &msg){
 
 
 // 初期化処理.
-LLAXYZTransNode::LLAXYZTransNode( ) : nh(), pnh("~") {
-
-    tf2_ros::TransformListener tfListener(tfBuffer);
+LLAXYZTransNode::LLAXYZTransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
 
     // 各rosparamのデフォルト値.
     sub_fix_topic1 = "fix1";

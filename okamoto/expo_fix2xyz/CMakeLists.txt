@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   expo_msgs
   expo_fix_msgs
+  geometry_msgs
 )
 
 find_package (Eigen3 REQUIRED)
@@ -41,6 +42,9 @@ add_executable(expo_xyz2fix
   src/xyz2fix_node.cpp
   src/xyz2fix_node_lib.cpp
 )
+add_executable(expo_tftest
+  src/tf_test.cpp
+)
 
 add_dependencies(expo_fix2xyz
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
@@ -50,12 +54,20 @@ add_dependencies(expo_xyz2fix
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
+add_dependencies(expo_tftest
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
 
 target_link_libraries(expo_fix2xyz
   ${catkin_LIBRARIES}
   ${PROJ_LIBRARIES}
 )
 target_link_libraries(expo_xyz2fix
+  ${catkin_LIBRARIES}
+  ${PROJ_LIBRARIES}
+)
+target_link_libraries(expo_tftest
   ${catkin_LIBRARIES}
   ${PROJ_LIBRARIES}
 )

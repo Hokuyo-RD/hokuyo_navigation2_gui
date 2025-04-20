@@ -1,7 +1,7 @@
 // マップを作る
 var map = L.map("mapid", { rotate: true }).setView([34.64912664606176, 135.387270679471], 16);
 
-
+map.zoomControl.setPosition('bottomright');
 // マップの設定
 
 //国土地理院航空写真.

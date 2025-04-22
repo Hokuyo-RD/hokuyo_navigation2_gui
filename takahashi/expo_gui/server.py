@@ -63,9 +63,9 @@ def indoor_run():
 def indoor_run_popup():
     return render_template('indoor_run_popup.html')
 
-@app.route('/outdoor_run')
-def outdoor_run():
-    return render_template('outdoor_run.html')
+@app.route('/outdoor_run_popup')
+def outdoor_run_popup():
+    return render_template('outdoor_run_popup.html')
 
 @app.route('/stop')
 def stop_run():
@@ -99,11 +99,17 @@ def trigger_script():
                 return redirect('/program_executed')
             else:
                 return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
-        elif command == "outdoor_run":
-            Thread(target=run_subprocess, args=([
-                "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_out.sh"
-            ],)).start()
-            return render_template('outdoor_run.html')
+        elif command == "execute_outdoor_run":
+            check1_outdoor = request.form.get("check1_outdoor")
+            check2_outdoor = request.form.get("check2_outdoor")
+            check3_outdoor = request.form.get("check3_outdoor")
+            if check1_outdoor == 'checked' and check2_outdoor == 'checked' and check3_outdoor == 'checked':
+                Thread(target=run_subprocess, args=([
+                    "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_out.sh"
+                ],)).start()
+                return redirect('/program_executed')
+            else:
+                return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
         elif command == "stop":
             Thread(target=run_subprocess, args=([
                 "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/web_kill_all_rosnode.sh"

@@ -442,3 +442,117 @@ input[type="checkbox"]:checked + label {
   color: #28a745; /* チェックが入ったら文字色を緑にする */
   /* transition: background-color 0.3s ease; /* ホバー時のアニメーション (今回は不要) */
 }
+
+.outdoor-run-container {
+    margin-top: 30px; /* 少し大きく */
+    padding: 20px; /* 少し大きく */
+    border: 2px solid #ccc; /* 少し太く */
+    border-radius: 8px; /* 少し大きく */
+    background-color: #f9f9f9;
+    text-align: center; /* コンテンツを中央寄せ */
+}
+
+.outdoor-run-container div {
+    margin-bottom: 15px; /* 間隔を少し大きく */
+    text-align: left; /* チェックボックスとラベルは左寄せに戻す */
+}
+
+.outdoor-run-container label {
+    margin-left: 8px; /* 間隔を少し大きく */
+    font-size: 1.2em; /* ラベルの文字サイズを大きく */
+}
+
+.outdoor-run-container div input[type="checkbox"] {
+    width: 45px; /* チェックボックスの幅を大きく */
+    height: 45px; /* チェックボックスの高さを大きく */
+    margin-right: 20px; /* ラベルとの間隔を大きく */
+    vertical-align: middle; /* ラベルと垂直方向中央揃え */
+}
+
+.outdoor-run-container div label {
+    font-size: 1.2em; /* ラベルの文字サイズを大きく */
+    vertical-align: middle; /* チェックボックスと垂直方向中央揃え */
+}
+
+.outdoor-run-container a {
+    display: block; /* ブロック要素にして中央寄せを適用しやすく */
+    margin-top: 40px; /* 間隔を少し大きく */
+    color: #007bff;
+    text-decoration: none;
+    font-size: 1.1em; /* 文字サイズを少し大きく */
+}
+
+.outdoor-run-container a:hover {
+    text-decoration: underline;
+}
+
+.outdoor-run-popup-content {
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 20px; /* 閉じるボタンとの間隔 */
+}
+
+.outdoor-run-popup-content div {
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.outdoor-run-popup-content label {
+    margin-left: 5px;
+}
+
+.outdoor-run-popup-content div input[type="checkbox"] {
+    margin-right: 8px;
+    vertical-align: middle;
+    transform: scale(2.0); /* チェックボックスを 2.0倍に拡大 */
+    -webkit-transform: scale(2.0); /* Safari、Chrome 用 */
+}
+
+.outdoor-run-popup-content div label {
+    margin-left: 15px; /* 拡大に合わせてラベルとの間隔を調整 */
+    vertical-align: middle;
+    font-size: 1.2em; /* 少し大きくするとバランスが良いかもしれません */
+}
+
+#outdoorRunForm {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+#outdoorRunForm > div {
+    margin-bottom: 40px;
+}
+
+#outdoorRunForm > div:last-of-type {
+    margin-top: 20px; /* チェックボックスとボタンの間隔 */
+    margin-bottom: 0;
+}
+
+#outdoorRunForm > div[style*="text-align: center;"] {
+    /* 「自律走行開始」ボタンの div */
+    margin-top: auto; /* 下に押しやる */
+    text-align: center;
+}
+
+#outdoorRunForm > div[style*="text-align: center;"] > button {
+    font-size: 1.5em; /* ボタンの文字サイズを調整 */
+    padding: 10px 20px; /* ボタンのパディングを調整 */
+    width: auto; /* 必要に応じて調整 */
+}
+
+/* チェックされていない状態のラベル */
+input[type="checkbox"] + label {
+    border: 2px solid red; /* 赤色のボーダー */
+    padding: 5px 10px;
+    font-weight: bold;
+    color: red;
+}
+
+input[type="checkbox"]:checked + label {
+  border: 2px solid #28a745; /* 緑色のボーダー (不要になったのでコメントアウトまたは削除) */
+  padding: 5px 10px;
+  font-weight: bold;
+  color: #28a745; /* チェックが入ったら文字色を緑にする */
+  /* transition: background-color 0.3s ease; /* ホバー時のアニメーション (今回は不要) */
+}

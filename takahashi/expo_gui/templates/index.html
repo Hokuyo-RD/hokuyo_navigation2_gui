@@ -10,7 +10,8 @@ wizurg_setting
 
 {% block content %}
 <div class="index-page-container">
-    <button id="indoorRunBtn">自律走行</button>
+    <button id="indoorRunBtn">屋内自律走行設定</button>
+    <button id="outdoorRunBtn">屋外自律走行設定</button>
     <form method="post" action="/wizurg" target="_blank">
         <button type="submit" name="command" value="stop">ロボット停止</button>
     </form>
@@ -18,11 +19,18 @@ wizurg_setting
         <button type="submit" name="command" value="map">マップ</button>
     </form>
     <br>
-    <a href="http://100.80.95.15:5000/" target="_blank" >自律走行経路確認Viewer</a>
-    <div id="popupContainer" class="popup-container">
-        <div id="popupContent" class="popup-content">
-            <button id="closePopupBtn" class="close-button">閉じる</button>
+    <a href="http://100.108.154.115:5000/" target="_blank" >自律走行経路確認Viewer</a>
+    <div id="indoorPopupContainer" class="popup-container">
+        <div id="indoorPopupContent" class="popup-content">
+            <button id="closeIndoorPopupBtn" class="close-button">閉じる</button>
             <div id="indoorRunContent">
+            </div>
+        </div>
+    </div>
+    <div id="outdoorPopupContainer" class="popup-container" style="display: none;">
+        <div id="outdoorPopupContent" class="popup-content">
+            <button id="closeOutdoorPopupBtn" class="close-button">閉じる</button>
+            <div id="outdoorRunContent">
             </div>
         </div>
     </div>
@@ -31,10 +39,15 @@ wizurg_setting
 <script>
     const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
     const indoorRunBtn = document.getElementById('indoorRunBtn');
-    const popupContainer = document.getElementById('popupContainer');
-    const popupContent = document.getElementById('popupContent');
+    const outdoorRunBtn = document.getElementById('outdoorRunBtn');
+    const indoorPopupContainer = document.getElementById('indoorPopupContainer');
+    const indoorPopupContent = document.getElementById('indoorPopupContent');
     const indoorRunContent = document.getElementById('indoorRunContent');
-    const closePopupBtn = document.getElementById('closePopupBtn');
+    const closeIndoorPopupBtn = document.getElementById('closeIndoorPopupBtn');
+    const outdoorPopupContainer = document.getElementById('outdoorPopupContainer');
+    const outdoorPopupContent = document.getElementById('outdoorPopupContent');
+    const outdoorRunContent = document.getElementById('outdoorRunContent');
+    const closeOutdoorPopupBtn = document.getElementById('closeOutdoorPopupBtn');
 
     reloadChannel.onmessage = function(event) {
         if (event.data && event.data.action === 'reload') {
@@ -47,24 +60,50 @@ wizurg_setting
             .then(response => response.text())
             .then(data => {
                 indoorRunContent.innerHTML = data;
-                popupContainer.style.display = 'flex';
+                indoorPopupContainer.style.display = 'flex';
                 initializeIndoorRunPopup();
             })
             .catch(error => {
                 console.error('Error fetching indoor_run.html:', error);
-                alert('自律走行設定の読み込みに失敗しました。');
+                alert('屋内自律走行設定の読み込みに失敗しました。');
             });
     });
 
-    closePopupBtn.addEventListener('click', () => {
-        popupContainer.style.display = 'none';
+    outdoorRunBtn.addEventListener('click', () => {
+        fetch('/outdoor_run_popup')
+            .then(response => response.text())
+            .then(data => {
+                outdoorRunContent.innerHTML = data;
+                outdoorPopupContainer.style.display = 'flex';
+                initializeOutdoorRunPopup();
+            })
+            .catch(error => {
+                console.error('Error fetching outdoor_run_popup.html:', error);
+                alert('屋外自律走行設定の読み込みに失敗しました。');
+            });
+    });
+
+    closeIndoorPopupBtn.addEventListener('click', () => {
+        indoorPopupContainer.style.display = 'none';
         indoorRunContent.innerHTML = '';
     });
 
-    popupContainer.addEventListener('click', (event) => {
-        if (event.target === popupContainer) {
-            popupContainer.style.display = 'none';
+    closeOutdoorPopupBtn.addEventListener('click', () => {
+        outdoorPopupContainer.style.display = 'none';
+        outdoorRunContent.innerHTML = '';
+    });
+
+    indoorPopupContainer.addEventListener('click', (event) => {
+        if (event.target === indoorPopupContainer) {
+            indoorPopupContainer.style.display = 'none';
             indoorRunContent.innerHTML = '';
+        }
+    });
+
+    outdoorPopupContainer.addEventListener('click', (event) => {
+        if (event.target === outdoorPopupContainer) {
+            outdoorPopupContainer.style.display = 'none';
+            outdoorRunContent.innerHTML = '';
         }
     });
 
@@ -75,7 +114,7 @@ wizurg_setting
         const popupCheck3 = document.getElementById('check3');
         const popupExecuteBtn = document.getElementById('executeBtn');
 
-        function updatePopupExecuteButtonState() {
+        function updateIndoorExecuteButtonState() {
             if (popupCheck1 && popupCheck2 && popupCheck3 && popupExecuteBtn) {
                 if (popupCheck1.checked && popupCheck2.checked && popupCheck3.checked) {
                     popupExecuteBtn.disabled = false;
@@ -90,9 +129,9 @@ wizurg_setting
         }
 
         if (popupCheck1 && popupCheck2 && popupCheck3) {
-            popupCheck1.addEventListener('change', updatePopupExecuteButtonState);
-            popupCheck2.addEventListener('change', updatePopupExecuteButtonState);
-            popupCheck3.addEventListener('change', updatePopupExecuteButtonState);
+            popupCheck1.addEventListener('change', updateIndoorExecuteButtonState);
+            popupCheck2.addEventListener('change', updateIndoorExecuteButtonState);
+            popupCheck3.addEventListener('change', updateIndoorExecuteButtonState);
         }
 
         if (popupIndoorRunForm) {
@@ -109,7 +148,51 @@ wizurg_setting
             });
         }
 
-        updatePopupExecuteButtonState(); // 初期状態を反映
+        updateIndoorExecuteButtonState(); // 初期状態を反映
+    }
+
+    function initializeOutdoorRunPopup() {
+        const outdoorRunForm = document.getElementById('outdoorRunForm');
+        const check1_outdoor = document.getElementById('check1_outdoor');
+        const check2_outdoor = document.getElementById('check2_outdoor');
+        const check3_outdoor = document.getElementById('check3_outdoor');
+        const executeBtn_outdoor = document.getElementById('executeBtn_outdoor');
+
+        function updateOutdoorExecuteButtonState() {
+            if (check1_outdoor && check2_outdoor && check3_outdoor && executeBtn_outdoor) {
+                if (check1_outdoor.checked && check2_outdoor.checked && check3_outdoor.checked) {
+                    executeBtn_outdoor.disabled = false;
+                    executeBtn_outdoor.classList.remove('inactive-button');
+                    executeBtn_outdoor.classList.add('active-button');
+                } else {
+                    executeBtn_outdoor.disabled = true;
+                    executeBtn_outdoor.classList.add('inactive-button');
+                    executeBtn_outdoor.classList.remove('active-button');
+                }
+            }
+        }
+
+        if (check1_outdoor && check2_outdoor && check3_outdoor) {
+            check1_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
+            check2_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
+            check3_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
+        }
+
+        if (outdoorRunForm) {
+            outdoorRunForm.addEventListener('submit', (event) => {
+                if (check1_outdoor && check2_outdoor && check3_outdoor) {
+                    if (!check1_outdoor.checked || !check2_outdoor.checked || !check3_outdoor.checked) {
+                        event.preventDefault();
+                        alert('すべてのチェック項目にチェックを入れてください。');
+                    }
+                } else {
+                    event.preventDefault();
+                    alert('エラー: チェック項目が見つかりません。');
+                }
+            });
+        }
+
+        updateOutdoorExecuteButtonState(); // 初期状態を反映
     }
 </script>
 {% endblock  %}

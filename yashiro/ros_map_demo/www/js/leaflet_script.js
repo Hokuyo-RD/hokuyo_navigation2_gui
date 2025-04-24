@@ -76,8 +76,8 @@ const redIcon = L.icon({
   iconUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png",
   iconRetinaUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
   shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
-  iconSize: [12, 20],
-  iconAnchor: [6, 20],
+  iconSize: [30, 50],
+  iconAnchor: [15, 50],
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41],
@@ -141,3 +141,19 @@ const arrowIcon = L.icon({
   shadowSize: [41, 41],
   className: "icon-arrow", // <= ここでクラス名を指定
 });
+
+// 楔形アイコンを作成する関数
+
+function createKonzatuIcon(color, length) {
+  return L.icon({
+  iconUrl: "Image/sankakuIcon.png",
+  //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiKRNwRm8OhKM-Td-r63pdwv32DJFhDJrDjpYIOO3XpAQJLrkaHtUus1wKaYmFaHxSmgt9Xwg257gpRfymAtHPGhnrZkUdl7bmvcKGsYpd69qjzE08CQhLn2B-IoHLQqDX4dKfqg7uYJzkx/s800/computer_cursor_arrow_black.png",
+  //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
+  iconSize: [15, 15*length],
+  iconAnchor: [15, 15*length],
+  popupAnchor: [1, -34],
+  tooltipAnchor: [16, -28],
+  shadowSize: [41, 41],
+  className: color == "red"?"icon-konzatured":"icon-konzatublue",
+})
+}

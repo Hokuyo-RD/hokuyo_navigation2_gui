@@ -15,6 +15,7 @@ class LayerControlAdmin {
 
 
   addToLayer = function (marker) {
+    this.deleteSameIDMarker(marker);
     if (this.isVisible) {
       this.markers.push(marker);
       marker.addTo(map);
@@ -42,23 +43,65 @@ class LayerControlAdmin {
       }
     }
   }
-
+  ///IDが同じマーカーを削除
+  deleteSameIDMarker = function (newMarker) {
+    if (newMarker.id == null) {
+      return;
+    }
+    for (var i = 0; i < this.markers.length; i++) {
+      if (markers.id) {
+        if (markers.id == id) {
+          this.markers.splice(0, i);
+          if (this.isVisible) {
+            map.removeLayer(this.markers[i].marker);
+          }
+        }
+      }
+    }
+  }
   ///マーカーの表示最大時間を過ぎたマーカーを削除する
   deleteTimeOverMarker = function () {
     var now = new Date();
     var nowTime = now.getTime();
     for (var i = 0; i < this.markers.length; i++) {
       var elapsedTime = this.markers[i].getElapsedTime(nowTime);
+      ///マーカーの経過時間が単調減少することを前提とする。
       if (elapsedTime < maxMarkerTime) {
         this.markers.splice(0, i);
         return;
       }
       else {
-        map.removeLayer(this.markers[i].marker);
+        if (this.isVisible) {
+          map.removeLayer(this.markers[i].marker);
+        }
       }
     }
     this.markers.splice(0, i);
     return;
+  }
+  deleteAllMarker = function () {
+    for (var i = 0; i < this.markers.length; i++) {
+      {
+        if (this.markers[i].marker != null) {
+          map.removeLayer(this.markers[i].marker);
+        }
+        else {
+          map.removeLayer(this.markers[i]);
+        }
+      }
+    }
+    this.markers = [];
+  }
+  ///回転しているマーカーの回転角度をマップに合わせて更新する。
+  renewRotationMarker() {
+    // if(!isRotationON){
+    //   return;
+    // }
+    for (var i = 0; i < this.markers.length; i++) {
+      map.removeLayer(this.markers[i].marker);
+      this.markers[i].marker.setRotationAngle(this.markers[i].getRelativeRotationAngle());
+      this.markers[i].marker.addTo(map);
+    }
   }
 }
 
@@ -72,14 +115,20 @@ class LayerControlAdmin {
 
 ///マーカーの追加機能を実装するためのクラス
 class AdvancedMarker {
-  constructor(marker) {
+  constructor(marker, id = null, rotationAngle = 0) {
     this.marker = marker;
     var now = new Date();
     this.startTime = now.getTime();
+    this.rotationAngle = rotationAngle;
+    this.marker.setRotationAngle(this.rotationAngle);
   }
   marker;
   //マーカーを置いた時刻
   startTime;
+  //マーカーに対するid(int)
+  id;
+  //マーカーの回転角度
+  rotationAngle;
   //マーカーを置いたときからの経過時間を計算
   getElapsedTime = function (nowTime) {
     var ret = nowTime - this.startTime;
@@ -91,14 +140,29 @@ class AdvancedMarker {
     }
   }
   addTo = function (map) {
+    this.marker.setRotationAngle(this.rotationAngle);
     return this.marker.addTo(map);
+  }
+
+  //マップの回転角度に対するマーカーの回転角度を計算する。
+  getRelativeRotationAngle() {
+    var ret = this.rotationAngle + map_rotate_angle;
+    if (ret > 360) {
+      ret -= 360;
+    }
+    else if (ret < 0) {
+      ret += 360;
+    }
+    return ret;
   }
 }
 
 function rotationSwitch() {
   if (isRotationON) {
     map.setBearing(0);
+    map_rotate_angle = 0;
     isRotationON = false;
+    konzatu_control.renewRotationMarker();
   }
   else {
     isRotationON = true;
@@ -131,50 +195,28 @@ const earth_radius = 6387137;
 let gps_control = new LayerControlAdmin("自己位置", true, []);
 let stray_control = new LayerControlAdmin("stray", true, []);
 let lost_prop_control = new LayerControlAdmin("lost_property", true, []);
-let crowd_control;
+let konzatu_control = new LayerControlAdmin("konzatu", true, []);
 let isRotationON = true;
 let maxMarkerTime = 600000;
 let wayPointMarker;
 let isGPSVisible;
 
-function changeGPSMarkerVisible(checked){
-  isGPSVisible=checked;
-  if(!latest_gps_marker){
+function changeGPSMarkerVisible(checked) {
+  isGPSVisible = checked;
+  if (!latest_gps_marker) {
     return;
   }
-  if(!isGPSVisible){
+  if (!isGPSVisible) {
     map.removeLayer(latest_gps_marker);
   }
-  else{
+  else {
     latest_gps_marker.addTo(map);
   }
 }
 
 function delete_all_markers() {
 
-  for (let i = 0; i < gps_markers.length; i++) {
-    map.removeLayer(gps_markers[i]);
-  }
-  gps_markers = [];
 
-  for (let i = 0; i < odom_markers.length; i++) {
-    map.removeLayer(odom_markers[i]);
-  }
-  odom_markers = [];
-
-  for (let i = 0; i < filtered_markers.length; i++) {
-    map.removeLayer(filtered_markers[i]);
-  }
-  filtered_markers = [];
-
-  map.removeLayer(latest_gps_marker);
-  latest_gps_marker = null;
-
-  map.removeLayer(latest_odom_marker);
-  latest_odom_marker = null;
-
-  map.removeLayer(latest_filtered_marker);
-  latest_filtered_marker = null;
 }
 
 function pub_init_pose() { }
@@ -200,7 +242,15 @@ window.onload = (event) => {
   center_latLng = map.getCenter();
   //document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）"
 
+  // アイコンを地図に追加
 
+  var konzatuIcon = [createKonzatuIcon('red', 3), createKonzatuIcon('blue', 1), createKonzatuIcon('blue', 2)];
+  konzatu_control.addToLayer(new AdvancedMarker(new L.marker(center_latLng, { icon: konzatuIcon[0] }), 0,124));
+
+  konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218832923, 135.3858304023743], { icon: konzatuIcon[1] }), 1,  23));
+  konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833923, 135.3858304013743], { icon: konzatuIcon[2] }), 2,  158 ));
+  konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833933, 135.3858304013753], { icon: konzatuIcon[1] }), 5,  8 ));
+  konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833953, 135.3858304013749], { icon: konzatuIcon[0] }), 6, 64 ));
   // init_posのマーカーアイコン作成.
   init_mark = L.divIcon({ // CSSを使ったDivIconを作成
     className: 'init_pose',
@@ -304,6 +354,12 @@ window.onload = (event) => {
     name: '/otosimono_fix',
     messageType: 'sensor_msgs/NavSatFix'
   });
+
+  let konzatu_sub = new ROSLIB.Topic({
+    ros: ros,
+    name: '',
+    messageType: ''
+  })
   // // callback関数.
   // odom_sub.subscribe(function (message) {
   //   console.log("subscribed odom!!!");
@@ -355,7 +411,7 @@ window.onload = (event) => {
       map.removeLayer(latest_gps_marker);
     }
     latest_gps_marker = L.marker([message.fix.latitude, message.fix.longitude], { icon: redIcon });
-    if(isGPSVisible){
+    if (isGPSVisible) {
       latest_gps_marker.addTo(map);
     }
     // L.marker([message.fix.latitude, message.fix.longitude],{icon:redIcon}).addTo(map);
@@ -365,35 +421,19 @@ window.onload = (event) => {
 
     if (isRotationON) {
       map.panTo([message.fix.latitude, message.fix.longitude]);
-      // var latest_latlng = { longitude: message.longitude * (180 / Math.PI), latitude: message.latitude * (180 / Math.PI) };
-      // var previos_latlng = { longitude: previos_message.longitude * (180 / Math.PI), latitude: previos_message.latitude * (180 / Math.PI) };
-      // ///最新点と１つ前の点からセンサの進行方向を計算
-      // var dx = earth_radius * (latest_latlng.longitude - previos_latlng.longitude) * Math.cos((previos_latlng.latitude + latest_latlng.latitude) / 2);
-      // var dy = earth_radius * (latest_latlng.latitude - previos_latlng.latitude);
-      // map_rotate_angle = -Math.atan2(dx, dy) * (180 / Math.PI);
-      //map_rotate_angle = Math.atan2(message.latitude - previos_message.latitude,message.longitude - previos_message.longitude)* (180 / Math.PI);
-      
-      map.setBearing(2*Math.acos(message.orientation.w)* (180 / Math.PI) - 90);
+      map_rotate_angle = 2 * Math.acos(message.orientation.w) * (180 / Math.PI) - 90;
+      map.setBearing(map_rotate_angle);
+      konzatu_control.renewRotationMarker();
     }
     previos_message = message;
-    //gpsのマーカー作成して、odometry側フラグの操作.
-    // if (count_gps % per_ == 0) {
-    //   var random = Math.random() * 100;
-    //   //100 * Math.random();
-    //   if (random < 50) {
-    //     stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
-    //   }
-    //   else {
-    //     lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
-    //   }
-    //s}
-      mark_odom_flg = true;
-      mark_filtered_flg = true;
+
+    mark_odom_flg = true;
+    mark_filtered_flg = true;
     count_gps++;
   });
   //document.getElementById("processing").textContent = "緯度経度テストjs読み込み完";]
-  crowd_control = new generateTileGroup([34.64695159902189, 135.37847645406802], 0.00045, 0.00045, 30, 30);
-  
+  generateTileGroup([34.64695159902189, 135.37847645406802], 0.00045, 0.00045, 30, 30);
+
   maigo_sub.subscribe(function (message) {
     //map.panTo([message.latitude, message.longitude]);
     stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
@@ -404,6 +444,7 @@ window.onload = (event) => {
     lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
   })
 };
+
 
 
 

@@ -379,6 +379,7 @@ button[value="map"]:hover {
     text-align: center;
     padding: 20px;
     margin-bottom: 20px; /* 閉じるボタンとの間隔 */
+    font-size: 0.9em;
 }
 
 .indoor-run-popup-content div {
@@ -400,7 +401,7 @@ button[value="map"]:hover {
 .indoor-run-popup-content div label {
     margin-left: 15px; /* 拡大に合わせてラベルとの間隔を調整 */
     vertical-align: middle;
-    font-size: 1.2em; /* 少し大きくするとバランスが良いかもしれません */
+    font-size: 0.9em; /* 少し大きくするとバランスが良いかもしれません */
 }
 
 #indoorRunForm {
@@ -490,6 +491,7 @@ input[type="checkbox"]:checked + label {
     text-align: center;
     padding: 20px;
     margin-bottom: 20px; /* 閉じるボタンとの間隔 */
+    font-size: 0.9em;
 }
 
 .outdoor-run-popup-content div {
@@ -511,7 +513,7 @@ input[type="checkbox"]:checked + label {
 .outdoor-run-popup-content div label {
     margin-left: 15px; /* 拡大に合わせてラベルとの間隔を調整 */
     vertical-align: middle;
-    font-size: 1.2em; /* 少し大きくするとバランスが良いかもしれません */
+    font-size: 0.9em; /* 少し大きくするとバランスが良いかもしれません */
 }
 
 #outdoorRunForm {

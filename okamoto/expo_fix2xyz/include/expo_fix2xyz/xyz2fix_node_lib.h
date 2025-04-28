@@ -21,6 +21,8 @@
 #include <expo_fix_msgs/AreaFix.h>
 #include <expo_fix_msgs/PersonFix.h>
 #include <expo_fix_msgs/FixWithOrientation.h>
+#include <expo_crowd_msgs/Crowd.h>
+#include <expo_crowd_msgs/CrowdFix.h>
 
 #include <proj.h>
 #include "expo_fix2xyz/fix_xyz_transform.h"
@@ -39,6 +41,7 @@ class XYZLLATransNode {
     ros::NodeHandle nh;
     ros::NodeHandle pnh;
     
+    ros::Subscriber crowd_sub;
     ros::Subscriber maigo_sub;
     ros::Subscriber otosimono_sub;
     ros::Subscriber area_sub;
@@ -47,6 +50,7 @@ class XYZLLATransNode {
     ros::Subscriber pose_sub2;   // -> publisher fix_pub2
     ros::Subscriber posecov_sub3;// -> publisher fix_pub3
 
+    ros::Publisher crowd_fix_pub;
     ros::Publisher maigo_fix_pub;
     ros::Publisher otosimono_fix_pub;
     ros::Publisher area_fix_pub;
@@ -55,6 +59,7 @@ class XYZLLATransNode {
     ros::Publisher fix_pub2;
     ros::Publisher fix_pub3;
 
+    std::string sub_crowd_topic;
     std::string sub_odom_topic1;
     std::string sub_pose_topic2;
     std::string sub_posecov_topic3;
@@ -63,6 +68,7 @@ class XYZLLATransNode {
     std::string sub_maigo_topic;
     std::string sub_otosimono_topic;
     
+    std::string pub_crowd_fix_topic;
     std::string pub_fix_topic1;
     std::string pub_fix_topic2;
     std::string pub_fix_topic3;
@@ -80,6 +86,7 @@ class XYZLLATransNode {
 
   public:
     // コールバック関数.
+    void crowd_callback(const expo_crowd_msgs::Crowd &msg);
     void odom_callback1(const nav_msgs::Odometry &msg);
     void pose_callback2(const geometry_msgs::PoseStamped &msg);
     void posecov_callback3(const geometry_msgs::PoseWithCovarianceStamped &msg);

@@ -13,6 +13,8 @@ add_message_files(
   FILES
   PersonArrow.msg
   Crowd.msg
+  PersonArrowFix.msg
+  CrowdFix.msg
 )
 
 generate_messages(

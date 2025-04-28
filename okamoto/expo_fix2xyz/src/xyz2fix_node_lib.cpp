@@ -3,6 +3,57 @@
 
 
 
+// 混雑度のコールバック.
+void XYZLLATransNode::crowd_callback(const expo_crowd_msgs::Crowd &msg){
+    expo_crowd_msgs::CrowdFix ret_msg;
+    ret_msg.header = msg.header;
+    ret_msg.header.frame_id = "";
+
+    // フレーム抽出.
+    std::string crowd_frame = msg.header.frame_id;
+    geometry_msgs::TransformStamped transformStamped;
+    try{
+        transformStamped = tfBuffer.lookupTransform(map_frame, crowd_frame, ros::Time(0));
+    }
+    catch (tf2::TransformException& ex){
+        ROS_WARN("%s", ex.what());
+        return;
+    }
+
+    // 各要素を変換する.
+    for (const auto& person : msg.persons) {
+
+        // フレーム変換.
+        geometry_msgs::Pose pose_on_map;
+        geometry_msgs::Pose pose_on_crowdframe;
+        pose_on_crowdframe.position = person.position;
+        pose_on_crowdframe.orientation = person.orientation;
+        tf2::doTransform(pose_on_crowdframe, pose_on_map, transformStamped);
+
+        // 緯度経度変換.
+        Eigen::Vector3d xyz;
+        fix_xyz_trans::LatLonAlt latlonalt;
+        xyz(0) = pose_on_map.position.x;
+        xyz(1) = pose_on_map.position.y;
+        xyz(2) = pose_on_map.position.z;
+        latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
+
+        expo_crowd_msgs::PersonArrowFix person_fix;
+        person_fix.id = person.id;
+        person_fix.latitude = latlonalt.latitude;
+        person_fix.longitude = latlonalt.longitude;
+        person_fix.altitude = latlonalt.altitude;
+        person_fix.orientation = pose_on_map.orientation;
+        person_fix.velocity = person.velocity;
+        ret_msg.persons.push_back(person_fix);
+    }
+
+    crowd_fix_pub.publish(ret_msg);
+
+    debug_msg = "published crowd_fix";
+    DEBUG_PRINT(debug_msg);
+}
+
 // odomコールバック関数.
 void XYZLLATransNode::odom_callback1(const nav_msgs::Odometry &msg){
     debug_msg = "get odom_msg";
@@ -51,7 +102,7 @@ void XYZLLATransNode::odom_callback1(const nav_msgs::Odometry &msg){
     fix_msg.position_covariance[8] = msg.pose.covariance[14];
 
     ret_msg.fix = fix_msg;
-    ret_msg.orientation = msg.pose.pose.orientation;
+    ret_msg.orientation = pose_on_map.orientation;
 
     fix_pub1.publish(ret_msg);
 
@@ -264,6 +315,7 @@ void XYZLLATransNode::otosimono_callback(const geometry_msgs::Point &msg){
 XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
 
     // 各rosparamのデフォルト値.
+    sub_crowd_topic = "crowd";
     sub_odom_topic1 = "odom1";
     sub_pose_topic2 = "pose2";
     sub_posecov_topic3 = "posecov3";
@@ -272,6 +324,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     sub_maigo_topic = "maigo";
     sub_otosimono_topic = "otosimono";
 
+    pub_crowd_fix_topic = "crowd_fix";
     pub_fix_topic1 = "fix/from_odom1";
     pub_fix_topic2 = "fix/from_pose2";
     pub_fix_topic3 = "fix/from_posecov3";
@@ -287,6 +340,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     
     
     // rosparamの取得.
+    pnh.getParam("sub_crowd_topic", sub_crowd_topic);
     pnh.getParam("sub_odom_topic1", sub_odom_topic1);
     pnh.getParam("sub_pose_topic2", sub_pose_topic2);
     pnh.getParam("sub_posecov_topic3", sub_posecov_topic3);
@@ -295,6 +349,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     pnh.getParam("sub_maigo_topic", sub_maigo_topic);
     pnh.getParam("sub_otosimono_topic", sub_otosimono_topic);
     
+    pnh.getParam("pub_crowd_fix_topic", pub_crowd_fix_topic);
     pnh.getParam("pub_fix_topic1", pub_fix_topic1);
     pnh.getParam("pub_fix_topic2", pub_fix_topic2);
     pnh.getParam("pub_fix_topic3", pub_fix_topic3);
@@ -340,6 +395,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     }
 
     // publisher,subscriberの設定.
+    crowd_sub = nh.subscribe(sub_crowd_topic, 10, &XYZLLATransNode::crowd_callback, this);
     odom_sub1 = nh.subscribe(sub_odom_topic1, 10, &XYZLLATransNode::odom_callback1, this);
     pose_sub2 = nh.subscribe(sub_pose_topic2, 10, &XYZLLATransNode::pose_callback2, this);
     posecov_sub3 = nh.subscribe(sub_posecov_topic3, 10, &XYZLLATransNode::posecov_callback3, this);
@@ -348,6 +404,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     maigo_sub = nh.subscribe(sub_maigo_topic, 10, &XYZLLATransNode::maigo_callback, this);
     otosimono_sub = nh.subscribe(sub_otosimono_topic, 10, &XYZLLATransNode::otosimono_callback, this);
 
+    crowd_fix_pub = nh.advertise<expo_crowd_msgs::CrowdFix>(pub_crowd_fix_topic, 10);
     fix_pub1 = nh.advertise<expo_fix_msgs::FixWithOrientation>(pub_fix_topic1, 10);
     fix_pub2 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic2, 10);
     fix_pub3 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic3, 10);

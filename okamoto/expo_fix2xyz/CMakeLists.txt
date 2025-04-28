@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   expo_msgs
   expo_fix_msgs
+  expo_crowd_msgs
   geometry_msgs
 )
 

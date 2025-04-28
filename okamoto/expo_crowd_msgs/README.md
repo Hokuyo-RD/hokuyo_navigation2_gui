@@ -13,6 +13,23 @@
     -| - | -
     header | std_msgs/Header | タイムスタンプ等
     persons | expo_crowd_msgs/PersonArrow[] | 一人ひとりの情報
+# msgs(緯度経度)
+- expo_crowd_msgs::PersonArrowFix  
+    PersonArrow型の緯度経度版です。 
+    メンバ変数 | 型 | 説明  
+    -| - | -
+    id | int32 | 固有ID 
+    latitude | float64 | 緯度[度] 
+    longitude | float64 | 経度[度] 
+    altitude | float64 | 高度[m]
+    orientation | geometry_msgs/Quaternion | 姿勢
+    velocity | int32 | 速度（0,1,2の3段階を想定）
+- expo_crowd_msgs::CrowdFix  
+    Crowd型の緯度経度版です。 
+    メンバ変数 | 型 | 説明  
+    -| - | -
+    header | std_msgs/Header | タイムスタンプ等
+    persons | expo_crowd_msgs/PersonArrowFix[] | 一人ひとりの情報
 
 # sample
 ```

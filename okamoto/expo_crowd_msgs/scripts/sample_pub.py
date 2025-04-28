@@ -9,7 +9,7 @@ from expo_crowd_msgs.msg import PersonArrow
 
 def publisher():
     rospy.init_node('crowd_sample_publisher', anonymous=True)
-    pub = rospy.Publisher('sample_crowd', Crowd, queue_size=10)
+    pub = rospy.Publisher('crowd', Crowd, queue_size=10)
     rate = rospy.Rate(1)
     person_id = 0
 
@@ -18,6 +18,7 @@ def publisher():
         person_size = random.randint(1, 30)
         crowd_msg = Crowd()
         crowd_msg.header.stamp = rospy.Time.now()
+        crowd_msg.header.frame_id = "map"
 
         for i in range(person_size):
             
@@ -43,6 +44,7 @@ def publisher():
 
         # パブリッシュ
         pub.publish(crowd_msg)
+        print("publish!")
 
 
 if __name__ == '__main__':

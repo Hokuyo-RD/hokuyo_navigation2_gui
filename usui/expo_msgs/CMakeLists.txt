@@ -9,6 +9,7 @@ project(expo_msgs)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
+  sensor_msgs
   message_generation
   message_runtime
   std_msgs
@@ -54,6 +55,7 @@ add_message_files(
   PositionFix.msg
   Area.msg
   AreaFix.msg
+  SB.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -74,6 +76,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   geometry_msgs
+  sensor_msgs
   std_msgs
 )
 
@@ -109,7 +112,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES expo_msgs
-# CATKIN_DEPENDS message_runtime # geometry_msgs message_generation  std_msgs
+# CATKIN_DEPENDS message_runtime  geometry_msgs message_generation  std_msgs sensor_msgs
 #  DEPENDS system_lib
 )
 

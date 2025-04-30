@@ -4,6 +4,11 @@ import csv
 import random
 from pyproj import Transformer
 from expo_msgs.msg import SB
+from sensor_msgs.msg import NavSatFix
+from geometry_msgs.msg import Quaternion
+from sensor_msgs.msg import BatteryState 
+from std_msgs.msg import UInt16
+from std_msgs.msg import String
 
 def read_csv(file_path):
     """CSVファイルからデータを読み取る"""
@@ -46,10 +51,20 @@ def xyz_to_latlon(x, y, z):
 def publisher():
     rospy.init_node('csv_data_publisher', anonymous=True)
     pub = rospy.Publisher('data_topic', SB, queue_size=60)
+
+    position_pub = rospy.Publisher('wizurg/position', NavSatFix, queue_size=60)
+    orientation_pub = rospy.Publisher('wizurg/pose', Quaternion, queue_size=60)
+    floor_name_pub = rospy.Publisher('floor_name', String, queue_size=60)
+    battery_state_pub = rospy.Publisher('battery_state', BatteryState, queue_size=60)
+    robot_status_pub = rospy.Publisher('robot_status', UInt16, queue_size=60)
+    task_status_pub = rospy.Publisher('task_status', UInt16, queue_size=60)
+    
+    
+    
     rate = rospy.Rate(0.5)
 
     # CSVファイルのパス（適宜変更）
-    file_path = "/home/ubuntu/catkin_ws/src/ros_tutorial/scripts/sb_data.csv"
+    file_path = "/home/hokuyo/catkin_ws/src/expo_software/usui/ros_tutorial/scripts/sb_data.csv"
     data = read_csv(file_path)
 
     if not data:
@@ -68,13 +83,21 @@ def publisher():
             
             # Vector3メッセージを作成
             msg = SB()
+            position_msg = NavSatFix()
+            orientation_msg = Quaternion()
+            floor_name_msg = String()
+            battery_state_msg = BatteryState()
+            robot_status_msg = UInt16()
+            task_status_msg = UInt16()
+
             # msg.position.COVARIANCE_TYPE_UNKNOWN = 0
             # msg.position.COVARIANCE_TYPE_APPROXIMATED = 1
             # msg.position.COVARIANCE_TYPE_DIAGONAL_KNOWN=2
             # msg.position.COVARIANCE_TYPE_KNOWN=3
-            msg.position.header.seq = 0
-            msg.position.header.stamp = 0
-            msg.position.header.frame_id = "test"
+
+            #position_msg.header.seq = 0
+            position_msg.header.stamp = rospy.Time.now()
+            position_msg.header.frame_id = "test"
             # msg.position.status.STATUS_NO_FIX = -1
             # msg.position.status.STATUS_FIX = 0
             # msg.position.status.STATUS_SBAS_FIX = 1
@@ -83,17 +106,17 @@ def publisher():
             # msg.position.status.SERVICE_GLONASS = 2
             # msg.position.status.SERVICE_COMPASS=4
             # msg.position.status.SERVICE_GALILEO=8
-            msg.position.status = 0
+            # position_msg.status.status = 0
             # msg.position.service = 0
-            msg.position.latitude,msg.position.longitude,msg.position.altitude =  xyz_to_latlon(x,y,z)
-            for i in range(9):
-                msg.position.position_covariance[i] = 0
-            msg.position.position_covariance_type = 0
-            msg.pose.x = pose_x
-            msg.pose.y = pose_y
-            msg.pose.z = pose_z
-            msg.pose.w = pose_w
-            msg.floor_name = floor_name
+            position_msg.latitude,position_msg.longitude,position_msg.altitude =  xyz_to_latlon(x,y,z)
+            #for i in range(9):
+            #    position_msg.position_covariance[i] = 0
+            #position_msg.position_covariance_type = 0
+            orientation_msg.x = pose_x
+            orientation_msg.y = pose_y
+            orientation_msg.z = pose_z
+            orientation_msg.w = pose_w
+            floor_name_msg.data = floor_name
             # msg.battery_state.POWER_SUPPLY_STATUS_UNKNOWN=0
             # msg.battery_state.POWER_SUPPLY_STATUS_CHARGING=1
             # msg.battery_state.POWER_SUPPLY_STATUS_DISCHARGING=2
@@ -115,28 +138,35 @@ def publisher():
             # msg.battery_state.POWER_SUPPLY_TECHNOLOGY_LIFE=4
             # msg.battery_state.POWER_SUPPLY_TECHNOLOGY_NICD=5
             # msg.battery_state.POWER_SUPPLY_TECHNOLOGY_LIMN=6
-            msg.battery_state.header.seq = 0
-            msg.battery_state.header.stamp = 0
-            msg.battery_state.header.frame_id = "test"
-            msg.battery_state.voltage = 5
-            msg.battery_state.current = 0
-            msg.battery_state.charge = 0
-            msg.battery_state.capacity  = 100
-            msg.battery_state.design_capacity = 0
-            msg.battery_state.percentage = 50
-            msg.battery_state.power_supply_status = 0
-            msg.battery_state.power_supply_health = 0
-            msg.battery_state.power_supply_technology = 0
-            msg.battery_state.present = 0
-            msg.battery_state.cell_voltage = 0
-            msg.battery_state.location = 0
-            msg.battery_state.serial_number = 0
-            msg.robot_status = robot_status
-            msg.task_status = task_status
+            # battery_state_msg.header.seq = 0
+            # battery_state_msg.header.stamp = 0
+            # battery_state_msg.header.frame_id = "test"
+            # battery_state_msg.voltage = 5
+            # battery_state_msg.current = 0
+            # battery_state_msg.charge = 0
+            battery_state_msg.capacity  = 100
+            # battery_state_msg.design_capacity = 0
+            # battery_state_msg.percentage = 50
+            # battery_state_msg.power_supply_status = 0
+            # battery_state_msg.power_supply_health = 0
+            # battery_state_msg.power_supply_technology = 0
+            # battery_state_msg.present = 0
+            # battery_state_msg.cell_voltage = 0
+            # battery_state_msg.location = 0
+            # battery_state_msg.serial_number = 0
+            robot_status_msg.data = robot_status
+            task_status_msg.data = task_status
 
             # パブリッシュ
             rospy.loginfo(f"{msg}")
-            pub.publish(msg)
+            #pub.publish(msg)
+            position_pub.publish(position_msg)
+            orientation_pub.publish(orientation_msg)
+            floor_name_pub.publish(floor_name_msg)
+            battery_state_pub.publish(battery_state_msg)
+            robot_status_pub.publish(robot_status_msg)
+            task_status_pub.publish(task_status_msg)
+    
 
             # インデックスを更新（最後までいったら最初に戻る）
             index = (index + 1) % len(data)

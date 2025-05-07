@@ -49,12 +49,10 @@ class LayerControlAdmin {
       return;
     }
     for (var i = 0; i < this.markers.length; i++) {
-      if (markers.id) {
-        if (markers.id == id) {
+      if (this.markers[i].id != null) {
+        if (this.markers[i].id == newMarker.id) {
           this.markers.splice(0, i);
-          if (this.isVisible) {
-            map.removeLayer(this.markers[i].marker);
-          }
+          map.removeLayer(this.markers[i].marker);
         }
       }
     }
@@ -120,6 +118,7 @@ class AdvancedMarker {
     var now = new Date();
     this.startTime = now.getTime();
     this.rotationAngle = rotationAngle;
+    this.id = id;
     this.marker.setRotationAngle(this.rotationAngle);
   }
   marker;
@@ -420,9 +419,9 @@ window.onload = (event) => {
       map.setBearing(map_rotate_angle);
       konzatu_control.renewRotationMarker();
     }
-    else{
+    else {
       var sensorAngle = 2 * Math.acos(message.orientation.w) * (180 / Math.PI) - 90;
-      if(sensorAngle < 0){
+      if (sensorAngle < 0) {
         sensorAngle += 360;
       }
       latest_gps_marker.setRotationAngle(sensorAngle);
@@ -447,15 +446,15 @@ window.onload = (event) => {
     lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
   })
 
-  konzatu_sub.subscribe(function (message){
-    if(message.persons == null){
+  konzatu_sub.subscribe(function (message) {
+    if (message.persons == null) {
       return;
     }
     var persons = message.persons;
-    for(var i=0;i<persons.length;i++){
+    for (var i = 0; i < persons.length; i++) {
       var icon = createKonzatuIcon(persons[i].velocity + 1);
       var rotAngle = orientationToAngle(persons[i].orientation);
-      konzatu_control.addToLayer(new AdvancedMarker(L.marker([persons[i].latitude,persons[i].longitude],{icon: icon}),persons[i].id,rotAngle));
+      konzatu_control.addToLayer(new AdvancedMarker(L.marker([persons[i].latitude, persons[i].longitude], { icon: icon }), persons[i].id, rotAngle));
     }
   })
 };
@@ -489,7 +488,7 @@ function pub_expo_wayPoint() {
 }
 
 //クオータニオンからマップ基準の角度（時計回り）に変換
-function orientationToAngle(orientation){
+function orientationToAngle(orientation) {
   return 2 * Math.acos(orientation.w) * (180 / Math.PI) - 90;
 }
 // function pub_init_pose() {

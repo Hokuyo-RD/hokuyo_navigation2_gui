@@ -98,7 +98,9 @@ class LayerControlAdmin {
     for (var i = 0; i < this.markers.length; i++) {
       map.removeLayer(this.markers[i].marker);
       this.markers[i].marker.setRotationAngle(this.markers[i].getRelativeRotationAngle());
-      this.markers[i].marker.addTo(map);
+      if (this.isVisible) { 
+        this.markers[i].marker.addTo(map);
+       }
     }
   }
 }

@@ -34,6 +34,12 @@
 	filter: hue-rotate(210deg);
 }
 
+.icon-selfLocation {
+	filter: hue-rotate(30deg);
+}
+.icon-maigo {
+	filter: hue-rotate(150deg);
+}
 /* 十字マーカーの作成 */
 .cross {
 	/* 十字アイコン */

@@ -157,16 +157,16 @@ class AdvancedMarker {
   }
 }
 
-function rotationSwitch() {
-  if (isRotationON) {
+function rotationSwitch(checked) {
+  isRotationON = checked;
+  if (!isRotationON) {
     map.setBearing(0);
     map_rotate_angle = 0;
-    isRotationON = false;
     konzatu_control.renewRotationMarker();
   }
   else {
-    isRotationON = true;
     map.setBearing(map_rotate_angle);
+    konzatu_control.renewRotationMarker();
   }
 }
 
@@ -213,10 +213,7 @@ function changeGPSMarkerVisible(checked) {
     latest_gps_marker.addTo(map);
   }
 }
-
 function delete_all_markers() {
-
-
 }
 
 function pub_init_pose() { }
@@ -244,13 +241,13 @@ window.onload = (event) => {
 
   // アイコンを地図に追加
 
-  var konzatuIcon = [createKonzatuIcon('red', 3), createKonzatuIcon('blue', 1), createKonzatuIcon('blue', 2)];
-  konzatu_control.addToLayer(new AdvancedMarker(new L.marker(center_latLng, { icon: konzatuIcon[0] }), 0,124));
+  // var konzatuIcon = [createKonzatuIcon('red', 3), createKonzatuIcon('blue', 1), createKonzatuIcon('blue', 2)];
+  // konzatu_control.addToLayer(new AdvancedMarker(new L.marker(center_latLng, { icon: konzatuIcon[0] }), 0,124));
 
-  konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218832923, 135.3858304023743], { icon: konzatuIcon[1] }), 1,  23));
-  konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833923, 135.3858304013743], { icon: konzatuIcon[2] }), 2,  158 ));
-  konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833933, 135.3858304013753], { icon: konzatuIcon[1] }), 5,  8 ));
-  konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833953, 135.3858304013749], { icon: konzatuIcon[0] }), 6, 64 ));
+  // konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218832923, 135.3858304023743], { icon: konzatuIcon[1] }), 1,  23));
+  // konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833923, 135.3858304013743], { icon: konzatuIcon[2] }), 2,  158 ));
+  // konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833933, 135.3858304013753], { icon: konzatuIcon[1] }), 5,  8 ));
+  // konzatu_control.addToLayer(new AdvancedMarker(new L.marker([34.64890218833953, 135.3858304013749], { icon: konzatuIcon[0] }), 6, 64 ));
   // init_posのマーカーアイコン作成.
   init_mark = L.divIcon({ // CSSを使ったDivIconを作成
     className: 'init_pose',
@@ -357,8 +354,8 @@ window.onload = (event) => {
 
   let konzatu_sub = new ROSLIB.Topic({
     ros: ros,
-    name: '',
-    messageType: ''
+    name: '/crowd_fix',
+    messageType: 'expo_crowd_msgs/CrowdFix'
   })
   // // callback関数.
   // odom_sub.subscribe(function (message) {
@@ -410,10 +407,8 @@ window.onload = (event) => {
     if (latest_gps_marker != null) {
       map.removeLayer(latest_gps_marker);
     }
-    latest_gps_marker = L.marker([message.fix.latitude, message.fix.longitude], { icon: redIcon });
-    if (isGPSVisible) {
-      latest_gps_marker.addTo(map);
-    }
+    latest_gps_marker = L.marker([message.fix.latitude, message.fix.longitude], { icon: selfLocationIcon });
+
     // L.marker([message.fix.latitude, message.fix.longitude],{icon:redIcon}).addTo(map);
     //時間を過ぎたマーカーを削除
     stray_control.deleteTimeOverMarker();
@@ -421,12 +416,20 @@ window.onload = (event) => {
 
     if (isRotationON) {
       map.panTo([message.fix.latitude, message.fix.longitude]);
-      map_rotate_angle = 2 * Math.acos(message.orientation.w) * (180 / Math.PI) - 90;
+      map_rotate_angle = orientationToAngle(message.orientation);
       map.setBearing(map_rotate_angle);
       konzatu_control.renewRotationMarker();
     }
-    previos_message = message;
-
+    else{
+      var sensorAngle = 2 * Math.acos(message.orientation.w) * (180 / Math.PI) - 90;
+      if(sensorAngle < 0){
+        sensorAngle += 360;
+      }
+      latest_gps_marker.setRotationAngle(sensorAngle);
+    }
+    if (isGPSVisible) {
+      latest_gps_marker.addTo(map);
+    }
     mark_odom_flg = true;
     mark_filtered_flg = true;
     count_gps++;
@@ -442,6 +445,18 @@ window.onload = (event) => {
   otosimono_sub.subscribe(function (message) {
     //map.panTo([message.latitude, message.longitude]);
     lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
+  })
+
+  konzatu_sub.subscribe(function (message){
+    if(message.persons == null){
+      return;
+    }
+    var persons = message.persons;
+    for(var i=0;i<persons.length;i++){
+      var icon = createKonzatuIcon(persons[i].velocity + 1);
+      var rotAngle = orientationToAngle(persons[i].orientation);
+      konzatu_control.addToLayer(new AdvancedMarker(L.marker([persons[i].latitude,persons[i].longitude],{icon: icon}),persons[i].id,rotAngle));
+    }
   })
 };
 
@@ -473,6 +488,10 @@ function pub_expo_wayPoint() {
   wayPoint_pub.publish(message);
 }
 
+//クオータニオンからマップ基準の角度（時計回り）に変換
+function orientationToAngle(orientation){
+  return 2 * Math.acos(orientation.w) * (180 / Math.PI) - 90;
+}
 // function pub_init_pose() {
 
 //   // ===== 既存マーカーがある場合は削除====

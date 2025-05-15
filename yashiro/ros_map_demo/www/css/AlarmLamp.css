@@ -1,0 +1,24 @@
+.alarm {
+  position: relative;
+  width: 7vh;
+  height: 7vh;
+  border-radius: 100%;
+}
+
+.alarm.approach {
+  border-radius: 100%;
+  --bg-color: gray;
+  background-color: var(--bg-color);
+}
+
+.alarm.odomNotSent {
+  border-radius: 100%;
+  --bg-color: gray;
+  background-color: var(--bg-color);
+}
+
+.alarm.sensorLost {
+  border-radius: 100%;
+  --bg-color: gray;
+  background-color: var(--bg-color);
+}

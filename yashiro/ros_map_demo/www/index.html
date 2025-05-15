@@ -47,7 +47,7 @@
 
     <!--javascriptの読み込み-->
     <script src="./js/three_test.js"></script>
-    <script src="./js/AlertScript.js"></script>
+    <script src="./js/AlarmScript.js"></script>
     <script src="./js/GenerateTileGroup.js"></script>
 
 
@@ -118,7 +118,7 @@
             <summary>視点切替</summary>
             <div class="iconButton">
                 <ul>
-                    <li><input type="checkbox" checked id="rotationSwitch" name="scales" checked
+                    <li><input type="checkbox" id="rotationSwitch" name="scales"
                             onclick="rotationSwitch(this.checked)" />
                         <label for="rotationSwitch">
                             <!-- <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2"> -->
@@ -160,11 +160,13 @@
 
     <div class="widget alarm">
         <ul>
-            <li>接近注意　<div class="alert approach"></div>
+            <li>接近注意<div class="alarm approach"></div>
             </li>
-            <li>アラーム2　<div class="alert alert2"></div>
+            <li></li>
+            <li>自己位置検知なし<div class="alarm odomNotSent"></div>
             </li>
-            <li>アラーム3　<div class="alert alert3"></div>
+            <li></li>
+            <li>センサ接続なし<div class="alarm sensorLost"></div>
             </li>
         </ul>
     </div>

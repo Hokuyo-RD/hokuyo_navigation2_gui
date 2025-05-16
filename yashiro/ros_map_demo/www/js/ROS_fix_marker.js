@@ -307,7 +307,7 @@ window.onload = (event) => {
       clearInterval(odomTimer);
       odomNotSentAlarm.setAlarmLevel(AlarmLevel.LOW);
     }
-    odomTimer = setTimer(AlarmLevel.HIGH);
+    odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
     //最新点だけ表示.
     if (latest_gps_marker != null) {
       map.removeLayer(latest_gps_marker);

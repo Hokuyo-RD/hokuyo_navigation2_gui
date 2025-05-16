@@ -177,7 +177,7 @@ let gps_control = new LayerControlAdmin("自己位置", true, []);
 let stray_control = new LayerControlAdmin("stray", true, []);
 let lost_prop_control = new LayerControlAdmin("lost_property", true, []);
 let konzatu_control = new LayerControlAdmin("konzatu", true, []);
-let isRotationON = true;
+let isRotationON = false;
 let maxMarkerTime = 300000;
 let wayPointMarker;
 let isGPSVisible;

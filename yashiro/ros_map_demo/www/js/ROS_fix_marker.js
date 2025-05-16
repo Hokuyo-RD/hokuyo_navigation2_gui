@@ -398,7 +398,7 @@ function pub_expo_wayPoint() {
 
 //クオータニオンからマップ基準の角度（時計回り）に変換
 function orientationToAngle(orientation) {
-  var ret = 2 * Math.acos(orientation.w) * (180 / Math.PI) - 90;
+  var ret = 2 * Math.atan2(orientation.z, orientation.w) * (180 / Math.PI) - 90;
   if (ret < 0) {
     ret += 360;
   }

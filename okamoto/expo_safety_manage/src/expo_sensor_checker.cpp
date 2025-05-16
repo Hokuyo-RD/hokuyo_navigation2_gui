@@ -1,7 +1,7 @@
 # include <ros/ros.h>
 # include <geometry_msgs/Twist.h>
 
-# include <std_msgs/Int16.h>
+# include <std_msgs/Int32.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/NavSatFix.h>
@@ -75,7 +75,7 @@ SensorChecker::SensorChecker()
     _sub_ylm = _nh.subscribe(ylm_topic, 10, &SensorChecker::callbackYLM, this);
     _sub_gnss = _nh.subscribe(gnss_topic, 10, &SensorChecker::callbackGNSS, this);
 
-    _pub_sensor_alarm = _nh.advertise<std_msgs::Int16>(alarm_topic, 10);
+    _pub_sensor_alarm = _nh.advertise<std_msgs::Int32>(alarm_topic, 10);
     _pub_sensors_state = _nh.advertise<expo_safety_manage::SensorsState>(state_topic, 10);
 
     interval_pub = _nh.createTimer(ros::Duration(interval_time), &SensorChecker::interval_callback, this);
@@ -115,7 +115,7 @@ void SensorChecker::callbackGNSS(const sensor_msgs::NavSatFix& msgs){
     _sensors_state.gnss = true;
 }
 void SensorChecker::interval_callback(const ros::TimerEvent &event){
-    std_msgs::Int16 alarm_msg;
+    std_msgs::Int32 alarm_msg;
     
     // トピック有無の確認..
     if(!_sensors_state.yvt || !_sensors_state.uam1 || !_sensors_state.uam2 ){

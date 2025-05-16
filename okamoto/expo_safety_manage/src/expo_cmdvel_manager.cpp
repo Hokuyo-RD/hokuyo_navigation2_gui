@@ -1,6 +1,6 @@
 # include <ros/ros.h>
 # include <geometry_msgs/Twist.h>
-# include <std_msgs/Int16.h>
+# include <std_msgs/Int32.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/NavSatFix.h>
@@ -23,7 +23,7 @@ class CmdVelManager{
         bool _uam1_msg_received;
         bool _uam2_msg_received;
         bool _stop_manage;
-        std_msgs::Int16 alarm;
+        std_msgs::Int32 alarm;
         int uam1_alarm;
         int uam2_alarm;
         double interval_time;
@@ -54,7 +54,7 @@ CmdVelManager::CmdVelManager()
     std::string cmd_in_topic = "/icart_mini/cmd_vel";
     std::string uam1_topic = "/uam1";
     std::string uam2_topic = "/uam2";
-    std::string apploach_alarm_topic = "/apploach_alarm";
+    std::string approach_alarm_topic = "/approach_alarm";
     std::string cmd_out_topic = "/wizurg/cmd_vel";
     interval_time = 0.5;
     
@@ -68,7 +68,7 @@ CmdVelManager::CmdVelManager()
     _nhPrivate.getParam("cmd_out_topic", cmd_out_topic);
     _nhPrivate.getParam("uam1_topic", uam1_topic);
     _nhPrivate.getParam("uam2_topic", uam2_topic);
-    _nhPrivate.getParam("apploach_alarm_topic", apploach_alarm_topic);
+    _nhPrivate.getParam("approach_alarm_topic", approach_alarm_topic);
     _nhPrivate.getParam("stop_manage", _stop_manage);
     _nhPrivate.getParam("interval_time", interval_time);
     
@@ -77,7 +77,7 @@ CmdVelManager::CmdVelManager()
     _sub_uam2 = _nh.subscribe(uam2_topic, 10, &CmdVelManager::callbackUAM2, this);
     
     _pub_cmd = _nh.advertise<geometry_msgs::Twist>(cmd_out_topic, 10);
-    _pub_approach_alarm = _nh.advertise<std_msgs::Int16>(apploach_alarm_topic, 10);
+    _pub_approach_alarm = _nh.advertise<std_msgs::Int32>(approach_alarm_topic, 10);
 
     ros_interval = _nh.createTimer(ros::Duration(interval_time), &CmdVelManager::interval_callback, this);
 }

@@ -9,9 +9,15 @@ li{
 
 #h_logo{
   position:relative;
-  width:20vw;
+  height: 10vh;
+  width:66vh;
   image-rendering:smooth;
   filter: brightness(0) saturate(100%) invert(76%) sepia(68%) saturate(2715%) hue-rotate(136deg) brightness(101%) contrast(108%) ;
+}
+
+#h_QR{
+  height:10vh;
+  image-rendering:smooth;
 }
 /* 基本的な要素のスタイル付けを扱う */
 /* -------------------------------------------------------------------------------------------- */

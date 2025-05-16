@@ -6,7 +6,7 @@
     <meta name="author" content="Tatsuya Okamoto" />
     <meta name="description" content="万博mapデモ." />
 
-    <title>万博mapデモ</title>
+    <title>北陽万博マップ</title>
     <meta name="stylesheet" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="./css/styles.css" />
 
@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="./css/leaflet_styles.css">
 
     <!-- アラーム用CSS -->
-    <link rel="stylesheet" href="./css/AlertLamp.css">
+    <link rel="stylesheet" href="./css/AlarmLamp.css">
 
     <!-- ウィジェット用CSS -->
     <link rel="stylesheet" href="./css/Widgets.css">
@@ -45,6 +45,9 @@
     <script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three@0.147.0/examples/js/loaders/PCDLoader.js"></script>
 
+    <!--ダイアログ用script-->
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
     <!--javascriptの読み込み-->
     <script src="./js/three_test.js"></script>
     <script src="./js/AlarmScript.js"></script>
@@ -70,10 +73,10 @@
     <div class="widget title">
         <ul id="flex">
             <li><img id="h_logo" src=https://www.hokuyo-aut.co.jp/assets/img/common/h_logo.png> </li>
-            <li>　　　<img id="h_logo" src="" alt="QRコード"> </li>
+            <li>　　　<img id="h_QR" src="Image/nakanoshima_QR.png" alt="QRコード" onclick="showQRDialog"> 　</li>
         </ul>
     </div>
-
+　
     <div class="widget toolBar">
         <details class="accordion">
             <summary>表示切替</summary>
@@ -82,7 +85,7 @@
                     <li><input type="checkbox" checked id="self_position" name="scales" checked
                             onclick="changeGPSMarkerVisible(this.checked)" />
                         <label for="self_position">
-                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン1">
+                            <img src="Image/jikoitiIcon.png" alt="アイコン1">
                             　自己位置
                         </label>
                     </li>
@@ -90,7 +93,7 @@
                     <li><input type="checkbox" checked id="stray" name="scales" checked
                             onclick="stray_control.visibleChanged(this.checked)" />
                         <label for="stray">
-                            <img src="https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png" alt="アイコン2">
+                            <img src="Image/maigoIcon.png " alt="アイコン2">
                             　迷子検知
                         </label>
                     </li>
@@ -160,15 +163,19 @@
 
     <div class="widget alarm">
         <ul>
-            <li>接近注意<div class="alarm approach"></div>
-            </li>
-            <li></li>
-            <li>自己位置検知なし<div class="alarm odomNotSent"></div>
-            </li>
-            <li></li>
-            <li>センサ接続なし<div class="alarm sensorLost"></div>
-            </li>
+            <li>接近注意</li>
+            <li><div class="alarm approach"></div></li>
+            <li>　</li>
+            <li>自己位置検知なし</li>
+            <li><div class="alarm odomNotSent"></div></li>
+            <li>　</li>
+            <li>センサ接続なし</li>
+            <li><div class="alarm sensorLost"></div></li>
         </ul>
+    </div>
+
+    <div class="widget setting">
+       マーカー持続時間（秒）<br><input id="markerDuration" type="number" value="300">
     </div>
 
 

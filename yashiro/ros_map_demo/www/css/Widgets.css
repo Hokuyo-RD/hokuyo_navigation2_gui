@@ -31,11 +31,32 @@
     position: absolute;
     bottom: 10px;
     left: 10px;
+    max-width: 15vw;
+    min-width: 15vw;
+    max-height: 48vh;
+    min-height: 48vh;
+    white-space:nowrap;
+    display: block;
+    overflow: scroll;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    font-size: small;
+    box-sizing: content-box;
 }
 
+.widget.alarm ul {
+    padding-right: 2px;
+    padding-left: 2px;
+}
 .widget.alarm li {
-    align-items: center;
+    text-align: center;
+    padding-top: 2.5px;
+    padding-bottom: 2.5px;
+    width: 15vw;
+    display: flex;
     justify-content: center;
+    align-items: center;
 }
 
 
@@ -81,4 +102,18 @@
 .closeButton {
     background-color: rgba(158, 242, 255, 0.9);
     color: black;
+}
+
+.widget.setting{
+    position: absolute;
+    bottom: 20px;
+    right: 45px;
+    max-width: 30vw;
+    min-width: 15vw;
+    max-height: 15vh;
+    min-height: 10vh;
+}
+
+.widget.setting input{
+    height:30px;
 }

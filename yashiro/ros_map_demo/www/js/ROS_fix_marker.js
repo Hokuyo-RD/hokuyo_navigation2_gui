@@ -51,8 +51,8 @@ class LayerControlAdmin {
     for (var i = 0; i < this.markers.length; i++) {
       if (this.markers[i].id != null) {
         if (this.markers[i].id == newMarker.id) {
-          this.markers.splice(0, i);
           map.removeLayer(this.markers[i].marker);
+          this.markers.splice(i,1);
         }
       }
     }
@@ -69,12 +69,10 @@ class LayerControlAdmin {
         return;
       }
       else {
-        if (this.isVisible) {
           map.removeLayer(this.markers[i].marker);
-        }
       }
     }
-    this.markers.splice(0, i);
+    this.markers.splice(0, this.markers.length);
     return;
   }
   deleteAllMarker = function () {
@@ -92,9 +90,9 @@ class LayerControlAdmin {
   }
   ///回転しているマーカーの回転角度をマップに合わせて更新する。
   renewRotationMarker() {
-    // if(!isRotationON){
-    //   return;
-    // }
+     if(!isRotationON){
+       return;
+     }
     for (var i = 0; i < this.markers.length; i++) {
       map.removeLayer(this.markers[i].marker);
       this.markers[i].marker.setRotationAngle(this.markers[i].getRelativeRotationAngle());
@@ -105,13 +103,6 @@ class LayerControlAdmin {
   }
 }
 
-// class crowdMarker extends AdvancedMarker{
-//   constructor(...args){
-//     super(args);
-//   }
-//   velocity;
-//   angle;
-// }
 
 ///マーカーの追加機能を実装するためのクラス
 class AdvancedMarker {
@@ -172,19 +163,8 @@ function rotationSwitch(checked) {
 }
 
 let center_latLng;
-// let init_mark;
-// let initMark;
-// let second_mark;
-// let secondMark;
-// let gps_init_pub;
-// let gps_second_pub;
-
 let gps_markers = [];
 let latest_gps_marker;
-let odom_markers = [];
-let latest_odom_marker;
-let filtered_markers = [];
-let latest_filtered_marker;
 const length_per_side = [0.000045, 0.0000625];
 let start_point = [34.64695159902189, 135.37847645406802];
 const number_of_rows = 10;
@@ -198,7 +178,7 @@ let stray_control = new LayerControlAdmin("stray", true, []);
 let lost_prop_control = new LayerControlAdmin("lost_property", true, []);
 let konzatu_control = new LayerControlAdmin("konzatu", true, []);
 let isRotationON = true;
-let maxMarkerTime = 600000;
+let maxMarkerTime = 300000;
 let wayPointMarker;
 let isGPSVisible;
 let odomTimer = null;
@@ -223,41 +203,24 @@ window.onload = (event) => {
 
   isGPSVisible = true;
 
+  document.getElementById("markerDuration").addEventListener("change",changeMaxMarkerTime);
+
+  document.getElementById("h_QR").addEventListener("click",showQRDialog)
+
+  maxMarkerTime = document.getElementById("markerDuration").value*1000;
+
+  console.log(maxMarkerTime);
+
   //アラートの宣言
-  var approachingAlarm = new AlarmAdmin("alarm approach");
+  var approachingAlarm = new AlarmAdmin("alarm approach","ロボットが障害物を検知し、停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
 
-  var odomNotSentAlarm = new AlarmAdmin("alarm odomNotSent");
+  var odomNotSentAlarm = new AlarmAdmin("alarm odomNotSent","自己位置の推定が停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
 
-  var sensorLostAlarm = new AlarmAdmin("alarm sensorLost");
+  var sensorLostAlarm = new AlarmAdmin("alarm sensorLost","自立走行に必要なセンサとの通信が途切れたため、ロボットが停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
 
   map.addControl(new DragControl({ position: 'topright' }));
 
   center_latLng = map.getCenter();
-  //document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）"
-
-  // アイコンを地図に追加
-  // init_posのマーカーアイコン作成.
-  init_mark = L.divIcon({ // CSSを使ったDivIconを作成
-    className: 'init_pose',
-    bgPos: [18, 18]
-  });
-
-  // second_posのマーカーアイコン作成.
-  second_mark = L.divIcon({ // CSSを使ったDivIconを作成
-    className: 'second_pose',
-    bgPos: [18, 18]
-  });
-
-
-  let crossMark = L.marker(map.getCenter(), { // マーカとして登録
-    icon: cross, zIndexOffset: 100, interactive: false
-  }).addTo(map);
-  map.on('move', function () { // mousemoveイベントでマーカを移動
-    center_latLng = map.getCenter();
-    crossMark.setLatLng(center_latLng);
-    console.log(center_latLng);
-    //document.getElementById("center").textContent = "中心座標：（ 緯度 " + center_latLng.lng + " , 経度 " + center_latLng.lat + " ）";
-  });
 
 
   // ROSとの接続.
@@ -295,16 +258,7 @@ window.onload = (event) => {
     name: '/odometry/gps_second',
     messageType: 'nav_msgs/Odometry'
   });
-  autoMobile_start_pub = new ROSLIB.Topic({
-    ros: ros,
-    name: '/expo_start',
-    messageType: 'std_msgs/string'
-  });
-  autoMobile_stop_pub = new ROSLIB.Topic({
-    ros: ros,
-    name: '/expo_stop',
-    messageType: 'std_msgs/string'
-  });
+
   wayPoint_pub = new ROSLIB.Topic({
     ros: ros,
     name: '/expo_waypoint',
@@ -353,7 +307,7 @@ window.onload = (event) => {
       clearInterval(odomTimer);
       odomNotSentAlarm.setAlarmLevel(AlarmLevel.LOW);
     }
-    odomTimer = setInterval(odomNotSentAlarm.setTimer, 300, AlarmLevel.HIGH);
+    odomTimer = setTimer(AlarmLevel.HIGH);
     //最新点だけ表示.
     if (latest_gps_marker != null) {
       map.removeLayer(latest_gps_marker);
@@ -380,16 +334,12 @@ window.onload = (event) => {
       latest_gps_marker.addTo(map);
     }
   });
-  //document.getElementById("processing").textContent = "緯度経度テストjs読み込み完";]
-  generateTileGroup([34.64695159902189, 135.37847645406802], 0.00045, 0.00045, 30, 30);
 
   maigo_sub.subscribe(function (message) {
-    //map.panTo([message.latitude, message.longitude]);
     stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
   })
 
   otosimono_sub.subscribe(function (message) {
-    //map.panTo([message.latitude, message.longitude]);
     lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
   })
 
@@ -397,6 +347,7 @@ window.onload = (event) => {
     if (message.persons == null) {
       return;
     }
+    konzatu_control.deleteTimeOverMarker();
     var persons = message.persons;
     for (var i = 0; i < persons.length; i++) {
       var icon = createKonzatuIcon(persons[i].velocity + 1);
@@ -412,6 +363,8 @@ window.onload = (event) => {
   sensor_lost_alarm_sub.subscribe(function (message) {
     sensorLostAlarm.setAlarmLevel(message.data);
   })
+
+  odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
 
 };
 
@@ -450,4 +403,16 @@ function orientationToAngle(orientation) {
     ret += 360;
   }
   return ret;
+}
+function changeMaxMarkerTime(e){
+  maxMarkerTime = e.target.value*1000;
+  console.log(maxMarkerTime);
+}
+
+function showQRDialog(e){
+  swal.fire({title: '中之島チャレンジ<br>ホームページ',
+    imageUrl: 'Image/nakanoshima_QR.png',
+    imageWidth: 400,
+    imageHeight: 400,
+    imageAlt: 'Custom image',})
 }

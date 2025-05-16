@@ -1,5 +1,5 @@
 // マップを作る
-var map = L.map("mapid", { rotate: true }).setView([34.64912664606176, 135.387270679471], 16);
+var map = L.map("mapid", { rotate: true }).setView([34.649211273180605, 135.38625150918963], 18.5);
 
 map.zoomControl.setPosition('bottomright');
 // マップの設定

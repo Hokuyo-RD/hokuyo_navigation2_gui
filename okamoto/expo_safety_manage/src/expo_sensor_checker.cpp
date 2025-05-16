@@ -121,7 +121,7 @@ void SensorChecker::interval_callback(const ros::TimerEvent &event){
     if(!_sensors_state.yvt || !_sensors_state.uam1 || !_sensors_state.uam2 ){
         alarm_msg.data = 2; //異常あり.
     }
-    else if(!_sensors_state.ust1 || !_sensors_state.ust2 || !_sensors_state.gnss || !_sensors_state.ylm){
+    else if(!_sensors_state.ust1 || !_sensors_state.ust2 || !_sensors_state.gnss ){
         alarm_msg.data = 1; //注意.
     }
     else{

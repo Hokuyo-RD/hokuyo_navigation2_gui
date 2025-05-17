@@ -1,3 +1,5 @@
+chmod -x sb_pub.py
+
 # ToDo
 
 - [x] expo_cmdvel_manager に、タイマー機能（0.5秒間）をつけて、UAMとの通信が切れたら速度オフ

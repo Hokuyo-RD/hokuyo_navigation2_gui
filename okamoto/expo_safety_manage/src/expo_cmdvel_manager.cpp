@@ -31,7 +31,7 @@ class CmdVelManager{
 
     public:
         CmdVelManager();
-        void callbackCMD(const geometry_msgs::Twist msgs);
+        void callbackCMD(const geometry_msgs::Twist& msgs);
         void callbackUAM1(const safety_data_message::SafetyData& msgs);
         void callbackUAM2(const safety_data_message::SafetyData& msgs);
         void publish_alarm();
@@ -51,11 +51,11 @@ CmdVelManager::CmdVelManager()
     twist_zero.angular.y = 0;
     twist_zero.angular.z = 0;
 
-    std::string cmd_in_topic = "/icart_mini/cmd_vel";
+    std::string cmd_in_topic = "/wizurg/cmd_vel";
+    std::string cmd_out_topic = "/icart_mini/cmd_vel";
     std::string uam1_topic = "/uam1";
     std::string uam2_topic = "/uam2";
     std::string approach_alarm_topic = "/approach_alarm";
-    std::string cmd_out_topic = "/wizurg/cmd_vel";
     interval_time = 0.5;
     
     _uam1_is_safe = false;
@@ -82,23 +82,23 @@ CmdVelManager::CmdVelManager()
     ros_interval = _nh.createTimer(ros::Duration(interval_time), &CmdVelManager::interval_callback, this);
 }
 
-void CmdVelManager::callbackCMD(const geometry_msgs::Twist msgs)
+void CmdVelManager::callbackCMD(const geometry_msgs::Twist& msgs)
 {
     geometry_msgs::Twist pub_msg;
 
     
-    if(uam1_alarm == 2 && uam2_alarm == 2){
-        pub_msg = twist_zero;
+    if(_stop_manage){
+        _pub_cmd.publish(msgs);
     }
     else{
-        pub_msg = msgs;
-    }
+        if(uam1_alarm == 2 && uam2_alarm == 2){
+            _pub_cmd.publish(twist_zero);
+        }
+        else{
+            _pub_cmd.publish(msgs);
+        }
 
-    if(_stop_manage){
-        pub_msg = msgs;
     }
-
-    _pub_cmd.publish(pub_msg);
 }
 
 void CmdVelManager::callbackUAM1(const safety_data_message::SafetyData& msgs)
@@ -159,7 +159,7 @@ void CmdVelManager::interval_callback(const ros::TimerEvent &event){
         uam2_alarm = 2;
     }
     // 危険エリアの場合、（cmd_velをsubscribeしてなくても）停止命令をpublishする.
-    if(uam1_alarm == 2 || uam2_alarm == 2){
+    if(!_stop_manage && (uam1_alarm == 2 || uam2_alarm == 2)){
         _pub_cmd.publish(twist_zero);
     }
     _uam1_msg_received = false;

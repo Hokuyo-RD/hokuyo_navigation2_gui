@@ -1,0 +1,23 @@
+# Hokuyo SafetyData custom message
+std_msgs/Header header
+int32 timestamp
+int32 operating_mode
+int32 area_number
+int32 error_status
+int32 last_error_number
+int32 lockout_status
+int32 ossd_1_status
+int32 ossd_2_status
+int32 warning_1_status
+int32 warning_2_status
+int32 ossd_3_status
+int32 ossd_4_status
+int32 muting_override_1
+int32 muting_override_2
+int32 reset_request_1
+int32 reset_request_2
+int32 encoder_linear_velocity
+int32 laser_off_status
+int32 contamination_warning
+int32 encoder_input_pattern_number
+int32 encoder_anglular_velocity

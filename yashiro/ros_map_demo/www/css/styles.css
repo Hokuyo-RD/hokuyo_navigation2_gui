@@ -1,27 +1,29 @@
-.special{
+.special {
   color: orange;
   font-weight: bold;
 }
 
-li{
+li {
   list-style: none;
 }
 
-#h_logo{
-  position:relative;
+#h_logo {
+  position: relative;
   height: 10vh;
-  width:66vh;
-  image-rendering:smooth;
-  filter: brightness(0) saturate(100%) invert(76%) sepia(68%) saturate(2715%) hue-rotate(136deg) brightness(101%) contrast(108%) ;
+  width: 66vh;
+  image-rendering: smooth;
+  filter: brightness(0) saturate(100%) invert(76%) sepia(68%) saturate(2715%) hue-rotate(136deg) brightness(101%) contrast(108%);
 }
 
-#h_QR{
-  height:10vh;
-  image-rendering:smooth;
+#h_QR {
+  height: 10vh;
+  image-rendering: smooth;
 }
+
 /* 基本的な要素のスタイル付けを扱う */
 /* -------------------------------------------------------------------------------------------- */
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   /* text-align: center;
@@ -39,38 +41,42 @@ header {
   border: 6px solid rgba(153, 153, 153, 0.5);
   border-style: ridge;
 }
-header h1 > div{
+
+header h1>div {
   display: inline-block;
 }
 
 
 /*------------メニュー要素のスタイル付け-----------------*/
-nav{
+nav {
   width: 100%;
   height: 8%;
   background-color: rgb(212, 254, 255);
   display: flex;
 }
-nav > ul{
+
+nav>ul {
   position: relative;
-  bottom:5px;
+  bottom: 5px;
   text-align: center;
-  width:fit-content;
+  width: fit-content;
   display: flex;
 }
-nav > ul > li{
 
+nav>ul>li {
   padding-right: 10px;
   text-align: center;
   list-style: none;
 }
-nav > ul > li > a{
+
+nav>ul>li>a {
   display: block;
   text-decoration: none;
   color: white;
   margin-right: 35px;
 }
-nav > form{
+
+nav>form {
   margin: auto 0 0 auto;
 }
 
@@ -86,12 +92,14 @@ main {
     max-width: 33em;
     flex-direction: column;
     */
-    height: 60%;
-    display: flex;
-    box-sizing: border-box;
+  height: 60%;
+  display: flex;
+  box-sizing: border-box;
 }
+
 @media (min-width: 70em) {
-    /* 大きな画面やウィンドウで読みやすいように、グローバルフォントの大きさを
+
+  /* 大きな画面やウィンドウで読みやすいように、グローバルフォントの大きさを
        大きくします。 */
   main {
     font-size: 130%;
@@ -100,7 +108,7 @@ main {
 
 
 /*-------記事部分(main内)のスタイル付け-------*/
-article{
+article {
   flex-grow: 1;
   background-color: palegoldenrod;
   box-sizing: border-box;
@@ -111,7 +119,7 @@ article{
 
 
 /*-------サイドバー(main内)のスタイル付け-------*/
-aside{
+aside {
   width: 17%;
   /* height: ; */
   /*
@@ -126,7 +134,7 @@ aside{
 
 
 /*-------フッター部分のスタイル付け-------*/
-footer{
+footer {
   text-align: center;
   clear: both;
   height: 10%;
@@ -138,68 +146,81 @@ footer{
 
 
 /*------フレックスにしたいものを指定-------*/
-#flex{
+#flex {
   display: flex;
 }
 
 /*------ブロックにしたいものを指定-------*/
-#block{
+#block {
   display: block;
 }
 
 /*------アイコン付きボタン-------*/
-.iconButton label{
-  white-space: nowrap;/* 改行を禁止 */
+.iconButton label {
+  white-space: nowrap;
+  /* 改行を禁止 */
   font-size: clamp(16px, 1.8vw, 30px);
   user-select: none;
   display: flex;
   max-width: 18vw;
-min-width: 18vw;
-  height: auto; /* 画像サイズに合わせて調整 */
+  min-width: 18vw;
+  height: auto;
+  /* 画像サイズに合わせて調整 */
   background: #eac3c3;
   color: #000;
   padding: clamp(5px, 1.8vw, 10px);
   margin: clamp(5px, 1.8vw, 10px);
-  box-sizing:border-box;
+  box-sizing: border-box;
   text-align: center;
   text-decoration: none;
   border-radius: 10px;
   cursor: pointer;
-  display: flex; /* Flexboxで画像を中央配置 */
+  display: flex;
+  /* Flexboxで画像を中央配置 */
   justify-content: center;
   align-items: center;
   cursor: pointer;
 }
-.iconButton label:hover{
+
+.iconButton label:hover {
   opacity: 0.8;
 }
-.iconButton input:checked+label{
+
+.iconButton input:checked+label {
   background: hsl(336, 100%, 50%);
   color: #FFF;
 }
-.iconButton input{
+
+.iconButton input {
   display: none;
 }
-.iconButton label img{
+
+.iconButton label img {
   user-select: none;
-  max-width: clamp(20px,1.8vw,30px); /* 画像がラベル内に収まるように調整 */
+  max-width: clamp(20px, 1.8vw, 30px);
+  /* 画像がラベル内に収まるように調整 */
 }
-.iconButton > ul{
-  padding-left:0;
+
+.iconButton>ul {
+  padding-left: 0;
 }
-.iconButton > ul > li{
+
+.iconButton>ul>li {
   display: inline-block;
   padding: 2px;
   list-style: none;
 }
-.normalButton label{
+
+.normalButton label {
   background-color: #0174e7;
   color: #FFF;
 }
-.normalButton label:active{
+
+.normalButton label:active {
   background-color: #c7d6e6;
   color: black;
 }
+
 /*アコーディオンメニューの設定*/
 .accordion {
   max-width: 500px;
@@ -216,7 +237,7 @@ min-width: 18vw;
   color: #333333;
   font-size: clamp(16px, 1.8vw, 30px);
   font-weight: 600;
-  white-space:nowrap;
+  white-space: nowrap;
   cursor: pointer;
 }
 

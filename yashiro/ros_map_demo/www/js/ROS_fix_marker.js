@@ -203,9 +203,13 @@ window.onload = (event) => {
 
   isGPSVisible = true;
 
+  let sensorStateTable = new SensorStateAdmin();
+
+  document.getElementById("sensorStateButton").onclick = function(){sensorStateTable.show()};
+
   document.getElementById("markerDuration").addEventListener("change",changeMaxMarkerTime);
 
-  document.getElementById("h_QR").addEventListener("click",showQRDialog)
+  document.getElementById("h_QR").addEventListener("click",showQRDialog);
 
   maxMarkerTime = document.getElementById("markerDuration").value*1000;
 
@@ -294,15 +298,24 @@ window.onload = (event) => {
     name: '/approach_alarm',
     messageType: 'std_msgs/Int32'
   })
+
   let sensor_lost_alarm_sub = new ROSLIB.Topic({
     ros: ros,
     name: '/sensor_lost_alarm',
     messageType: 'std_msgs/Int32'
   })
 
+  let sensors_status_sub = new ROSLIB.Topic({
+    ros:ros,
+    name:'/sensors_status',
+    messageType:'expo_safety_manage/SensorState'
+  })
 
 
   odom_fix_sub.subscribe(function (message) {
+    if(message == null){
+      return;
+    }
     if (odomTimer != null) {
       clearInterval(odomTimer);
       odomNotSentAlarm.setAlarmLevel(AlarmLevel.LOW);
@@ -336,14 +349,23 @@ window.onload = (event) => {
   });
 
   maigo_sub.subscribe(function (message) {
+    if(message == null){
+      return;
+    }
     stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
   })
 
   otosimono_sub.subscribe(function (message) {
+    if(message == null){
+      return;
+    }
     lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
   })
 
   konzatu_sub.subscribe(function (message) {
+    if(message == null){
+      return;
+    }
     if (message.persons == null) {
       return;
     }
@@ -357,14 +379,35 @@ window.onload = (event) => {
   })
 
   approach_alarm_sub.subscribe(function (message) {
+    if(message == null){
+      return;
+    }
     approachingAlarm.setAlarmLevel(message.data);
   })
 
   sensor_lost_alarm_sub.subscribe(function (message) {
+    if(message == null){
+      return;
+    }
     sensorLostAlarm.setAlarmLevel(message.data);
   })
 
-  odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
+  sensors_status_sub.subscribe(function(message){
+    if(message == null){
+      return;
+    }
+    sensorStateTable.setSensorState({
+      UAM1:message.uam1,
+      UAM2:message.uam2,
+      UST1:message.ust1,
+      UST2:message.ust2,
+      YVT:message.yvt,
+      YLM:message.ylm,
+      GNSS:message.gnss
+    });
+  })
+
+  //odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
 
 };
 

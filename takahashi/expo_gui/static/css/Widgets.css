@@ -1,36 +1,154 @@
-.widget{
+.widget {
     position: absolute;
-    background-color: rgba(255,255,255,0.8);
+    background-color: rgba(255, 255, 255, 0.8);
     padding: 0.25vh;
     border-radius: 10px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.3);
-    z-index:1000;
-}
-.widget.title{
-    position: absolute;
-    top:10px;
-    left:10px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
 }
 
-.widget.title>ul{
+.widget.title {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}
+
+.widget.title>ul {
     padding-left: 10px;
 }
-.widget.toolBar{
+
+.widget.toolBar {
     position: absolute;
     max-width: 20vw;
     min-width: 20vw;
-    max-height: 45vh;
-    top: 30%;
-    right:10px;
+    max-height: 60vh;
+    top: 20vh;
+    right: 10px;
     overflow: scroll;
 }
-.widget.alarm{
+
+.widget.alarm {
     position: absolute;
     bottom: 10px;
-    left:10px;
+    left: 10px;
+    width:fit-content;
+    max-width: 25vw;
+    min-width: 15vw;
+    height: fit-content;
+    max-height: 55vh;
+    min-height: 48vh;
+    display: block;
+    overflow: scroll;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    font-size: small;
+    box-sizing: content-box;
 }
 
-.widget.alarm li{
-    align-items: center;
+.widget.alarm ul {
+    padding-right: 2px;
+    padding-left: 2px;
+}
+.widget.alarm li {
+    text-align: center;
+    padding-top: 10px;
+    width: 15vw;
+    display: flex;
     justify-content: center;
+    align-items: center;
+}
+/*------アイコン付きボタン-------*/
+.sensorStatusButton label {
+    white-space: nowrap;
+    /* 改行を禁止 */
+    font-size: medium;
+    user-select: none;
+    max-width: 80%;
+    width: auto;
+    height: auto;
+    /* 画像サイズに合わせて調整 */
+    background: #3800e0;
+    color: #ffffffff;
+    padding: clamp(5px, 1.8vw, 10px);
+    margin: clamp(5px, 1.8vw, 10px);
+    text-align: center;
+    text-decoration: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    /* Flexboxで画像を中央配置 */
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .sensorStatusButton label:hover {
+    opacity: 0.8;
+  }
+
+  .sensorStatusButton input {
+    display: none;
+  }
+
+
+  .sensorStatusButton label:active{
+    opacity: 0.3;
+    color: #000;
+  }
+
+.widget.dialog::backdrop {
+    backdrop-filter: blur(8px);
+}
+
+.widget.dialog {
+    text-align: center;
+    position: absolute;
+    width: 30vw;
+    height: 20vw;
+}
+
+.modal-message {
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.modal-buttons {
+    display: flex;
+    position:relative;
+    bottom:3px;
+    justify-content: space-around;
+}
+
+.modal-buttons button {
+    padding: 10px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.okButton {
+    background-color: rgba(158, 242, 255, 0.9);
+    color: black;
+}
+
+.closeButton {
+    background-color: rgba(158, 242, 255, 0.9);
+    color: black;
+}
+
+.widget.setting{
+    position: absolute;
+    bottom: 20px;
+    right: 45px;
+    max-width: 30vw;
+    min-width: 15vw;
+    max-height: 15vh;
+    min-height: 10vh;
+}
+
+.widget.setting input{
+    height:30px;
 }

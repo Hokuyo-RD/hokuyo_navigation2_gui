@@ -21,6 +21,8 @@
     <!-- ウィジェット用CSS -->
     <link rel="stylesheet" href="./css/Widgets.css">
 
+    <link rel="stylesheet" href="./css/SensorStateTableStyle.css">
+
     <!-- leaflet用JavaScript -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -52,8 +54,7 @@
     <script src="./js/three_test.js"></script>
     <script src="./js/AlarmScript.js"></script>
     <script src="./js/GenerateTileGroup.js"></script>
-
-
+    <script src="./js/SensorStateTable.js"></script>
     <!--roslibjs-->
     <script type="text/javascript"
         src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
@@ -158,19 +159,22 @@
               <div class="modal-buttons">
                 <button class="okButton" id="okButton">OK</button>
                 <button class="closeButton" id="closeButton">キャンセル</button>
-        </div>
+            </div>
     </dialog>
 
     <div class="widget alarm">
         <ul>
             <li>接近注意</li>
             <li><div class="alarm approach"></div></li>
-            <li>　</li>
-            <li>自己位置検知なし</li>
+            <li>位置推定失敗</li>
             <li><div class="alarm odomNotSent"></div></li>
-            <li>　</li>
             <li>センサ接続なし</li>
             <li><div class="alarm sensorLost"></div></li>
+            <li>
+                <a class="sensorStatusButton" id="sensorStateButton"><input type="button"  name="scales" onclick="sensorStateTable.show()"/>
+                <label for="sensorStateButton">
+                    センサ接続状態
+                </label></a></li>
         </ul>
     </div>
 

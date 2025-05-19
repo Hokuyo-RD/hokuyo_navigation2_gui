@@ -1,0 +1,30 @@
+.sensor_table table {
+    border-collapse: collapse;
+    border: solid 3px #1b657c;
+    margin:0 auto;
+    width: 70%;
+}
+
+.sensor_table th,
+.sensor_table td {
+    padding: 8px 10px;
+}
+
+.sensor_table th {
+    border: solid 1px #1b657c;
+    background-color: #a3e6e8;
+}
+
+.sensor_table td {
+    border: dashed 1px #1b657c;
+}
+
+@media only screen and (max-width: 70%) {
+    .sensor_table {
+        white-space: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        align-items: center;
+
+    }
+}

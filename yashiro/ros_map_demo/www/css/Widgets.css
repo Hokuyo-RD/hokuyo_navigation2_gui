@@ -31,11 +31,12 @@
     position: absolute;
     bottom: 10px;
     left: 10px;
-    max-width: 15vw;
+    width:fit-content;
+    max-width: 25vw;
     min-width: 15vw;
-    max-height: 48vh;
+    height: fit-content;
+    max-height: 55vh;
     min-height: 48vh;
-    white-space:nowrap;
     display: block;
     overflow: scroll;
     text-align: center;
@@ -51,14 +52,50 @@
 }
 .widget.alarm li {
     text-align: center;
-    padding-top: 2.5px;
-    padding-bottom: 2.5px;
+    padding-top: 10px;
     width: 15vw;
     display: flex;
     justify-content: center;
     align-items: center;
 }
+/*------アイコン付きボタン-------*/
+.sensorStatusButton label {
+    white-space: nowrap;
+    /* 改行を禁止 */
+    font-size: medium;
+    user-select: none;
+    max-width: 80%;
+    width: auto;
+    height: auto;
+    /* 画像サイズに合わせて調整 */
+    background: #3800e0;
+    color: #ffffffff;
+    padding: clamp(5px, 1.8vw, 10px);
+    margin: clamp(5px, 1.8vw, 10px);
+    text-align: center;
+    text-decoration: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    /* Flexboxで画像を中央配置 */
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
 
+  .sensorStatusButton label:hover {
+    opacity: 0.8;
+  }
+
+  .sensorStatusButton input {
+    display: none;
+  }
+
+
+  .sensorStatusButton label:active{
+    opacity: 0.3;
+    color: #000;
+  }
 
 .widget.dialog::backdrop {
     backdrop-filter: blur(8px);
@@ -83,8 +120,6 @@
     bottom:3px;
     justify-content: space-around;
 }
-
-
 
 .modal-buttons button {
     padding: 10px 24px;

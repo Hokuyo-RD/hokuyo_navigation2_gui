@@ -1,5 +1,5 @@
 // マップを作る
-var map = L.map("mapid", { rotate: true }).setView([34.64912664606176, 135.387270679471], 16);
+var map = L.map("mapid", { rotate: true }).setView([34.649211273180605, 135.38625150918963], 18.5);
 
 map.zoomControl.setPosition('bottomright');
 // マップの設定
@@ -34,8 +34,6 @@ L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?acce
     //accessToken: <MapBoxのトークンを記載>
 }).addTo(map);
 */
-
-
 
 //マーカーアイコンの作成.
 
@@ -76,8 +74,8 @@ const redIcon = L.icon({
   iconUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png",
   iconRetinaUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
   shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
-  iconSize: [12, 20],
-  iconAnchor: [6, 20],
+  iconSize: [30, 50],
+  iconAnchor: [15, 50],
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41],
@@ -96,11 +94,11 @@ const blueIcon = L.icon({
 });
 
 const selfLocationIcon = L.icon({
-  iconUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
-  iconSize: [12, 20],
-  iconAnchor: [6, 20],
+  iconUrl: "{{ url_for('static', filename='/jikoitiIcon.png') }}",
+  //iconRetinaUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
+  //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
+  iconSize: [60, 60],
+  iconAnchor: [30, 30],
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41],
@@ -108,23 +106,23 @@ const selfLocationIcon = L.icon({
 });
 
 const strayIcon = L.icon({
-  iconUrl: "icons/stray.png",
-  iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhGEswJIZiWi9-2tDf4g6zCkG0AWyPlCZkAhk4ZD0vuD_yHSmH09NQs5kvnOegMoLelVPkYY9Olejiy-jysMbhSV9EsUaPhJVlGumXl5kzqMYer8ryKjbbLgIp5SXYOJLJcG5SuFhfnWY6v/s400/maigo_boy.png",
-  shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
-  iconSize: [36, 60],
-  iconAnchor: [6, 20],
+  iconUrl: "{{ url_for('static' filename='maigoIcon_blue.png') }}",
+  //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhGEswJIZiWi9-2tDf4g6zCkG0AWyPlCZkAhk4ZD0vuD_yHSmH09NQs5kvnOegMoLelVPkYY9Olejiy-jysMbhSV9EsUaPhJVlGumXl5kzqMYer8ryKjbbLgIp5SXYOJLJcG5SuFhfnWY6v/s400/maigo_boy.png",
+  //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
+  iconSize: [60, 60],
+  iconAnchor: [25, 25],
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41],
-  className: "icon-yellow", // <= ここでクラス名を指定
+  className: "icon-maigo", // <= ここでクラス名を指定
 });
 
 const lostPropIcon = L.icon({
-  iconUrl: "icons/lostProp.png",
-  iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi_S1V3XToc_t3HZkte-9mLra1Q4SVanpXcTvINOkNcnQbfcGNscwJxidxvNl4ZO8nVw8MXgwamnlaLdzVhWJYFp9FB-7UG6QBRmAH9jlwuj7u87RCiV3px7JMiqfblLK7PZUtEYNiWR0c/s400/wasuremono_box.png",
-  shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
-  iconSize: [36, 60],
-  iconAnchor: [6, 20],
+  iconUrl: "{{ url_for('static' filename='otoshimonoIcon_blue.png') }}",
+  //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi_S1V3XToc_t3HZkte-9mLra1Q4SVanpXcTvINOkNcnQbfcGNscwJxidxvNl4ZO8nVw8MXgwamnlaLdzVhWJYFp9FB-7UG6QBRmAH9jlwuj7u87RCiV3px7JMiqfblLK7PZUtEYNiWR0c/s400/wasuremono_box.png",
+  //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41],
@@ -141,3 +139,25 @@ const arrowIcon = L.icon({
   shadowSize: [41, 41],
   className: "icon-arrow", // <= ここでクラス名を指定
 });
+
+// 楔形アイコンを作成する関数(length = 1,2,3)
+
+function createKonzatuIcon(length) {
+  if(length < 1){
+    length = 1;
+  }
+  else if(length > 2){
+    length =2;
+  }
+  return L.icon({
+  iconUrl: "{{ url_for('static', filename='sankakuIcon.png') }}",
+  //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiKRNwRm8OhKM-Td-r63pdwv32DJFhDJrDjpYIOO3XpAQJLrkaHtUus1wKaYmFaHxSmgt9Xwg257gpRfymAtHPGhnrZkUdl7bmvcKGsYpd69qjzE08CQhLn2B-IoHLQqDX4dKfqg7uYJzkx/s800/computer_cursor_arrow_black.png",
+  //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
+  iconSize: [10, 10*length],
+  iconAnchor: [10, 10*length],
+  popupAnchor: [1, -34],
+  tooltipAnchor: [16, -28],
+  shadowSize: [41, 41],
+  className: length <= 1?"icon-konzatured":"icon-konzatublue",
+})
+}

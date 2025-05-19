@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!--パラメーターファイル-->
+    <arg name="param_file" default="$(find safety_urg)/config/default.yaml" />
+
+    <!--ノード名-->
+    <arg name="name" default="safety_urg" />
+    
+    <arg name="output_option" default="screen" />
+    
+    <node pkg="safety_urg" type="safety_urg" name="$(arg name)" output="$(arg output_option)">
+            <rosparam command="load" file="$(arg param_file)"/>
+    </node>
+       
+</launch>

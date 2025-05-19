@@ -27,6 +27,8 @@ class CmdVelManager{
         int uam1_alarm;
         int uam2_alarm;
         double interval_time;
+        double wait_time;
+        ros::Time last_alert_time;
         geometry_msgs::Twist twist_zero;
 
     public:
@@ -50,6 +52,7 @@ CmdVelManager::CmdVelManager()
     twist_zero.angular.x = 0;
     twist_zero.angular.y = 0;
     twist_zero.angular.z = 0;
+    last_alert_time = ros::Time::now();
 
     std::string cmd_in_topic = "/wizurg/cmd_vel";
     std::string cmd_out_topic = "/icart_mini/cmd_vel";
@@ -57,6 +60,7 @@ CmdVelManager::CmdVelManager()
     std::string uam2_topic = "/uam2";
     std::string approach_alarm_topic = "/approach_alarm";
     interval_time = 0.5;
+    wait_time = 3.0;
     
     _uam1_is_safe = false;
     _uam2_is_safe = false;
@@ -71,6 +75,7 @@ CmdVelManager::CmdVelManager()
     _nhPrivate.getParam("approach_alarm_topic", approach_alarm_topic);
     _nhPrivate.getParam("stop_manage", _stop_manage);
     _nhPrivate.getParam("interval_time", interval_time);
+    _nhPrivate.getParam("wait_time", wait_time);
     
     _sub_cmd = _nh.subscribe(cmd_in_topic, 10, &CmdVelManager::callbackCMD, this);
     _sub_uam1 = _nh.subscribe(uam1_topic, 10, &CmdVelManager::callbackUAM1, this);
@@ -91,7 +96,9 @@ void CmdVelManager::callbackCMD(const geometry_msgs::Twist& msgs)
         _pub_cmd.publish(msgs);
     }
     else{
-        if(uam1_alarm == 2 && uam2_alarm == 2){
+        bool is_danger = (uam1_alarm == 2 || uam2_alarm == 2);
+        bool pass_time_not_enough = (ros::Time::now() - last_alert_time).toSec() < wait_time;
+        if( is_danger || pass_time_not_enough ){
             _pub_cmd.publish(twist_zero);
         }
         else{
@@ -107,6 +114,7 @@ void CmdVelManager::callbackUAM1(const safety_data_message::SafetyData& msgs)
 
     if(msgs.ossd_1_status == 1){ // 危険エリア内に物体を検知.
         uam1_alarm = 2;
+        last_alert_time = ros::Time::now();
     }
     else{
         if(msgs.warning_1_status == 1){ // 注意エリア内に物体を検知.
@@ -125,6 +133,7 @@ void CmdVelManager::callbackUAM2(const safety_data_message::SafetyData& msgs)
 
     if(msgs.ossd_1_status == 1){ // 危険エリア内に物体を検知.
         uam2_alarm = 2;
+        last_alert_time = ros::Time::now();
     }
     else{
         if(msgs.warning_1_status == 1){ // 注意エリア内に物体を検知.

@@ -51,8 +51,8 @@ class SensorStateAdmin {
     generateSensorStateTable(){
         var ret = "<div class = \"sensor_table\"><table><tr><th>センサ</th><th>通信状態</th></tr>" ;
         for (var i = 0; i < this.sensorStateList.length;i++){
-            var state = this.sensorStateList[i]?"正常（true）":"エラー（false）";
-            ret += "<tr><td>"+sensorNameList[i]+"</td>"+"<td><font color=\"red\">"+ state +"</font></td></tr>";
+            var state = this.sensorStateList[i]?"正常（true）":"<font color=\"red\">エラー（false）</font>";
+            ret += "<tr><td>"+sensorNameList[i]+"</td>"+"<td>"+ state +"</td></tr>";
         }
         ret += "</table></div>";
         return ret;

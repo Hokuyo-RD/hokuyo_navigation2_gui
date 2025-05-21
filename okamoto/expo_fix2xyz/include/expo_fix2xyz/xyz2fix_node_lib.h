@@ -24,6 +24,10 @@
 #include <expo_crowd_msgs/Crowd.h>
 #include <expo_crowd_msgs/CrowdFix.h>
 
+
+#include <lidar_clustering/Person.h>
+#include <lidar_clustering/Crowd.h>
+
 #include <proj.h>
 #include "expo_fix2xyz/fix_xyz_transform.h"
 
@@ -86,7 +90,7 @@ class XYZLLATransNode {
 
   public:
     // コールバック関数.
-    void crowd_callback(const expo_crowd_msgs::Crowd &msg);
+    void crowd_callback(const lidar_clustering::Crowd &msg);
     void odom_callback1(const nav_msgs::Odometry &msg);
     void pose_callback2(const geometry_msgs::PoseStamped &msg);
     void posecov_callback3(const geometry_msgs::PoseWithCovarianceStamped &msg);

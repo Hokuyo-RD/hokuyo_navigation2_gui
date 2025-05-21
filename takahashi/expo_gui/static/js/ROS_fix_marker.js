@@ -52,7 +52,7 @@ class LayerControlAdmin {
       if (this.markers[i].id != null) {
         if (this.markers[i].id == newMarker.id) {
           map.removeLayer(this.markers[i].marker);
-          this.markers.splice(i,1);
+          this.markers.splice(i, 1);
         }
       }
     }
@@ -69,7 +69,7 @@ class LayerControlAdmin {
         return;
       }
       else {
-          map.removeLayer(this.markers[i].marker);
+        map.removeLayer(this.markers[i].marker);
       }
     }
     this.markers.splice(0, this.markers.length);
@@ -90,15 +90,11 @@ class LayerControlAdmin {
   }
   ///回転しているマーカーの回転角度をマップに合わせて更新する。
   renewRotationMarker() {
-     if(!isRotationON){
-       return;
-     }
+    if (!isRotationON) {
+      return;
+    }
     for (var i = 0; i < this.markers.length; i++) {
-      map.removeLayer(this.markers[i].marker);
       this.markers[i].marker.setRotationAngle(this.markers[i].getRelativeRotationAngle());
-      if (this.isVisible) {
-        this.markers[i].marker.addTo(map);
-      }
     }
   }
 }
@@ -170,7 +166,7 @@ let start_point = [34.64695159902189, 135.37847645406802];
 const number_of_rows = 10;
 const number_of_lines = 10;
 let crowding_polygones = [];
-let map_rotate_angle;
+let map_rotate_angle = 0;
 const earth_radius = 6387137;
 
 let gps_control = new LayerControlAdmin("自己位置", true, []);
@@ -205,22 +201,22 @@ window.onload = (event) => {
 
   let sensorStateTable = new SensorStateAdmin();
 
-  document.getElementById("sensorStateButton").onclick = function(){sensorStateTable.show()};
+  document.getElementById("sensorStateButton").onclick = function () { sensorStateTable.show() };
 
-  document.getElementById("markerDuration").addEventListener("change",changeMaxMarkerTime);
+  document.getElementById("markerDuration").addEventListener("change", changeMaxMarkerTime);
 
-  document.getElementById("h_QR").addEventListener("click",showQRDialog);
+  document.getElementById("h_QR").addEventListener("click", showQRDialog);
 
-  maxMarkerTime = document.getElementById("markerDuration").value*1000;
+  maxMarkerTime = document.getElementById("markerDuration").value * 1000;
 
   console.log(maxMarkerTime);
 
   //アラートの宣言
-  var approachingAlarm = new AlarmAdmin("alarm approach","ロボットが障害物を検知し、停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
+  var approachingAlarm = new AlarmAdmin("alarm approach", "ロボットが障害物を検知し、停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
 
-  var odomNotSentAlarm = new AlarmAdmin("alarm odomNotSent","自己位置の推定が停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
+  var odomNotSentAlarm = new AlarmAdmin("alarm odomNotSent", "自己位置の推定が停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
 
-  var sensorLostAlarm = new AlarmAdmin("alarm sensorLost","自立走行に必要なセンサとの通信が途切れたため、ロボットが停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
+  var sensorLostAlarm = new AlarmAdmin("alarm sensorLost", "自立走行に必要なセンサとの通信が途切れたため、ロボットが停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
 
   map.addControl(new DragControl({ position: 'topright' }));
 
@@ -236,7 +232,8 @@ window.onload = (event) => {
     //url : 'ws://192.168.137.31:9090'
     //url : 'ws://192.168.0.157:9090'
     //url : 'ws://localhost:9090'
-    url: 'ws://' + location.hostname + ':9090'
+    url: 'ws://100.108.154.115:9090'
+    //url:'ws://0.0.0.0:9090'
   });
 
   ros.on('connection', function () {
@@ -306,21 +303,21 @@ window.onload = (event) => {
   })
 
   let sensors_status_sub = new ROSLIB.Topic({
-    ros:ros,
-    name:'/sensors_status',
-    messageType:'expo_safety_manage/SensorState'
+    ros: ros,
+    name: '/sensors_status',
+    messageType: 'expo_safety_manage/SensorState'
   })
 
+  let estimated_pose_sub = new ROSLIB.Topic({
+    ros:ros,
+    name:'/estimated_pose',
+    messageType:'geometry_msgs/PoseStamped'
+  })
 
   odom_fix_sub.subscribe(function (message) {
-    if(message == null){
+    if (message == null) {
       return;
     }
-    if (odomTimer != null) {
-      clearInterval(odomTimer);
-      odomNotSentAlarm.setAlarmLevel(AlarmLevel.LOW);
-    }
-    odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
     //最新点だけ表示.
     if (latest_gps_marker != null) {
       map.removeLayer(latest_gps_marker);
@@ -349,21 +346,21 @@ window.onload = (event) => {
   });
 
   maigo_sub.subscribe(function (message) {
-    if(message == null){
+    if (message == null) {
       return;
     }
     stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
   })
 
   otosimono_sub.subscribe(function (message) {
-    if(message == null){
+    if (message == null) {
       return;
     }
     lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
   })
 
   konzatu_sub.subscribe(function (message) {
-    if(message == null){
+    if (message == null) {
       return;
     }
     if (message.persons == null) {
@@ -379,36 +376,41 @@ window.onload = (event) => {
   })
 
   approach_alarm_sub.subscribe(function (message) {
-    if(message == null){
+    if (message == null) {
       return;
     }
     approachingAlarm.setAlarmLevel(message.data);
   })
 
   sensor_lost_alarm_sub.subscribe(function (message) {
-    if(message == null){
+    if (message == null) {
       return;
     }
     sensorLostAlarm.setAlarmLevel(message.data);
   })
 
-  sensors_status_sub.subscribe(function(message){
-    if(message == null){
+  sensors_status_sub.subscribe(function (message) {
+    if (message == null) {
       return;
     }
     sensorStateTable.setSensorState({
-      UAM1:message.uam1,
-      UAM2:message.uam2,
-      UST1:message.ust1,
-      UST2:message.ust2,
-      YVT:message.yvt,
-      YLM:message.ylm,
-      GNSS:message.gnss
+      UAM1: message.uam1,
+      UAM2: message.uam2,
+      UST1: message.ust1,
+      UST2: message.ust2,
+      YVT: message.yvt,
+      YLM: message.ylm,
+      GNSS: message.gnss
     });
   })
 
-  //odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
-
+  estimated_pose_sub.subscribe(function(message){
+    if (odomTimer != null) {
+      clearInterval(odomTimer);
+      odomNotSentAlarm.setAlarmLevel(AlarmLevel.LOW);
+    }
+    odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
+  })
 };
 
 
@@ -447,15 +449,23 @@ function orientationToAngle(orientation) {
   }
   return ret;
 }
-function changeMaxMarkerTime(e){
-  maxMarkerTime = e.target.value*1000;
+function changeMaxMarkerTime(e) {
+  maxMarkerTime = e.target.value * 1000;
   console.log(maxMarkerTime);
 }
 
-function showQRDialog(e){
-  swal.fire({title: '中之島チャレンジ<br>ホームページ',
-    imageUrl: 'Image/nakanoshima_QR.png',
+function showQRDialog(e) {
+  var path = getFilePath('/static/nakanoshima_QR.png');
+  console.log(path);
+  swal.fire({
+    title: '中之島チャレンジ<br>ホームページ',
+    imageUrl:path,
     imageWidth: 400,
     imageHeight: 400,
-    imageAlt: 'Custom image',})
+    imageAlt: 'Custom image',
+  })
+}
+
+function getFilePath(filename){
+  return location.href.replace(location.pathname,"") + filename;
 }

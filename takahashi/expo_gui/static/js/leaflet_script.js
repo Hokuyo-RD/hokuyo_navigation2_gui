@@ -94,7 +94,7 @@ const blueIcon = L.icon({
 });
 
 const selfLocationIcon = L.icon({
-  iconUrl: "{{ url_for('static', filename='/jikoitiIcon.png') }}",
+  iconUrl: getFilePath('/static/jikoitiIcon_blue.png'),
   //iconRetinaUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
   //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
   iconSize: [60, 60],
@@ -106,7 +106,7 @@ const selfLocationIcon = L.icon({
 });
 
 const strayIcon = L.icon({
-  iconUrl: "{{ url_for('static' filename='maigoIcon_blue.png') }}",
+  iconUrl: getFilePath('/static/maigoIcon_blue.png'),
   //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhGEswJIZiWi9-2tDf4g6zCkG0AWyPlCZkAhk4ZD0vuD_yHSmH09NQs5kvnOegMoLelVPkYY9Olejiy-jysMbhSV9EsUaPhJVlGumXl5kzqMYer8ryKjbbLgIp5SXYOJLJcG5SuFhfnWY6v/s400/maigo_boy.png",
   //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
   iconSize: [60, 60],
@@ -118,7 +118,7 @@ const strayIcon = L.icon({
 });
 
 const lostPropIcon = L.icon({
-  iconUrl: "{{ url_for('static' filename='otoshimonoIcon_blue.png') }}",
+  iconUrl: getFilePath('/static/otosimonoIcon.png'),
   //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi_S1V3XToc_t3HZkte-9mLra1Q4SVanpXcTvINOkNcnQbfcGNscwJxidxvNl4ZO8nVw8MXgwamnlaLdzVhWJYFp9FB-7UG6QBRmAH9jlwuj7u87RCiV3px7JMiqfblLK7PZUtEYNiWR0c/s400/wasuremono_box.png",
   //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
   iconSize: [40, 40],
@@ -150,7 +150,7 @@ function createKonzatuIcon(length) {
     length =2;
   }
   return L.icon({
-  iconUrl: "{{ url_for('static', filename='sankakuIcon.png') }}",
+  iconUrl: getFilePath('/static/sankakuIcon.png'),
   //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiKRNwRm8OhKM-Td-r63pdwv32DJFhDJrDjpYIOO3XpAQJLrkaHtUus1wKaYmFaHxSmgt9Xwg257gpRfymAtHPGhnrZkUdl7bmvcKGsYpd69qjzE08CQhLn2B-IoHLQqDX4dKfqg7uYJzkx/s800/computer_cursor_arrow_black.png",
   //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
   iconSize: [10, 10*length],

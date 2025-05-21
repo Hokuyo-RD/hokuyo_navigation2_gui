@@ -311,16 +311,17 @@ window.onload = (event) => {
     messageType:'expo_safety_manage/SensorState'
   })
 
+  let estimated_pose_sub = new ROSLIB.Topic({
+    ros:ros,
+    name:'/estimated_pose',
+    messageType:'geometry_msgs/PoseStamped'
+  })
+
 
   odom_fix_sub.subscribe(function (message) {
     if(message == null){
       return;
     }
-    if (odomTimer != null) {
-      clearInterval(odomTimer);
-      odomNotSentAlarm.setAlarmLevel(AlarmLevel.LOW);
-    }
-    odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
     //最新点だけ表示.
     if (latest_gps_marker != null) {
       map.removeLayer(latest_gps_marker);
@@ -406,9 +407,13 @@ window.onload = (event) => {
       GNSS:message.gnss
     });
   })
-
-  //odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
-
+  estimated_pose_sub.subscribe(function(message){
+    if (odomTimer != null) {
+      clearInterval(odomTimer);
+      odomNotSentAlarm.setAlarmLevel(AlarmLevel.LOW);
+    }
+    odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
+  })
 };
 
 

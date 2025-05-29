@@ -71,9 +71,9 @@ def outdoor_run_popup():
 def stop_run():
     return render_template('stop.html')
 
-@app.route('/tools')
-def tools_run():
-    return render_template('tools.html')
+@app.route('/demo_executed')
+def demo_run():
+    return render_template('demo_executed.html', message="デモモードに切り替わりました。Viewerでジョイスティックを使ってデモをしてください。")
 
 def run_subprocess(command_list):
     subprocess.run(command_list)
@@ -115,6 +115,11 @@ def trigger_script():
                 "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/web_kill_all_rosnode.sh"
             ],)).start()
             return render_template('stop.html')
+        elif command == "demo":
+            Thread(target=run_subprocess, args=([
+                "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_demo.sh"
+            ],)).start()
+            return redirect('/demo_executed')
         elif command == "map":
             return render_template('map.html')
         else:

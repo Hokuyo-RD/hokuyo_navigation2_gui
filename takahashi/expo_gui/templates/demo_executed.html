@@ -1,0 +1,30 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+wizurg_setting
+{% endblock  %}
+
+{% block header %}
+<h1>WizURG操作画面</h1>
+{% endblock header %}
+
+{% block content %}
+<h1>{{ message }}</h1>
+<div class="index-page-container">
+    <p>デモモードを開始しました... 2秒後にメインページを更新して設定画面を閉じます。</p>
+    </div>
+
+<script>
+    const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
+
+    setTimeout(function() {
+        reloadChannel.postMessage({ action: 'reload' });
+        window.close();
+    }, 2000);
+</script>
+
+{% endblock  %}
+
+{% block footer %}
+index_footer
+{% endblock  %}

@@ -4,7 +4,7 @@
 
 
 // 混雑度のコールバック.
-void XYZLLATransNode::crowd_callback(const expo_crowd_msgs::Crowd &msg){
+void XYZLLATransNode::crowd_callback(const lidar_clustering::Crowd &msg){
     expo_crowd_msgs::CrowdFix ret_msg;
     ret_msg.header = msg.header;
     ret_msg.header.frame_id = "";

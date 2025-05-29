@@ -11,10 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   tf2
   tf2_ros
   tf2_geometry_msgs
+  geometry_msgs
   expo_msgs
   expo_fix_msgs
   expo_crowd_msgs
-  geometry_msgs
+  lidar_clustering
 )
 
 find_package (Eigen3 REQUIRED)

@@ -60,6 +60,7 @@
   <exec_depend>std_msgs</exec_depend>
   <build_depend>expo_msgs</build_depend>
   <build_depend>expo_fix_msgs</build_depend>
+  <build_depend>lidar_clustering</build_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

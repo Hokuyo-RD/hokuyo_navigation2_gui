@@ -11,6 +11,10 @@ pub_area_topic: "area/from_fix"
 sub_person_fix_topic: "person_fix"
 pub_person_topic: "person/from_fix"
 
+# sensor_msgs::NavSatFix => nav_msgs::Odometry
+sub_fix_topic0: "fix"
+pub_odom_topic0: "odometry/fix"
+
 # expo_fix_msgs::FixWithOrientation => nav_msgs::Odometry
 sub_fix_topic1: "fix1"
 pub_odom_topic1: "odometry/from_fix1"

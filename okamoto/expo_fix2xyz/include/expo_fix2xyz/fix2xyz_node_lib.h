@@ -39,24 +39,28 @@ class LLAXYZTransNode {
     ros::NodeHandle nh;
     ros::NodeHandle pnh;
     
+    ros::Subscriber fix_sub0; // -> publisher odom_pub0 
     ros::Subscriber fix_sub1; // -> publisher odom_pub1 
     ros::Subscriber fix_sub2; // -> publisher pose_pub2
     ros::Subscriber fix_sub3; // -> publisher posecov_pub3
     ros::Subscriber area_fix_sub;
     ros::Subscriber person_fix_sub;
 
+    ros::Publisher odom_pub0;
     ros::Publisher odom_pub1;
     ros::Publisher pose_pub2;
     ros::Publisher posecov_pub3;
     ros::Publisher area_pub;
     ros::Publisher person_pub;
 
+    std::string sub_fix_topic0;
     std::string sub_fix_topic1;
     std::string sub_fix_topic2;
     std::string sub_fix_topic3;
     std::string sub_area_fix_topic;
     std::string sub_person_fix_topic;
     
+    std::string pub_odom_topic0;
     std::string pub_odom_topic1;
     std::string pub_pose_topic2;
     std::string pub_posecov_topic3;
@@ -80,6 +84,7 @@ class LLAXYZTransNode {
 
   public:
     // コールバック関数.
+    void fix_callback0(const sensor_msgs::NavSatFix &msg);
     void fix_callback1(const expo_fix_msgs::FixWithOrientation &msg);
     void fix_callback2(const sensor_msgs::NavSatFix &msg);
     void fix_callback3(const sensor_msgs::NavSatFix &msg);

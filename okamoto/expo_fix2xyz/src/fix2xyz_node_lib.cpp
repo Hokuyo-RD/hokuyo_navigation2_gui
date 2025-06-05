@@ -4,6 +4,59 @@
 
 
 // fixコールバック関数.
+void LLAXYZTransNode::fix_callback0(const sensor_msgs::NavSatFix &msg){
+    debug_msg = "get fix_msg0";
+    DEBUG_PRINT(debug_msg);
+
+    nav_msgs::Odometry ret_msg;
+    Eigen::Vector3d xyz;
+    fix_xyz_trans::LatLonAlt latlonalt;
+
+    latlonalt.latitude = msg.latitude;
+    latlonalt.longitude = msg.longitude;
+    latlonalt.altitude = msg.altitude;
+
+    xyz = l_u_transformer.get_xyz_from_latlonalt(latlonalt);
+
+    ret_msg.header = msg.header;
+    ret_msg.header.frame_id = map_frame;
+    ret_msg.pose.pose.position.x = xyz(0);
+    ret_msg.pose.pose.position.y = xyz(1);
+    ret_msg.pose.pose.position.z = xyz(2);
+    ret_msg.pose.pose.orientation.w = 1.0;
+    ret_msg.pose.covariance[0] = msg.position_covariance[0];
+    ret_msg.pose.covariance[1] = msg.position_covariance[1];
+    ret_msg.pose.covariance[2] = msg.position_covariance[2];
+    ret_msg.pose.covariance[6] = msg.position_covariance[3];
+    ret_msg.pose.covariance[7] = msg.position_covariance[4];
+    ret_msg.pose.covariance[8] = msg.position_covariance[5];
+    ret_msg.pose.covariance[12] = msg.position_covariance[6];
+    ret_msg.pose.covariance[13] = msg.position_covariance[7];
+    ret_msg.pose.covariance[14] = msg.position_covariance[8];
+    ret_msg.pose.covariance[21] = rot_cov;
+    ret_msg.pose.covariance[28] = rot_cov;
+    ret_msg.pose.covariance[35] = rot_cov;
+
+    // 姿勢推定.
+    if(fix1_isfirst){
+        fix1_isfirst = false;
+    }
+    else{
+        // 移動量がある程度ある場合に角度推定.
+        double movement_x = xyz(0) - last_fix1_pose.position.x;
+        double movement_y = xyz(1) - last_fix1_pose.position.y;
+        double movement = movement_x * movement_x + movement_y * movement_y;
+        if(movement > 0.1){
+            double theta = std::atan2(movement_y , movement_x);
+            ret_msg.pose.pose.orientation.z = std::sin(0.5*theta);
+            ret_msg.pose.pose.orientation.w = std::cos(0.5*theta);
+        }
+    }
+    last_fix1_pose = ret_msg.pose.pose;
+
+    odom_pub0.publish(ret_msg);
+}
+
 void LLAXYZTransNode::fix_callback1(const expo_fix_msgs::FixWithOrientation &msg){
     debug_msg = "get fix_msg1";
     DEBUG_PRINT(debug_msg);
@@ -210,12 +263,14 @@ void LLAXYZTransNode::person_fix_callback(const expo_fix_msgs::PersonFix &msg){
 LLAXYZTransNode::LLAXYZTransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
 
     // 各rosparamのデフォルト値.
+    sub_fix_topic0 = "fix0";
     sub_fix_topic1 = "fix1";
     sub_fix_topic2 = "fix2";
     sub_fix_topic3 = "fix3";
     sub_area_fix_topic = "area_fix";
     sub_person_fix_topic = "person_fix";
 
+    pub_odom_topic0 = "odometry/from_fix0";
     pub_odom_topic1 = "odometry/from_fix1";
     pub_pose_topic2 = "pose/from_fix2";
     pub_posecov_topic3 = "posecov/from_fix3";
@@ -231,13 +286,15 @@ LLAXYZTransNode::LLAXYZTransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     
     
     // rosparamの取得.
+    pnh.getParam("sub_fix_topic0", sub_fix_topic0);
     pnh.getParam("sub_fix_topic1", sub_fix_topic1);
     pnh.getParam("sub_fix_topic2", sub_fix_topic2);
     pnh.getParam("sub_fix_topic3", sub_fix_topic3);
     pnh.getParam("sub_area_fix_topic", sub_area_fix_topic);
     pnh.getParam("sub_person_fix_topic", sub_person_fix_topic);
     
-    pnh.getParam("pub_oodm_topic1", pub_odom_topic1);
+    pnh.getParam("pub_odom_topic0", pub_odom_topic0);
+    pnh.getParam("pub_odom_topic1", pub_odom_topic1);
     pnh.getParam("pub_pose_topic2", pub_pose_topic2);
     pnh.getParam("pub_posecov_topic3", pub_posecov_topic3);
     pnh.getParam("pub_area_topic", pub_area_topic);
@@ -282,12 +339,14 @@ LLAXYZTransNode::LLAXYZTransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     }
 
     // publisher,subscriberの設定.
+    fix_sub0 = nh.subscribe(sub_fix_topic0, 10, &LLAXYZTransNode::fix_callback0, this);
     fix_sub1 = nh.subscribe(sub_fix_topic1, 10, &LLAXYZTransNode::fix_callback1, this);
     fix_sub2 = nh.subscribe(sub_fix_topic2, 10, &LLAXYZTransNode::fix_callback2, this);
     fix_sub3 = nh.subscribe(sub_fix_topic3, 10, &LLAXYZTransNode::fix_callback3, this);
     area_fix_sub = nh.subscribe(sub_area_fix_topic, 10, &LLAXYZTransNode::area_fix_callback, this);
     person_fix_sub = nh.subscribe(sub_person_fix_topic, 10, &LLAXYZTransNode::person_fix_callback, this);
 
+    odom_pub0 = nh.advertise<nav_msgs::Odometry>(pub_odom_topic0, 10);
     odom_pub1 = nh.advertise<nav_msgs::Odometry>(pub_odom_topic1, 10);
     pose_pub2 = nh.advertise<geometry_msgs::PoseStamped>(pub_pose_topic2, 10);
     posecov_pub3 = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>(pub_posecov_topic3, 10);

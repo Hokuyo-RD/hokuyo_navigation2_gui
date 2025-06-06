@@ -1,5 +1,5 @@
 # マップ原点の設定
-origin_pose: 34.648955532,135.3864642795,47.4248278253 #万博下見のデータ
+origin_pose: 34.73932,135.47742,47.4248278253 #万博下見のデータ
 origin_quat: 0.0,0.0,0.0,1.0
 
 # expo_crowd_msgs::Crowd => expo_crowd_msgs::CrowdFix

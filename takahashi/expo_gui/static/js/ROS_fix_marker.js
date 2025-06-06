@@ -216,7 +216,7 @@ window.onload = (event) => {
 
   var odomNotSentAlarm = new AlarmAdmin("alarm odomNotSent", "自己位置の推定が停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
 
-  var sensorLostAlarm = new AlarmAdmin("alarm sensorLost", "自立走行に必要なセンサとの通信が途切れたため、ロボットが停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
+  var sensorLostAlarm = new AlarmAdmin("alarm sensorLost", "自律走行に必要なセンサとの通信が途切れたため、ロボットが停止しました。<br>スタート位置まで戻り、再起動を行ってください。");
 
   map.addControl(new DragControl({ position: 'topright' }));
 

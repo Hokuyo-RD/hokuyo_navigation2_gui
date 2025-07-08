@@ -21,6 +21,11 @@ namespace fix_xyz_trans{
         double latitude;
         double longitude;
         double altitude;
+        LatLonAlt(){
+            latitude = 0;
+            longitude = 0;
+            altitude = 0;
+        }
     };
 
     class LLAXYZTrans {

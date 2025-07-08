@@ -337,6 +337,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     
     fix_xyz_trans::LatLonAlt origin_latlonalt_;
     Eigen::Vector4d origin_quat_;
+    double qx,qy,qz,qw;
     
     
     // rosparamの取得.
@@ -364,16 +365,12 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
         l_u_transformer.set_epsg_code(epsg_code_num);
     }
 
-    if (pnh.getParam("origin_quat", origin_quat_str) && pnh.getParam("origin_pose", origin_pose_str)){
-        DEBUG_PRINT(origin_pose_str);
-        DEBUG_PRINT(origin_quat_str);
-        fix_xyz_trans::LatLonAlt latlonalt;
-        double qx = 0.0, qy = 0.0, qz = 0.0, qw = 1.0;
-        
+    if (pnh.getParam("origin_pose", origin_pose_str)){
         std::replace(origin_pose_str.begin(), origin_pose_str.end(), ',', ' ');
         std::istringstream iss_pose(origin_pose_str);
-        iss_pose >> latlonalt.latitude >> latlonalt.longitude >> latlonalt.altitude;
-
+        iss_pose >> origin_latlonalt_.latitude >> origin_latlonalt_.longitude >> origin_latlonalt_.altitude;
+    }
+    if (pnh.getParam("origin_quat", origin_quat_str)){
         std::replace(origin_quat_str.begin(), origin_quat_str.end(), ',', ' ');
         std::istringstream iss_quat(origin_quat_str);
         iss_quat >> qx >> qy >> qz >> qw;
@@ -386,13 +383,23 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
         else{
             origin_quat_.normalize();
         }
-        DEBUG_PRINT(latlonalt.latitude);
-        DEBUG_PRINT(latlonalt.longitude);
-        DEBUG_PRINT(latlonalt.altitude);
-        DEBUG_PRINT(origin_quat_);
-
-        l_u_transformer.set_origin(latlonalt, origin_quat_);
     }
+    else if(pnh.getParam("origin_quat_inv", origin_quat_str)){
+        
+        std::replace(origin_quat_str.begin(), origin_quat_str.end(), ',', ' ');
+        std::istringstream iss_quat(origin_quat_str);
+        iss_quat >> qx >> qy >> qz >> qw;
+        
+        origin_quat_ << -qx, -qy, -qz, qw;
+        if (origin_quat_.norm() == 0){
+            std::cerr << "invalid quaternion" << std::endl;
+            origin_quat_ << 0.0 , 0.0 , 0.0 , 1.0;
+        }
+        else{
+            origin_quat_.normalize();
+        }
+    }
+    l_u_transformer.set_origin(origin_latlonalt_, origin_quat_);
 
     // publisher,subscriberの設定.
     crowd_sub = nh.subscribe(sub_crowd_topic, 10, &XYZLLATransNode::crowd_callback, this);

@@ -51,6 +51,9 @@ void LLAXYZTransNode::fix_callback0(const sensor_msgs::NavSatFix &msg){
             ret_msg.pose.pose.orientation.z = std::sin(0.5*theta);
             ret_msg.pose.pose.orientation.w = std::cos(0.5*theta);
         }
+        else{
+            ret_msg.pose.pose.orientation = last_fix1_pose.orientation;
+        }
     }
     last_fix1_pose = ret_msg.pose.pose;
 
@@ -63,21 +66,28 @@ void LLAXYZTransNode::fix_callback1(const expo_fix_msgs::FixWithOrientation &msg
 
     sensor_msgs::NavSatFix fix_msg = msg.fix;
     nav_msgs::Odometry ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::Pose pose;
+    fix_xyz_trans::LLAWithOrientation lla_with_ori;
 
-    latlonalt.latitude = fix_msg.latitude;
-    latlonalt.longitude = fix_msg.longitude;
-    latlonalt.altitude = fix_msg.altitude;
+    lla_with_ori.lla.latitude = fix_msg.latitude;
+    lla_with_ori.lla.longitude = fix_msg.longitude;
+    lla_with_ori.lla.altitude = fix_msg.altitude;
+    lla_with_ori.orientation << msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w;
 
-    xyz = l_u_transformer.get_xyz_from_latlonalt(latlonalt);
+    pose = l_u_transformer.get_xyz_from_latlonalt(lla_with_ori);
 
     ret_msg.header = fix_msg.header;
     ret_msg.header.frame_id = map_frame;
-    ret_msg.pose.pose.position.x = xyz(0);
-    ret_msg.pose.pose.position.y = xyz(1);
-    ret_msg.pose.pose.position.z = xyz(2);
-    ret_msg.pose.pose.orientation = msg.orientation;
+    ret_msg.pose.pose.position.x = pose.position(0);
+    ret_msg.pose.pose.position.y = pose.position(1);
+    ret_msg.pose.pose.position.z = pose.position(2);
+    //ret_msg.pose.pose.orientation = msg.orientation;
+
+    ret_msg.pose.pose.orientation.x = pose.orientation(0);
+    ret_msg.pose.pose.orientation.y = pose.orientation(1);
+    ret_msg.pose.pose.orientation.z = pose.orientation(2);
+    ret_msg.pose.pose.orientation.w = pose.orientation(3);
+
     ret_msg.pose.covariance[0] = fix_msg.position_covariance[0];
     ret_msg.pose.covariance[1] = fix_msg.position_covariance[1];
     ret_msg.pose.covariance[2] = fix_msg.position_covariance[2];
@@ -133,6 +143,9 @@ void LLAXYZTransNode::fix_callback2(const sensor_msgs::NavSatFix &msg){
             double theta = std::atan2(movement_y , movement_x);
             ret_msg.pose.orientation.z = std::sin(0.5*theta);
             ret_msg.pose.orientation.w = std::cos(0.5*theta);
+        }
+        else{
+            ret_msg.pose.orientation = last_fix2_pose.orientation;
         }
     }
     last_fix2_pose = ret_msg.pose;
@@ -191,6 +204,9 @@ void LLAXYZTransNode::fix_callback3(const sensor_msgs::NavSatFix &msg){
             ret_msg.pose.pose.orientation.z = std::sin(0.5*theta);
             ret_msg.pose.pose.orientation.w = std::cos(0.5*theta);
         }
+        else{
+            ret_msg.pose.pose.orientation = last_fix3_pose.orientation;
+        }
     }
     last_fix3_pose = ret_msg.pose.pose;
 
@@ -206,24 +222,33 @@ void LLAXYZTransNode::area_fix_callback(const expo_fix_msgs::AreaFix &msg){
     DEBUG_PRINT(debug_msg);
 
     expo_msgs::Area ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::Pose pose;
+    fix_xyz_trans::LLAWithOrientation lla_with_ori;
 
-    latlonalt.latitude = msg.latitude;
-    latlonalt.longitude = msg.longitude;
-    latlonalt.altitude = msg.altitude;
+    lla_with_ori.lla.latitude = msg.latitude;
+    lla_with_ori.lla.longitude = msg.longitude;
+    lla_with_ori.lla.altitude = msg.altitude;
+    lla_with_ori.orientation(0) = msg.pose.x;
+    lla_with_ori.orientation(1) = msg.pose.y;
+    lla_with_ori.orientation(2) = msg.pose.z;
+    lla_with_ori.orientation(3) = msg.pose.w;
 
-    xyz = l_u_transformer.get_xyz_from_latlonalt(latlonalt);
+    pose = l_u_transformer.get_xyz_from_latlonalt(lla_with_ori);
 
     ret_msg.id = msg.id;
-    ret_msg.position.x = xyz(0);
-    ret_msg.position.y = xyz(1);
-    ret_msg.position.z = xyz(2);
+    ret_msg.position.x = pose.position(0);
+    ret_msg.position.y = pose.position(1);
+    ret_msg.position.z = pose.position(2);
     ret_msg.size = msg.size;
     ret_msg.velocity = msg.velocity;
     ret_msg.density = msg.density;
-    ret_msg.pose = msg.pose;
-
+    //ret_msg.pose = msg.pose;
+    
+    ret_msg.pose.x = pose.orientation(0);
+    ret_msg.pose.y = pose.orientation(1);
+    ret_msg.pose.z = pose.orientation(2);
+    ret_msg.pose.w = pose.orientation(3);
+   
     area_pub.publish(ret_msg);
     
     debug_msg = "published area_msg from area_fix_msg";
@@ -235,19 +260,29 @@ void LLAXYZTransNode::person_fix_callback(const expo_fix_msgs::PersonFix &msg){
     DEBUG_PRINT(debug_msg);
 
     expo_msgs::Person ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::Pose pose;
+    fix_xyz_trans::LLAWithOrientation lla_with_ori;
 
-    latlonalt.latitude = msg.latitude;
-    latlonalt.longitude = msg.longitude;
-    latlonalt.altitude = msg.altitude;
+    lla_with_ori.lla.latitude = msg.latitude;
+    lla_with_ori.lla.longitude = msg.longitude;
+    lla_with_ori.lla.altitude = msg.altitude;
+    lla_with_ori.orientation(0) = msg.orientation.x;
+    lla_with_ori.orientation(1) = msg.orientation.y;
+    lla_with_ori.orientation(2) = msg.orientation.z;
+    lla_with_ori.orientation(3) = msg.orientation.w;
 
-    xyz = l_u_transformer.get_xyz_from_latlonalt(latlonalt);
+    pose = l_u_transformer.get_xyz_from_latlonalt(lla_with_ori);
 
-    ret_msg.position.x = xyz(0);
-    ret_msg.position.y = xyz(1);
-    ret_msg.position.z = xyz(2);
-    ret_msg.orientation = msg.orientation;
+    ret_msg.position.x = pose.position(0);
+    ret_msg.position.y = pose.position(1);
+    ret_msg.position.z = pose.position(2);
+    //ret_msg.orientation = msg.orientation;
+    
+    ret_msg.orientation.x = pose.orientation(0);
+    ret_msg.orientation.y = pose.orientation(1);
+    ret_msg.orientation.z = pose.orientation(2);
+    ret_msg.orientation.w = pose.orientation(3);
+
     ret_msg.velocity = msg.velocity;
     
     person_pub.publish(ret_msg);
@@ -282,7 +317,7 @@ LLAXYZTransNode::LLAXYZTransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     make_angle_from_movement = false;
     
     fix_xyz_trans::LatLonAlt origin_latlonalt_;
-    Eigen::Vector4d origin_quat_;
+    Eigen::Vector4d origin_quat_(0.0 , 0.0 , 0.0 , 1.0);
     double qx,qy,qz,qw;
     
     // rosparamの取得.

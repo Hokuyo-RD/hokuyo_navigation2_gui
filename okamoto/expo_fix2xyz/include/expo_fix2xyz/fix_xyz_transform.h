@@ -27,6 +27,23 @@ namespace fix_xyz_trans{
             altitude = 0;
         }
     };
+    // 緯度経度に角度を足した構造体.
+    struct LLAWithOrientation {
+        LatLonAlt lla;
+        Eigen::Vector4d orientation;
+        LLAWithOrientation(){
+            orientation << 0,0,0,1;
+        }
+    };
+
+    struct Pose {
+        Eigen::Vector3d position;
+        Eigen::Vector4d orientation;
+        Pose(){
+            position = Eigen::Vector3d::Zero();
+            orientation << 0,0,0,1;
+        }
+    };
 
     class LLAXYZTrans {
     private:
@@ -38,6 +55,7 @@ namespace fix_xyz_trans{
         std::string epsg_code;
         LatLonAlt orig_pose;
         Eigen::Matrix3d orig_R;    // 緯度経度の基準姿勢.
+        Eigen::Matrix4d orig_Q;
         Eigen::Vector3d orig_vec;
 
         // 経度からUTMゾーンを取得する関数.
@@ -52,9 +70,11 @@ namespace fix_xyz_trans{
 
         // 緯度経度からUTMゾーンとUTM座標を求める関数.
         Eigen::Vector3d get_xyz_from_latlonalt(LatLonAlt latlonalt);
+        Pose get_xyz_from_latlonalt(LLAWithOrientation latlonalt);
 
         // UTMゾーンとUTM座標から緯度経度を求める関数.
         LatLonAlt get_latlonalt_from_xyz(Eigen::Vector3d xyz);
+        LLAWithOrientation get_latlonalt_from_xyz(Pose xyz);
 
         void set_epsg_code(int epsg_code_num);
         void set_origin( LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_ );

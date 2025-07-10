@@ -31,19 +31,29 @@ void XYZLLATransNode::crowd_callback(const lidar_clustering::Crowd &msg){
         tf2::doTransform(pose_on_crowdframe, pose_on_map, transformStamped);
 
         // 緯度経度変換.
-        Eigen::Vector3d xyz;
-        fix_xyz_trans::LatLonAlt latlonalt;
-        xyz(0) = pose_on_map.position.x;
-        xyz(1) = pose_on_map.position.y;
-        xyz(2) = pose_on_map.position.z;
-        latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
+        fix_xyz_trans::Pose pose;
+        fix_xyz_trans::LLAWithOrientation lla_with_ori;
+        pose.position(0) = pose_on_map.position.x;
+        pose.position(1) = pose_on_map.position.y;
+        pose.position(2) = pose_on_map.position.z;
+        pose.orientation(0) = pose_on_map.orientation.x;
+        pose.orientation(1) = pose_on_map.orientation.y;
+        pose.orientation(2) = pose_on_map.orientation.z;
+        pose.orientation(3) = pose_on_map.orientation.w;
+        lla_with_ori = l_u_transformer.get_latlonalt_from_xyz(pose);
 
         expo_crowd_msgs::PersonArrowFix person_fix;
         person_fix.id = person.id;
-        person_fix.latitude = latlonalt.latitude;
-        person_fix.longitude = latlonalt.longitude;
-        person_fix.altitude = latlonalt.altitude;
-        person_fix.orientation = pose_on_map.orientation;
+        person_fix.latitude = lla_with_ori.lla.latitude;
+        person_fix.longitude = lla_with_ori.lla.longitude;
+        person_fix.altitude = lla_with_ori.lla.altitude;
+        //person_fix.orientation = pose_on_map.orientation;
+
+        person_fix.orientation.x = lla_with_ori.orientation(0);
+        person_fix.orientation.y = lla_with_ori.orientation(1);
+        person_fix.orientation.z = lla_with_ori.orientation(2);
+        person_fix.orientation.w = lla_with_ori.orientation(3);
+
         person_fix.velocity = person.velocity;
         ret_msg.persons.push_back(person_fix);
     }
@@ -61,8 +71,8 @@ void XYZLLATransNode::odom_callback1(const nav_msgs::Odometry &msg){
 
     expo_fix_msgs::FixWithOrientation ret_msg;
     sensor_msgs::NavSatFix fix_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::Pose pose;
+    fix_xyz_trans::LLAWithOrientation lla_with_ori;
     std::string lio_frame = msg.header.frame_id;
     std::cout << "map_frame : " << map_frame << std::endl;
     std::cout << "tar_frame : " << lio_frame << std::endl;
@@ -80,17 +90,21 @@ void XYZLLATransNode::odom_callback1(const nav_msgs::Odometry &msg){
     geometry_msgs::Pose pose_on_map;
     tf2::doTransform(msg.pose.pose, pose_on_map, transformStamped);
 
-    xyz(0) = pose_on_map.position.x ;
-    xyz(1) = pose_on_map.position.y ;
-    xyz(2) = pose_on_map.position.z ;
+    pose.position(0) = pose_on_map.position.x ;
+    pose.position(1) = pose_on_map.position.y ;
+    pose.position(2) = pose_on_map.position.z ;
+    pose.orientation(0) = pose_on_map.orientation.x;
+    pose.orientation(1) = pose_on_map.orientation.y;
+    pose.orientation(2) = pose_on_map.orientation.z;
+    pose.orientation(3) = pose_on_map.orientation.w;
 
-    latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
+    lla_with_ori = l_u_transformer.get_latlonalt_from_xyz(pose);
 
     fix_msg.header = msg.header ;
     fix_msg.header.frame_id = "" ;
-    fix_msg.latitude = latlonalt.latitude;
-    fix_msg.longitude = latlonalt.longitude;
-    fix_msg.altitude = latlonalt.altitude;
+    fix_msg.latitude = lla_with_ori.lla.latitude;
+    fix_msg.longitude = lla_with_ori.lla.longitude;
+    fix_msg.altitude = lla_with_ori.lla.altitude;
     fix_msg.position_covariance[0] = msg.pose.covariance[0];
     fix_msg.position_covariance[1] = msg.pose.covariance[1];
     fix_msg.position_covariance[2] = msg.pose.covariance[2];
@@ -102,7 +116,11 @@ void XYZLLATransNode::odom_callback1(const nav_msgs::Odometry &msg){
     fix_msg.position_covariance[8] = msg.pose.covariance[14];
 
     ret_msg.fix = fix_msg;
-    ret_msg.orientation = pose_on_map.orientation;
+    ret_msg.orientation.x = lla_with_ori.orientation(0);
+    ret_msg.orientation.y = lla_with_ori.orientation(1);
+    ret_msg.orientation.z = lla_with_ori.orientation(2);
+    ret_msg.orientation.w = lla_with_ori.orientation(3);
+    //ret_msg.orientation = pose_on_map.orientation;
 
     fix_pub1.publish(ret_msg);
 
@@ -204,24 +222,32 @@ void XYZLLATransNode::area_callback(const expo_msgs::Area &msg){
     DEBUG_PRINT(debug_msg);
 
     expo_fix_msgs::AreaFix ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::Pose pose;
+    fix_xyz_trans::LLAWithOrientation lla_with_ori;
 
-    xyz(0) = msg.position.x ;
-    xyz(1) = msg.position.y ;
-    xyz(2) = msg.position.z ;
+    pose.position(0) = msg.position.x ;
+    pose.position(1) = msg.position.y ;
+    pose.position(2) = msg.position.z ;
+    pose.orientation(0) = msg.pose.x;
+    pose.orientation(1) = msg.pose.y;
+    pose.orientation(2) = msg.pose.z;
+    pose.orientation(3) = msg.pose.w;
 
-    latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
+    lla_with_ori = l_u_transformer.get_latlonalt_from_xyz(pose);
 
     ret_msg.id = msg.id;
-    ret_msg.latitude = latlonalt.latitude;
-    ret_msg.longitude = latlonalt.longitude;
-    ret_msg.altitude = latlonalt.altitude;
+    ret_msg.latitude = lla_with_ori.lla.latitude;
+    ret_msg.longitude = lla_with_ori.lla.longitude;
+    ret_msg.altitude = lla_with_ori.lla.altitude;
     ret_msg.size = msg.size;
     ret_msg.velocity = msg.velocity;
     ret_msg.density = msg.density;
-    ret_msg.pose = msg.pose;
-
+    //ret_msg.pose = msg.pose;
+    ret_msg.pose.x = lla_with_ori.orientation(0);
+    ret_msg.pose.y = lla_with_ori.orientation(1);
+    ret_msg.pose.z = lla_with_ori.orientation(2);
+    ret_msg.pose.w = lla_with_ori.orientation(3);
+    
     
     area_fix_pub.publish(ret_msg);
 
@@ -234,19 +260,28 @@ void XYZLLATransNode::person_callback(const expo_msgs::Person &msg){
     DEBUG_PRINT(debug_msg);
 
     expo_fix_msgs::PersonFix ret_msg;
-    Eigen::Vector3d xyz;
-    fix_xyz_trans::LatLonAlt latlonalt;
+    fix_xyz_trans::Pose pose;
+    fix_xyz_trans::LLAWithOrientation lla_with_ori;
 
-    xyz(0) = msg.position.x ;
-    xyz(1) = msg.position.y ;
-    xyz(2) = msg.position.z ;
+    pose.position(0) = msg.position.x ;
+    pose.position(1) = msg.position.y ;
+    pose.position(2) = msg.position.z ;
+    pose.orientation(0) = msg.orientation.x;
+    pose.orientation(1) = msg.orientation.y;
+    pose.orientation(2) = msg.orientation.z;
+    pose.orientation(3) = msg.orientation.w;
 
-    latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
+    lla_with_ori = l_u_transformer.get_latlonalt_from_xyz(pose);
 
-    ret_msg.latitude = latlonalt.latitude;
-    ret_msg.longitude = latlonalt.longitude;
-    ret_msg.altitude = latlonalt.altitude;
-    ret_msg.orientation = msg.orientation;
+    ret_msg.latitude = lla_with_ori.lla.latitude;
+    ret_msg.longitude = lla_with_ori.lla.longitude;
+    ret_msg.altitude = lla_with_ori.lla.altitude;
+    //ret_msg.orientation = msg.orientation;
+    ret_msg.orientation.x = lla_with_ori.orientation(0);
+    ret_msg.orientation.y = lla_with_ori.orientation(1);
+    ret_msg.orientation.z = lla_with_ori.orientation(2);
+    ret_msg.orientation.w = lla_with_ori.orientation(3);
+    
     ret_msg.velocity = msg.velocity;
 
     person_fix_pub.publish(ret_msg);

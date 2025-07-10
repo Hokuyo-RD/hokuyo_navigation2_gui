@@ -13,6 +13,18 @@ Eigen::Matrix3d RotMatFromQuat(const Eigen::Vector4d& quat){
     return Rot;
 }
 
+// クォータニオンからクォータニオン更新行列を計算する関数.
+Eigen::Matrix4d QuatMatFromQuat(const Eigen::Vector4d& quat){
+    Eigen::Matrix4d Mat_Q;
+    Mat_Q << quat(3) , -quat(2) , quat(1) , quat(0) ,
+        quat(2) , quat(3) , -quat(0) , quat(1) ,
+        -quat(1) , quat(0) , quat(3) , quat(2) ,
+        -quat(0) , -quat(1) , -quat(2) , quat(3) ;
+
+    return Mat_Q;
+}
+
+
 using namespace fix_xyz_trans;
 
 int LLAXYZTrans::judge_utm_zone(double longitude){
@@ -31,6 +43,7 @@ void LLAXYZTrans::set_origin(fix_xyz_trans::LatLonAlt orig_pose_, Eigen::Vector4
     set_origin_flg = true;
     orig_pose = orig_pose_;
     orig_R = RotMatFromQuat(orig_quat_);
+    orig_Q = QuatMatFromQuat(orig_quat_);
     int utm_zone = judge_utm_zone(orig_pose_.longitude);
     if(utm_zone > 0 && utm_zone <=60){
         epsg_code = utm_zone_to_epsg(utm_zone);
@@ -122,6 +135,14 @@ Eigen::Vector3d LLAXYZTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
     return xyz;
 }
 
+
+Pose LLAXYZTrans::get_xyz_from_latlonalt(LLAWithOrientation latlonalt){
+    Pose ret_pose;
+    ret_pose.position = get_xyz_from_latlonalt(latlonalt.lla);
+    ret_pose.orientation = orig_Q * latlonalt.orientation;
+    return ret_pose;
+}
+
 LatLonAlt LLAXYZTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
     std::string fix_debug_msg = "get_xy";
     DEBUG_PRINT(fix_debug_msg);
@@ -173,12 +194,20 @@ LatLonAlt LLAXYZTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
     return latlonalt;
 }
 
+LLAWithOrientation LLAXYZTrans::get_latlonalt_from_xyz(Pose xyz){
+    LLAWithOrientation ret_lla;
+    ret_lla.lla = get_latlonalt_from_xyz(xyz.position);
+    ret_lla.orientation = orig_Q.transpose() * xyz.orientation;
+    return ret_lla;
+}
 
 // 初期化処理.
 LLAXYZTrans::LLAXYZTrans() {
     set_origin_flg = false;
     set_epsg_flg = false ;
     set_origin_vector_flg = false;
+    orig_R = Eigen::Matrix3d::Identity();
+    orig_Q = Eigen::Matrix4d::Identity();
 }
 LLAXYZTrans::~LLAXYZTrans() {
 }

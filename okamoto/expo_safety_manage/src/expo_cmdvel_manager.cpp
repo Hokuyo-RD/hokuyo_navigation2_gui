@@ -16,8 +16,6 @@ class CmdVelManager{
         ros::Subscriber _sub_cmd;
         ros::Subscriber _sub_uam1;
         ros::Subscriber _sub_uam2;
-        ros::Subscriber _sub_stop;
-        ros::Subscriber _sub_start;
         ros::Publisher _pub_cmd;
         ros::Publisher _pub_approach_alarm;
         ros::Timer ros_interval;
@@ -40,8 +38,6 @@ class CmdVelManager{
         void callbackCMD(const geometry_msgs::Twist& msgs);
         void callbackUAM1(const safety_data_message::SafetyData& msgs);
         void callbackUAM2(const safety_data_message::SafetyData& msgs);
-        void callbackStart(const std_msgs::Empty& msgs);
-        void callbackStop(const std_msgs::Empty& msgs);
         void publish_alarm();
         void interval_callback(const ros::TimerEvent &event);
 };
@@ -61,12 +57,10 @@ CmdVelManager::CmdVelManager()
     last_alert_time = ros::Time::now();
 
     std::string cmd_in_topic = "/wizurg/cmd_vel";
-    std::string cmd_out_topic = "/icart_mini/cmd_vel";
+    std::string cmd_out_topic = "/wizurg_tmp/cmd_vel";
     std::string uam1_topic = "/uam1";
     std::string uam2_topic = "/uam2";
     std::string approach_alarm_topic = "/approach_alarm";
-    std::string cmd_stop_topic = "/wizurg/stop_cmd_vel";
-    std::string cmd_start_topic = "/wizurg/start_cmd_vel";
     interval_time = 0.5;
     wait_time = 3.0;
     
@@ -85,27 +79,15 @@ CmdVelManager::CmdVelManager()
     _nhPrivate.getParam("stop_manage", _stop_manage);
     _nhPrivate.getParam("interval_time", interval_time);
     _nhPrivate.getParam("wait_time", wait_time);
-    _nhPrivate.getParam("top_topic",cmd_stop_topic);
-    _nhPrivate.getParam("start_topic", cmd_start_topic);
 
     _sub_cmd = _nh.subscribe(cmd_in_topic, 10, &CmdVelManager::callbackCMD, this);
     _sub_uam1 = _nh.subscribe(uam1_topic, 10, &CmdVelManager::callbackUAM1, this);
     _sub_uam2 = _nh.subscribe(uam2_topic, 10, &CmdVelManager::callbackUAM2, this);
-    _sub_stop = _nh.subscribe(cmd_stop_topic, 10, &CmdVelManager::callbackStop, this);
-    _sub_start = _nh.subscribe(cmd_start_topic, 10, &CmdVelManager::callbackStart, this);
     
     _pub_cmd = _nh.advertise<geometry_msgs::Twist>(cmd_out_topic, 10);
     _pub_approach_alarm = _nh.advertise<std_msgs::Int32>(approach_alarm_topic, 10);
 
     ros_interval = _nh.createTimer(ros::Duration(interval_time), &CmdVelManager::interval_callback, this);
-}
-
-void CmdVelManager::callbackStop(const std_msgs::Empty& msgs){
-    _stop_cmdvel = true;
-}
-
-void CmdVelManager::callbackStart(const std_msgs::Empty& msgs){
-    _stop_cmdvel = false;
 }
 
 void CmdVelManager::callbackCMD(const geometry_msgs::Twist& msgs)

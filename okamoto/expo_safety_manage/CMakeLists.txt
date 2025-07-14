@@ -36,11 +36,20 @@ include_directories(
 add_executable(expo_cmdvel_manager
   src/expo_cmdvel_manager.cpp
 )
+
+add_executable(expo_cmdvel_stopper
+  src/expo_cmdvel_stopper.cpp
+)
+
 add_executable(expo_sensor_checker
   src/expo_sensor_checker.cpp
 )
 
 add_dependencies(expo_cmdvel_manager
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
+add_dependencies(expo_cmdvel_stopper
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
 )
@@ -50,6 +59,9 @@ add_dependencies(expo_sensor_checker
 )
 
 target_link_libraries(expo_cmdvel_manager
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(expo_cmdvel_stopper
   ${catkin_LIBRARIES}
 )
 target_link_libraries(expo_sensor_checker

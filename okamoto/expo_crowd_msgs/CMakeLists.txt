@@ -15,6 +15,14 @@ add_message_files(
   Crowd.msg
   PersonArrowFix.msg
   CrowdFix.msg
+  PersonArrowEX.msg
+  CrowdEX.msg
+  PersonArrowFixEX.msg
+  CrowdFixEX.msg
+  LostItem.msg
+  LostItemFix.msg
+  Losts.msg
+  LostsFix.msg
 )
 
 generate_messages(

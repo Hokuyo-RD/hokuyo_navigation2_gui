@@ -93,7 +93,7 @@
 
 .kuzushi-icon {
 	width: 0;
-	height: 0;
+	height: 0;align-items: center;
 	border-left:20px solid transparent;
 	/* 左側の透明部分 */
 	border-right: 20px solid transparent;
@@ -105,6 +105,25 @@
 .icon-konzatured{
 	filter:hue-rotate(150deg);
 }
+
+.icon-konzatugreen{
+	filter:hue-rotate(-70deg) saturate(150%) brightness(150%);
+}
+
 .icon-konzatublue{
 	filter:hue-rotate(0deg);
+}
+
+.custompop{
+	display:flex;
+	align-items: center;
+}
+
+.custom-popup .popup-content{
+	display:flex;
+	background: #ffeeba;
+	border-width: 10000px;
+	font-weight:bold;
+	max-width: 10px;
+	align-items: center;
 }

@@ -13,6 +13,10 @@ class LayerControlAdmin {
 
   layerName = "";
 
+  setAllOpacity = function (opacity){
+    for(var marker in this.markers){marker.setOpacity(opacity);}
+
+  }
 
   addToLayer = function (marker) {
     this.deleteSameIDMarker(marker);
@@ -130,6 +134,10 @@ class AdvancedMarker {
   addTo = function (map) {
     this.marker.setRotationAngle(this.rotationAngle);
     return this.marker.addTo(map);
+  }
+
+  setOpacity = function (opacity){
+    this.marker.setOpacity(opacity);
   }
 
   //マップの回転角度に対するマーカーの回転角度を計算する。
@@ -367,6 +375,7 @@ window.onload = (event) => {
       return;
     }
     konzatu_control.deleteTimeOverMarker();
+    konzatu_control.setAllOpacity(0.5);
     var persons = message.persons;
     for (var i = 0; i < persons.length; i++) {
       var icon = createKonzatuIcon(persons[i].velocity + 1);

@@ -354,10 +354,10 @@ window.onload = (event) => {
     }
   });
 
-  otosimono_sub.subscribe(function (message) {0.1
+  otosimono_sub.subscribe(function (message) {
     if (message == null) {
       return;
-    }0.1
+    }
     for(var item of message.lostitem){
 
       lost_prop_control.addMarker(item.type,new AdvancedMarker(L.marker([item.latitude,item.longitude],),{ id:item.id,icon: getLostIconFromId(item.type) }));
@@ -376,7 +376,7 @@ window.onload = (event) => {
       state = message.state;
     }
     konzatu_control.deleteTimeOverMarker();
-    konzatu_control.setAllOpacity(markeropaciacity);
+    konzatu_control.setAllOpacity(crowdOpacity);
     var persons = message.persons;
     for (var i = 0; i < persons.length; i++) {
       var icon = createKonzatuIcon(persons[i].velocity + 1,state);

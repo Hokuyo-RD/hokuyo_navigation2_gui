@@ -35,6 +35,8 @@ L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?acce
 }).addTo(map);
 */
 
+
+
 //マーカーアイコンの作成.
 
 // 中心座標のマーカーアイコン.
@@ -94,11 +96,11 @@ const blueIcon = L.icon({
 });
 
 const selfLocationIcon = L.icon({
-  iconUrl: getFilePath('/static/jikoitiIcon_blue.png'),
+  iconUrl: "Image/yajirusi.png",
   //iconRetinaUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-icon-2x.png",
   //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
-  iconSize: [60, 60],
-  iconAnchor: [30, 30],
+  iconSize: [80, 80],
+  iconAnchor: [40, 40],
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41],
@@ -106,7 +108,7 @@ const selfLocationIcon = L.icon({
 });
 
 const strayIcon = L.icon({
-  iconUrl: getFilePath('/static/maigoIcon_blue.png'),
+  iconUrl: "Image/maigoIcon_blue.png",
   //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhGEswJIZiWi9-2tDf4g6zCkG0AWyPlCZkAhk4ZD0vuD_yHSmH09NQs5kvnOegMoLelVPkYY9Olejiy-jysMbhSV9EsUaPhJVlGumXl5kzqMYer8ryKjbbLgIp5SXYOJLJcG5SuFhfnWY6v/s400/maigo_boy.png",
   //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
   iconSize: [60, 60],
@@ -118,7 +120,7 @@ const strayIcon = L.icon({
 });
 
 const lostPropIcon = L.icon({
-  iconUrl: getFilePath('/static/otosimonoIcon.png'),
+  iconUrl: "Image/otosimonoIcon.png",
   //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi_S1V3XToc_t3HZkte-9mLra1Q4SVanpXcTvINOkNcnQbfcGNscwJxidxvNl4ZO8nVw8MXgwamnlaLdzVhWJYFp9FB-7UG6QBRmAH9jlwuj7u87RCiV3px7JMiqfblLK7PZUtEYNiWR0c/s400/wasuremono_box.png",
   //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
   iconSize: [40, 40],
@@ -142,7 +144,10 @@ const arrowIcon = L.icon({
 
 // 楔形アイコンを作成する関数(length = 1,2,3)
 
-function createKonzatuIcon(length) {
+function createKonzatuIcon(length,state) {
+  if(state!=0 && state != 1){
+    state=0;
+  }
   if(length < 1){
     length = 1;
   }
@@ -150,7 +155,7 @@ function createKonzatuIcon(length) {
     length =2;
   }
   return L.icon({
-  iconUrl: getFilePath('/static/sankakuIcon.png'),
+  iconUrl: "Image/sankakuIcon.png",
   //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiKRNwRm8OhKM-Td-r63pdwv32DJFhDJrDjpYIOO3XpAQJLrkaHtUus1wKaYmFaHxSmgt9Xwg257gpRfymAtHPGhnrZkUdl7bmvcKGsYpd69qjzE08CQhLn2B-IoHLQqDX4dKfqg7uYJzkx/s800/computer_cursor_arrow_black.png",
   //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
   iconSize: [10, 10*length],
@@ -158,6 +163,21 @@ function createKonzatuIcon(length) {
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41],
-  className: length <= 1?"icon-konzatured":"icon-konzatublue",
+  className: state == 0 ? (length <= 1?"icon-konzatured":"icon-konzatublue") : "icon-konzatugreen",
 })
+}
+
+///脈々の落とし物アイコンを取得する（id =0,1,2,）
+function getLostIconFromId(id){
+  var ratio = id*4
+  return L.icon({
+    iconUrl: `Image/banpaku_lost${id}.png`,
+    //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiKRNwRm8OhKM-Td-r63pdwv32DJFhDJrDjpYIOO3XpAQJLrkaHtUus1wKaYmFaHxSmgt9Xwg257gpRfymAtHPGhnrZkUdl7bmvcKGsYpd69qjzE08CQhLn2B-IoHLQqDX4dKfqg7uYJzkx/s800/computer_cursor_arrow_black.png",
+    //shadowUrl: "https://esm.sh/leaflet@1.9.2/dist/images/marker-shadow.png",
+    iconSize: [40+ratio, 40+ratio],
+    iconAnchor: [20+ratio, 20+ratio],
+    popupAnchor: [1, -34],
+    tooltipAnchor: [16, -28],
+    shadowSize: [41, 41],
+  })
 }

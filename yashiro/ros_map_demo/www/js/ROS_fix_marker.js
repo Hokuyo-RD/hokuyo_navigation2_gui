@@ -1,5 +1,7 @@
-//混雑度のマーカーが透過されるまでのカウントお
+//混雑度のマーカーが透過されるまでのカウント
 const maxMarkerRenewCount = 3;
+//混雑度マーカーの透過度
+const crowdOpacity = 0.5;
 
 ///アイコンを一括で管理するためのクラス
 class LayerControlAdmin {
@@ -212,11 +214,6 @@ window.onload = (event) => {
 
   L.control.scale().addTo(map);
 
-  lost_prop_control.addMarker(0,new AdvancedMarker(L.marker([34.64854303599987,135.38631048835751], { icon: getLostIconFromId(0) })));
-
-  lost_prop_control.addMarker(1,new AdvancedMarker(L.marker([34.648653954116405 ,135.38636282086372], { icon: getLostIconFromId(1) })));
-  lost_prop_control.addMarker(2,new AdvancedMarker(L.marker([34.64878303599901,135.38642048835797], { icon: getLostIconFromId(2) })));
-
   isGPSVisible = true;
 
   let sensorStateTable = new SensorStateAdmin();
@@ -296,7 +293,7 @@ window.onload = (event) => {
 
   let otosimono_sub = new ROSLIB.Topic({
     ros: ros,
-    name: '/otosimono_fix',
+    name: '/lost_fix',
     messageType: 'expo_crowd_msgs/Losts'
   });
 
@@ -357,10 +354,10 @@ window.onload = (event) => {
     }
   });
 
-  otosimono_sub.subscribe(function (message) {
+  otosimono_sub.subscribe(function (message) {0.1
     if (message == null) {
       return;
-    }
+    }0.1
     for(var item of message.lostitem){
 
       lost_prop_control.addMarker(item.type,new AdvancedMarker(L.marker([item.latitude,item.longitude],),{ id:item.id,icon: getLostIconFromId(item.type) }));
@@ -379,7 +376,7 @@ window.onload = (event) => {
       state = message.state;
     }
     konzatu_control.deleteTimeOverMarker();
-    konzatu_control.setAllOpacity(0.1);
+    konzatu_control.setAllOpacity(markeropaciacity);
     var persons = message.persons;
     for (var i = 0; i < persons.length; i++) {
       var icon = createKonzatuIcon(persons[i].velocity + 1,state);

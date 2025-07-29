@@ -1,4 +1,7 @@
-
+//混雑度のマーカーが透過されるまでのカウント
+const maxMarkerRenewCount = 3;
+//混雑度マーカーの透過度
+const crowdOpacity = 0.5;
 
 ///アイコンを一括で管理するためのクラス
 class LayerControlAdmin {
@@ -6,6 +9,7 @@ class LayerControlAdmin {
     this.layerName = layerName;
     this.isVisible = isVisible;
     this.markers = markers;
+    this.count = 3;
   }
   markers = [];
 
@@ -13,9 +17,15 @@ class LayerControlAdmin {
 
   layerName = "";
 
-  setAllOpacity = function (opacity){
-    for(var marker in this.markers){marker.setOpacity(opacity);}
 
+  setAllOpacity = function (opacity) {
+    for (var i = 0;i < this.markers.length;i++) {
+      this.markers[i].renewCount += 1;
+      if(this.markers[i].renewCount > maxMarkerRenewCount){
+      const currentOpacity = this.markers[i].opacity == undefined ? 1.0 : this.markers[i].opacity;
+      this.markers[i].setOpacity(currentOpacity * opacity);
+      }
+     }
   }
 
   addToLayer = function (marker) {
@@ -113,8 +123,10 @@ class AdvancedMarker {
     this.rotationAngle = rotationAngle;
     this.id = id;
     this.marker.setRotationAngle(this.rotationAngle);
+    this.renewCount = 0;
   }
   marker;
+  renewCount;
   //マーカーを置いた時刻
   startTime;
   //マーカーに対するid(int)
@@ -136,7 +148,7 @@ class AdvancedMarker {
     return this.marker.addTo(map);
   }
 
-  setOpacity = function (opacity){
+  setOpacity = function (opacity) {
     this.marker.setOpacity(opacity);
   }
 
@@ -169,20 +181,15 @@ function rotationSwitch(checked) {
 let center_latLng;
 let gps_markers = [];
 let latest_gps_marker;
-const length_per_side = [0.000045, 0.0000625];
-let start_point = [34.64695159902189, 135.37847645406802];
-const number_of_rows = 10;
-const number_of_lines = 10;
-let crowding_polygones = [];
 let map_rotate_angle = 0;
 const earth_radius = 6387137;
 
 let gps_control = new LayerControlAdmin("自己位置", true, []);
 let stray_control = new LayerControlAdmin("stray", true, []);
-let lost_prop_control = new LayerControlAdmin("lost_property", true, []);
+let lost_prop_control = new LostPropAdmin();
 let konzatu_control = new LayerControlAdmin("konzatu", true, []);
 let isRotationON = false;
-let maxMarkerTime = 300000;
+let maxMarkerTime = 10000;
 let wayPointMarker;
 let isGPSVisible;
 let odomTimer = null;
@@ -204,6 +211,8 @@ function delete_all_markers() {
 
 function pub_init_pose() { }
 window.onload = (event) => {
+
+  L.control.scale().addTo(map);
 
   isGPSVisible = true;
 
@@ -239,7 +248,7 @@ window.onload = (event) => {
   let ros = new ROSLIB.Ros({
     //url : 'ws://192.168.137.31:9090'
     //url : 'ws://192.168.0.157:9090'
-    //url : 'ws://localhost:9090'
+    //url: 'ws://localhost:9090'
     url: 'ws://100.108.154.115:9090'
     //url:'ws://0.0.0.0:9090'
   });
@@ -280,16 +289,12 @@ window.onload = (event) => {
     messageType: 'expo_fix_msgs/FixWithOrientation'
   });
 
-  let maigo_sub = new ROSLIB.Topic({
-    ros: ros,
-    name: '/maigo_fix',
-    messageType: 'sensor_msgs/NavSatFix'
-  });
+
 
   let otosimono_sub = new ROSLIB.Topic({
     ros: ros,
-    name: '/otosimono_fix',
-    messageType: 'sensor_msgs/NavSatFix'
+    name: '/lost_fix',
+    messageType: 'expo_crowd_msgs/Losts'
   });
 
   let konzatu_sub = new ROSLIB.Topic({
@@ -317,25 +322,21 @@ window.onload = (event) => {
   })
 
   let estimated_pose_sub = new ROSLIB.Topic({
-    ros:ros,
-    name:'/estimated_pose',
-    messageType:'geometry_msgs/PoseStamped'
+    ros: ros,
+    name: '/estimated_pose',
+    messageType: 'geometry_msgs/PoseStamped'
   })
 
   odom_fix_sub.subscribe(function (message) {
-    if (message == null) {
-      return;
-    }
     //最新点だけ表示.
     if (latest_gps_marker != null) {
       map.removeLayer(latest_gps_marker);
     }
     latest_gps_marker = L.marker([message.fix.latitude, message.fix.longitude], { icon: selfLocationIcon });
+    lost_prop_control.showPopup([message.fix.latitude, message.fix.longitude]);
 
     // L.marker([message.fix.latitude, message.fix.longitude],{icon:redIcon}).addTo(map);
     //時間を過ぎたマーカーを削除
-    stray_control.deleteTimeOverMarker();
-    lost_prop_control.deleteTimeOverMarker();
     konzatu_control.deleteTimeOverMarker();
 
     if (isRotationON) {
@@ -353,32 +354,32 @@ window.onload = (event) => {
     }
   });
 
-  maigo_sub.subscribe(function (message) {
+  otosimono_sub.subscribe(function (message) {0.1
     if (message == null) {
       return;
-    }
-    stray_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: strayIcon })));
-  })
+    }0.1
+    for(var item of message.lostitem){
 
-  otosimono_sub.subscribe(function (message) {
-    if (message == null) {
-      return;
+      lost_prop_control.addMarker(item.type,new AdvancedMarker(L.marker([item.latitude,item.longitude],),{ id:item.id,icon: getLostIconFromId(item.type) }));
     }
-    lost_prop_control.addToLayer(new AdvancedMarker(L.marker([message.latitude, message.longitude], { icon: lostPropIcon })));
   })
 
   konzatu_sub.subscribe(function (message) {
+    var state;
     if (message == null) {
       return;
     }
     if (message.persons == null) {
       return;
     }
+    if(message.persons.state == null){
+      state = message.state;
+    }
     konzatu_control.deleteTimeOverMarker();
-    konzatu_control.setAllOpacity(0.5);
+    konzatu_control.setAllOpacity(markeropaciacity);
     var persons = message.persons;
     for (var i = 0; i < persons.length; i++) {
-      var icon = createKonzatuIcon(persons[i].velocity + 1);
+      var icon = createKonzatuIcon(persons[i].velocity + 1,state);
       var rotAngle = orientationToAngle(persons[i].orientation);
       konzatu_control.addToLayer(new AdvancedMarker(L.marker([persons[i].latitude, persons[i].longitude], { icon: icon }), persons[i].id, rotAngle));
     }
@@ -413,13 +414,16 @@ window.onload = (event) => {
     });
   })
 
-  estimated_pose_sub.subscribe(function(message){
+  estimated_pose_sub.subscribe(function (message) {
     if (odomTimer != null) {
       clearInterval(odomTimer);
       odomNotSentAlarm.setAlarmLevel(AlarmLevel.LOW);
     }
     odomTimer = odomNotSentAlarm.setTimer(AlarmLevel.HIGH);
   })
+
+
+  lost_prop_control.showPopup([34.64878303599981,135.38642048835757]);
 };
 
 
@@ -468,13 +472,13 @@ function showQRDialog(e) {
   console.log(path);
   swal.fire({
     title: '中之島チャレンジ<br>ホームページ',
-    imageUrl:path,
+    imageUrl: path,
     imageWidth: 400,
     imageHeight: 400,
     imageAlt: 'Custom image',
   })
 }
 
-function getFilePath(filename){
-  return location.href.replace(location.pathname,"") + filename;
+function getFilePath(filename) {
+  return location.href.replace(location.pathname, "") + filename;
 }

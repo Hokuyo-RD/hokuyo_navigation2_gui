@@ -21,12 +21,12 @@
 #include <expo_fix_msgs/AreaFix.h>
 #include <expo_fix_msgs/PersonFix.h>
 #include <expo_fix_msgs/FixWithOrientation.h>
-#include <expo_crowd_msgs/Crowd.h>
-#include <expo_crowd_msgs/CrowdFix.h>
+#include <expo_crowd_msgs/CrowdEX.h>
+#include <expo_crowd_msgs/CrowdFixEX.h>
 
 
 #include <lidar_clustering/Person.h>
-#include <lidar_clustering/Crowd.h>
+#include <lidar_clustering/CrowdEX.h>
 
 #include <proj.h>
 #include "expo_fix2xyz/fix_xyz_transform.h"
@@ -90,7 +90,7 @@ class XYZLLATransNode {
 
   public:
     // コールバック関数.
-    void crowd_callback(const lidar_clustering::Crowd &msg);
+    void crowd_callback(const lidar_clustering::CrowdEX &msg);
     void odom_callback1(const nav_msgs::Odometry &msg);
     void pose_callback2(const geometry_msgs::PoseStamped &msg);
     void posecov_callback3(const geometry_msgs::PoseWithCovarianceStamped &msg);

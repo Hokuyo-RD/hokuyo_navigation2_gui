@@ -3,20 +3,20 @@ import rospy
 import random
 import math
 
-from expo_crowd_msgs.msg import Crowd
-from expo_crowd_msgs.msg import PersonArrow
+from lidar_clustering.msg import CrowdEX
+from lidar_clustering.msg import PersonArrowEX
 
 
 def publisher():
     rospy.init_node('crowd_sample_publisher', anonymous=True)
-    pub = rospy.Publisher('crowd', Crowd, queue_size=10)
+    pub = rospy.Publisher('crowd', CrowdEX, queue_size=10)
     rate = rospy.Rate(1)
     person_id = 0
 
     while not rospy.is_shutdown():
         # ランダムに1～30人のデータをパブリッシュ
         person_size = random.randint(1, 30)
-        crowd_msg = Crowd()
+        crowd_msg = CrowdEX()
         crowd_msg.header.stamp = rospy.Time.now()
         crowd_msg.header.frame_id = "map"
 
@@ -25,12 +25,13 @@ def publisher():
             # 1000人ごとにidをリセット.
             person_id = person_id % 1000
 
-            person_msg = PersonArrow()
+            person_msg = PersonArrowEX()
             person_msg.id = person_id
             person_msg.position.x = random.uniform(-100.0, 100.0)
             person_msg.position.y = random.uniform(-100.0, 100.0)
             person_msg.position.z = random.uniform(-100.0, 100.0)
             person_msg.velocity = random.randint(0, 2)
+            person_msg.state = random.randint(0,1)
 
             theta = random.uniform(0,math.pi)
             person_msg.orientation.x = 0

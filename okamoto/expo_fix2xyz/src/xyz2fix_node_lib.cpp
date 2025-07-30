@@ -4,8 +4,8 @@
 
 
 // 混雑度のコールバック.
-void XYZLLATransNode::crowd_callback(const lidar_clustering::Crowd &msg){
-    expo_crowd_msgs::CrowdFix ret_msg;
+void XYZLLATransNode::crowd_callback(const lidar_clustering::CrowdEX &msg){
+    expo_crowd_msgs::CrowdFixEX ret_msg;
     ret_msg.header = msg.header;
     ret_msg.header.frame_id = "";
 
@@ -42,7 +42,7 @@ void XYZLLATransNode::crowd_callback(const lidar_clustering::Crowd &msg){
         pose.orientation(3) = pose_on_map.orientation.w;
         lla_with_ori = l_u_transformer.get_latlonalt_from_xyz(pose);
 
-        expo_crowd_msgs::PersonArrowFix person_fix;
+        expo_crowd_msgs::PersonArrowFixEX person_fix;
         person_fix.id = person.id;
         person_fix.latitude = lla_with_ori.lla.latitude;
         person_fix.longitude = lla_with_ori.lla.longitude;
@@ -55,6 +55,7 @@ void XYZLLATransNode::crowd_callback(const lidar_clustering::Crowd &msg){
         person_fix.orientation.w = lla_with_ori.orientation(3);
 
         person_fix.velocity = person.velocity;
+        person_fix.state = person.state;
         ret_msg.persons.push_back(person_fix);
     }
 
@@ -446,7 +447,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     maigo_sub = nh.subscribe(sub_maigo_topic, 10, &XYZLLATransNode::maigo_callback, this);
     otosimono_sub = nh.subscribe(sub_otosimono_topic, 10, &XYZLLATransNode::otosimono_callback, this);
 
-    crowd_fix_pub = nh.advertise<expo_crowd_msgs::CrowdFix>(pub_crowd_fix_topic, 10);
+    crowd_fix_pub = nh.advertise<expo_crowd_msgs::CrowdFixEX>(pub_crowd_fix_topic, 10);
     fix_pub1 = nh.advertise<expo_fix_msgs::FixWithOrientation>(pub_fix_topic1, 10);
     fix_pub2 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic2, 10);
     fix_pub3 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic3, 10);

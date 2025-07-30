@@ -361,7 +361,7 @@ window.onload = (event) => {
     }
     for(var item of message.lostitem){
 
-      lost_prop_control.addMarker(item.type,new AdvancedMarker(L.marker([item.latitude,item.longitude],),{ id:item.id,icon: getLostIconFromId(item.type) }));
+        lost_prop_control.addMarker(item.type,new AdvancedMarker(L.marker([item.latitude,item.longitude],{icon: getLostIconFromId(item.type) }), {id:item.id}));
     }
   })
 

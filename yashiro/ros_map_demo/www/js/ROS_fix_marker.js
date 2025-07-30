@@ -251,6 +251,7 @@ window.onload = (event) => {
     url: 'ws://localhost:9090'
     //url: 'ws://100.108.154.115:9090'
     //url:'ws://0.0.0.0:9090'
+    //url: 'ws://' + location.hostname + ':9090'
   });
 
   ros.on('connection', function () {
@@ -294,7 +295,7 @@ window.onload = (event) => {
   let otosimono_sub = new ROSLIB.Topic({
     ros: ros,
     name: '/lost_fix',
-    messageType: 'expo_crowd_msgs/Losts'
+    messageType: 'expo_crowd_msgs/LostsFix'
   });
 
   let konzatu_sub = new ROSLIB.Topic({

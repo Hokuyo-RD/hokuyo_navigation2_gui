@@ -56,7 +56,7 @@ void XYZLLATransNode::losts_callback(const expo_crowd_msgs::Losts &msg){
 }
 
 // 混雑度のコールバック.
-void XYZLLATransNode::crowd_callback(const lidar_clustering::CrowdEX &msg){
+void XYZLLATransNode::crowd_callback(const expo::CrowdEX &msg){
     expo_crowd_msgs::CrowdFixEX ret_msg;
     ret_msg.header = msg.header;
     ret_msg.header.frame_id = "";

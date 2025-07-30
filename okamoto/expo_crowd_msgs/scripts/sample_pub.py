@@ -3,8 +3,8 @@ import rospy
 import random
 import math
 
-from lidar_clustering.msg import CrowdEX
-from lidar_clustering.msg import PersonArrowEX
+from expo.msg import CrowdEX
+from expo.msg import PersonArrowEX
 from expo_crowd_msgs.msg import Losts
 from expo_crowd_msgs.msg import LostItem
 

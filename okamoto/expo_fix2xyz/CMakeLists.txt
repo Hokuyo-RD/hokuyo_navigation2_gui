@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   expo_msgs
   expo_fix_msgs
   expo_crowd_msgs
-  lidar_clustering
+  expo
 )
 
 find_package (Eigen3 REQUIRED)

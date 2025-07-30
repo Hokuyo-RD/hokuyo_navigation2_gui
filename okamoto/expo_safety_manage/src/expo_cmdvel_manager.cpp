@@ -24,12 +24,13 @@ class CmdVelManager{
         bool _uam1_msg_received;
         bool _uam2_msg_received;
         bool _stop_manage;
-        bool _stop_cmdvel;
+        bool _use_warning_area;
         std_msgs::Int32 alarm;
         int uam1_alarm;
         int uam2_alarm;
         double interval_time;
         double wait_time;
+        double warning_velocity_coeff;
         ros::Time last_alert_time;
         geometry_msgs::Twist twist_zero;
 
@@ -63,13 +64,14 @@ CmdVelManager::CmdVelManager()
     std::string approach_alarm_topic = "/approach_alarm";
     interval_time = 0.5;
     wait_time = 3.0;
+    warning_velocity_coeff = 0.5;
     
     _uam1_is_safe = false;
     _uam2_is_safe = false;
     _uam1_msg_received = false;
     _uam2_msg_received = false;
     _stop_manage = false;
-    _stop_cmdvel = false;
+    _use_warning_area = true;
     
     _nhPrivate.getParam("cmd_in_topic",cmd_in_topic);
     _nhPrivate.getParam("cmd_out_topic", cmd_out_topic);
@@ -79,6 +81,9 @@ CmdVelManager::CmdVelManager()
     _nhPrivate.getParam("stop_manage", _stop_manage);
     _nhPrivate.getParam("interval_time", interval_time);
     _nhPrivate.getParam("wait_time", wait_time);
+    _nhPrivate.getParam("warning_velocity_coeff", warning_velocity_coeff);
+    _nhPrivate.getParam("use_warning_area", _use_warning_area);
+
 
     _sub_cmd = _nh.subscribe(cmd_in_topic, 10, &CmdVelManager::callbackCMD, this);
     _sub_uam1 = _nh.subscribe(uam1_topic, 10, &CmdVelManager::callbackUAM1, this);
@@ -92,17 +97,26 @@ CmdVelManager::CmdVelManager()
 
 void CmdVelManager::callbackCMD(const geometry_msgs::Twist& msgs)
 {
-    geometry_msgs::Twist pub_msg;
-
-    
     if(_stop_manage){
         _pub_cmd.publish(msgs);
     }
     else{
         bool is_danger = (uam1_alarm == 2 || uam2_alarm == 2);
+        bool is_warning = !is_danger && (uam1_alarm == 1 || uam2_alarm == 1);
         bool pass_time_not_enough = (ros::Time::now() - last_alert_time).toSec() < wait_time;
-        if( is_danger || pass_time_not_enough || _stop_cmdvel ){
+        if( is_danger || pass_time_not_enough ){
             _pub_cmd.publish(twist_zero);
+        }
+        else if(is_warning && _use_warning_area){
+            geometry_msgs::Twist pub_msg;
+
+            pub_msg.linear.x = msgs.linear.x * warning_velocity_coeff;
+            pub_msg.linear.y = msgs.linear.y * warning_velocity_coeff;
+            pub_msg.linear.z = msgs.linear.z * warning_velocity_coeff;
+            pub_msg.angular.x = msgs.angular.x * warning_velocity_coeff;
+            pub_msg.angular.y = msgs.angular.y * warning_velocity_coeff;
+            pub_msg.angular.z = msgs.angular.z * warning_velocity_coeff;
+            _pub_cmd.publish(pub_msg);
         }
         else{
             _pub_cmd.publish(msgs);

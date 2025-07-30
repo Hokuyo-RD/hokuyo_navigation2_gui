@@ -3,6 +3,58 @@
 
 
 
+// 落とし物のコールバック.
+
+void XYZLLATransNode::losts_callback(const expo_crowd_msgs::Losts &msg){
+    expo_crowd_msgs::LostsFix ret_msg;
+    ret_msg.header = msg.header;
+    ret_msg.num = msg.num;
+    ret_msg.header.frame_id = "";
+
+    // フレーム抽出.
+    std::string crowd_frame = msg.header.frame_id;
+    geometry_msgs::TransformStamped transformStamped;
+    try{
+        transformStamped = tfBuffer.lookupTransform(map_frame, crowd_frame, ros::Time(0));
+    }
+    catch (tf2::TransformException& ex){
+        ROS_WARN("%s", ex.what());
+        return;
+    }
+
+    // 各要素を変換する.
+    for (const auto& lostitem : msg.lostitem) {
+
+        // フレーム変換.
+        geometry_msgs::Point pose_on_map;
+        geometry_msgs::Point pose_on_lostsframe = lostitem.position;
+        tf2::doTransform(pose_on_lostsframe, pose_on_map, transformStamped);
+
+        // 緯度経度変換.
+        Eigen::Vector3d pose;
+        fix_xyz_trans::LatLonAlt lla;
+        pose(0) = pose_on_map.x;
+        pose(1) = pose_on_map.y;
+        pose(2) = pose_on_map.z;
+        lla = l_u_transformer.get_latlonalt_from_xyz(pose);
+
+        expo_crowd_msgs::LostItemFix lostitem_fix;
+        lostitem_fix.id = lostitem.id;
+        lostitem_fix.latitude = lla.latitude;
+        lostitem_fix.longitude = lla.longitude;
+        lostitem_fix.altitude = lla.altitude;
+
+        lostitem_fix.size = lostitem.size;
+        lostitem_fix.type = lostitem.type;
+        ret_msg.lostitem.push_back(lostitem_fix);
+    }
+
+    losts_fix_pub.publish(ret_msg);
+
+    debug_msg = "published losts_fix";
+    DEBUG_PRINT(debug_msg);
+}
+
 // 混雑度のコールバック.
 void XYZLLATransNode::crowd_callback(const lidar_clustering::CrowdEX &msg){
     expo_crowd_msgs::CrowdFixEX ret_msg;
@@ -351,6 +403,7 @@ void XYZLLATransNode::otosimono_callback(const geometry_msgs::Point &msg){
 XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
 
     // 各rosparamのデフォルト値.
+    sub_losts_topic = "losts";
     sub_crowd_topic = "crowd";
     sub_odom_topic1 = "odom1";
     sub_pose_topic2 = "pose2";
@@ -360,6 +413,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     sub_maigo_topic = "maigo";
     sub_otosimono_topic = "otosimono";
 
+    pub_losts_fix_topic = "lost_fix";
     pub_crowd_fix_topic = "crowd_fix";
     pub_fix_topic1 = "fix/from_odom1";
     pub_fix_topic2 = "fix/from_pose2";
@@ -377,6 +431,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     
     
     // rosparamの取得.
+    pnh.getParam("sub_losts_topic", sub_losts_topic);
     pnh.getParam("sub_crowd_topic", sub_crowd_topic);
     pnh.getParam("sub_odom_topic1", sub_odom_topic1);
     pnh.getParam("sub_pose_topic2", sub_pose_topic2);
@@ -386,6 +441,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     pnh.getParam("sub_maigo_topic", sub_maigo_topic);
     pnh.getParam("sub_otosimono_topic", sub_otosimono_topic);
     
+    pnh.getParam("pub_losts_fix_topic", pub_losts_fix_topic);
     pnh.getParam("pub_crowd_fix_topic", pub_crowd_fix_topic);
     pnh.getParam("pub_fix_topic1", pub_fix_topic1);
     pnh.getParam("pub_fix_topic2", pub_fix_topic2);
@@ -438,6 +494,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     l_u_transformer.set_origin(origin_latlonalt_, origin_quat_);
 
     // publisher,subscriberの設定.
+    losts_sub = nh.subscribe(sub_losts_topic, 10, &XYZLLATransNode::losts_callback, this);
     crowd_sub = nh.subscribe(sub_crowd_topic, 10, &XYZLLATransNode::crowd_callback, this);
     odom_sub1 = nh.subscribe(sub_odom_topic1, 10, &XYZLLATransNode::odom_callback1, this);
     pose_sub2 = nh.subscribe(sub_pose_topic2, 10, &XYZLLATransNode::pose_callback2, this);
@@ -447,6 +504,7 @@ XYZLLATransNode::XYZLLATransNode( ) : nh(), pnh("~"), tfListener(tfBuffer) {
     maigo_sub = nh.subscribe(sub_maigo_topic, 10, &XYZLLATransNode::maigo_callback, this);
     otosimono_sub = nh.subscribe(sub_otosimono_topic, 10, &XYZLLATransNode::otosimono_callback, this);
 
+    losts_fix_pub = nh.advertise<expo_crowd_msgs::LostsFix>(pub_losts_fix_topic, 10);
     crowd_fix_pub = nh.advertise<expo_crowd_msgs::CrowdFixEX>(pub_crowd_fix_topic, 10);
     fix_pub1 = nh.advertise<expo_fix_msgs::FixWithOrientation>(pub_fix_topic1, 10);
     fix_pub2 = nh.advertise<sensor_msgs::NavSatFix>(pub_fix_topic2, 10);

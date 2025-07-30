@@ -5,20 +5,30 @@ import math
 
 from lidar_clustering.msg import CrowdEX
 from lidar_clustering.msg import PersonArrowEX
+from expo_crowd_msgs.msg import Losts
+from expo_crowd_msgs.msg import LostItem
 
 
 def publisher():
     rospy.init_node('crowd_sample_publisher', anonymous=True)
     pub = rospy.Publisher('crowd', CrowdEX, queue_size=10)
+    losts_pub = rospy.Publisher('losts', Losts, queue_size=10)
     rate = rospy.Rate(1)
     person_id = 0
+    losts_id = 0
 
     while not rospy.is_shutdown():
-        # ランダムに1～30人のデータをパブリッシュ
+        # ランダムに1～30人の人と、1~5個の落とし物データをパブリッシュ
         person_size = random.randint(1, 30)
         crowd_msg = CrowdEX()
         crowd_msg.header.stamp = rospy.Time.now()
         crowd_msg.header.frame_id = "map"
+
+        losts_size = random.randint(1,5)
+        losts_msg = Losts()
+        losts_msg.num = losts_size
+        losts_msg.header.stamp = rospy.Time.now()
+        losts_msg.header.frame_id = "map"
 
         for i in range(person_size):
             
@@ -41,10 +51,27 @@ def publisher():
 
             crowd_msg.persons.append(person_msg)
             person_id += 1
+
+        for i in range(losts_size):
+            # 10個ごとにidをリセット.
+            losts_id = losts_id % 3
+
+            lostitem_msg = LostItem()
+            lostitem_msg.id = losts_id
+            lostitem_msg.position.x = random.uniform(-10.0, 10.0)
+            lostitem_msg.position.y = random.uniform(-10.0, 10.0)
+            lostitem_msg.position.z = random.uniform(-10.0, 10.0)
+            lostitem_msg.size = random.randint(0,2)
+            lostitem_msg.type = random.randint(0,2)
+
+            losts_msg.lostitem.append(lostitem_msg)
+            losts_id += 1
+
         rate.sleep()
 
         # パブリッシュ
         pub.publish(crowd_msg)
+        losts_pub.publish(losts_msg)
         print("publish!")
 
 

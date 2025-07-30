@@ -300,7 +300,7 @@ window.onload = (event) => {
   let konzatu_sub = new ROSLIB.Topic({
     ros: ros,
     name: '/crowd_fix',
-    messageType: 'expo_crowd_msgs/CrowdFix'
+    messageType: 'expo_crowd_msgs/CrowdFixEX'
   })
 
   let approach_alarm_sub = new ROSLIB.Topic({
@@ -365,21 +365,23 @@ window.onload = (event) => {
   })
 
   konzatu_sub.subscribe(function (message) {
-    var state;
+    //var state;
     if (message == null) {
       return;
     }
     if (message.persons == null) {
       return;
     }
+    /*
     if(message.persons.state == null){
       state = message.state;
     }
+    */
     konzatu_control.deleteTimeOverMarker();
     konzatu_control.setAllOpacity(crowdOpacity);
     var persons = message.persons;
     for (var i = 0; i < persons.length; i++) {
-      var icon = createKonzatuIcon(persons[i].velocity + 1,state);
+      var icon = createKonzatuIcon(persons[i].velocity + 1, persons[i].state);
       var rotAngle = orientationToAngle(persons[i].orientation);
       konzatu_control.addToLayer(new AdvancedMarker(L.marker([persons[i].latitude, persons[i].longitude], { icon: icon }), persons[i].id, rotAngle));
     }

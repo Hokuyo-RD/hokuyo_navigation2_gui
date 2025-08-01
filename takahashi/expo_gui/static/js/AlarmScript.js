@@ -24,7 +24,7 @@ class AlarmAdmin {
         if (level <= 2 || 0 <= level) {
             this.alarmLevel = level;
             this.setBackgroundColor();
-            this.popDangerAlert();
+            //this.popDangerAlert();
         }
     }
 

@@ -15,7 +15,7 @@ class LostPropAdmin {
     showPopup = function (latlng) {
         if(this.isEmpty()){
         map.closePopup();
-        popup = null;
+        this.popup = null;
             return;
         }
         if(this.count < popupDelay){
@@ -29,7 +29,7 @@ class LostPropAdmin {
         this.foundProps.forEach(
             prop => {
                 if(prop.layer.markers.length != 0){
-            images += `<img src="Image/banpaku_lost${prop.id}.png" width = "70" alt = "Image"}">`;
+            images += `<img src="static/banpaku_lost${prop.id}.png" width = "70" alt = "Image"}">`;
         }
         });
         if(this.popup == null){this.popup = L.popup({ offset:L.point(0,-30), closeButton: false, autoClose: false, closeOnClick: false }).setLatLng(latlng).setContent(`<button class='popup-content' id ='popup'> 落とし物を発見しました！</br></br> ${images}</div>`);
@@ -105,9 +105,9 @@ class ImageSelector {
     lostProps;
     constructor(containerId,props) {
         this.container = document.getElementById(containerId);
-        this.images = [{ src: "Image/banpaku_lost0.png", id: 0 },
-        { src: "Image/banpaku_lost1.png", id: 1 },
-        { src: "Image/banpaku_lost2.png", id: 2 }];
+        this.images = [{ src: "static/banpaku_lost0.png", id: 0 },
+        { src: "static/banpaku_lost1.png", id: 1 },
+        { src: "static/banpaku_lost2.png", id: 2 }];
         this.imageElements = {};
         this.render();
         this.lostProps = props;

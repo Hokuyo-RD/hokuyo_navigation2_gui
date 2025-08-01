@@ -15,7 +15,7 @@ class LostPropAdmin {
     showPopup = function (latlng) {
         if(this.isEmpty()){
         map.closePopup();
-        popup = null;
+        this.popup = null;
             return;
         }
         if(this.count < popupDelay){

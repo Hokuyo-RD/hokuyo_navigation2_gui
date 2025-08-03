@@ -318,7 +318,7 @@ window.onload = (event) => {
 
   let sensors_status_sub = new ROSLIB.Topic({
     ros: ros,
-    name: '/sensors_status',
+    name: '/sensors_state',
     messageType: 'expo_safety_manage/SensorState'
   })
 

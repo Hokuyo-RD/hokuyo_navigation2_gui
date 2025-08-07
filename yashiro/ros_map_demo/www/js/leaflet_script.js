@@ -169,7 +169,7 @@ function createKonzatuIcon(length,state) {
 
 ///脈々の落とし物アイコンを取得する（id =0,1,2,）
 function getLostIconFromId(id){
-  var ratio = id*4
+  var ratio = (2-id)*4
   return L.icon({
     iconUrl: `Image/banpaku_lost${id}.png`,
     //iconRetinaUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiKRNwRm8OhKM-Td-r63pdwv32DJFhDJrDjpYIOO3XpAQJLrkaHtUus1wKaYmFaHxSmgt9Xwg257gpRfymAtHPGhnrZkUdl7bmvcKGsYpd69qjzE08CQhLn2B-IoHLQqDX4dKfqg7uYJzkx/s800/computer_cursor_arrow_black.png",

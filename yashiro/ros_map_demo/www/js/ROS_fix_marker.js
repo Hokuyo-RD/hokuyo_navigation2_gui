@@ -19,13 +19,13 @@ class LayerControlAdmin {
 
 
   setAllOpacity = function (opacity) {
-    for (var i = 0;i < this.markers.length;i++) {
+    for (var i = 0; i < this.markers.length; i++) {
       this.markers[i].renewCount += 1;
-      if(this.markers[i].renewCount > maxMarkerRenewCount){
-      const currentOpacity = this.markers[i].opacity == undefined ? 1.0 : this.markers[i].opacity;
-      this.markers[i].setOpacity(currentOpacity * opacity);
+      if (this.markers[i].renewCount > maxMarkerRenewCount) {
+        const currentOpacity = this.markers[i].opacity == undefined ? 1.0 : this.markers[i].opacity;
+        this.markers[i].setOpacity(currentOpacity * opacity);
       }
-     }
+    }
   }
 
   addToLayer = function (marker) {
@@ -359,9 +359,11 @@ window.onload = (event) => {
     if (message == null) {
       return;
     }
-    for(var item of message.lostitem){
-
-        lost_prop_control.addMarker(item.type,new AdvancedMarker(L.marker([item.latitude,item.longitude],{icon: getLostIconFromId(item.type) }), {id:item.id}));
+    for (var item of message.lostitem) {
+      if ([1, 2, 3].includes(item.type)) {
+        var type = item.type - 1;
+        lost_prop_control.addMarker(type, new AdvancedMarker(L.marker([item.latitude, item.longitude], { icon: getLostIconFromId(type) }), { id: item.id }));
+      }
     }
   })
 
@@ -426,7 +428,7 @@ window.onload = (event) => {
   })
 
 
-  lost_prop_control.showPopup([34.64878303599981,135.38642048835757]);
+  lost_prop_control.showPopup([34.64878303599981, 135.38642048835757]);
 };
 
 

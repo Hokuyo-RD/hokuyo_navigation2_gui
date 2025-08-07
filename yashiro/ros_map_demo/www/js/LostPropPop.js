@@ -4,63 +4,67 @@ const popupDelay = 10;
 class LostPropAdmin {
     constructor() {
         this.foundProps = [
-            {layer:new LayerControlAdmin("myakuMyaku1",true,[]),id:0},
-            {layer:new LayerControlAdmin("myakuMyaku2",true,[]),id:1},
-            {layer:new LayerControlAdmin("myakuMyaku3",true,[]),id:2}];
+            { layer: new LayerControlAdmin("myakuMyaku1", true, []), id: 0 },
+            { layer: new LayerControlAdmin("myakuMyaku2", true, []), id: 1 },
+            { layer: new LayerControlAdmin("myakuMyaku3", true, []), id: 2 }];
     };
     foundProps;
     count = 0;
     popup;
     ///落とし物のポップアップを表示
     showPopup = function (latlng) {
-        if(this.isEmpty()){
-        map.closePopup();
-        this.popup = null;
+        if (this.isEmpty()) {
+            map.closePopup();
+            this.popup = null;
             return;
         }
-        if(this.count < popupDelay){
+        if (this.count < popupDelay) {
             this.count++;
             return
         }
-        else{
-            this.count=0;
+        else {
+            this.count = 0;
         }
         var images = '';
         this.foundProps.forEach(
             prop => {
-                if(prop.layer.markers.length != 0){
-            images += `<img src="Image/banpaku_lost${prop.id}.png" width = "70" alt = "Image"}">`;
-        }
-        });
-        if(this.popup == null){this.popup = L.popup({ offset:L.point(0,-30), closeButton: false, autoClose: false, closeOnClick: false }).setLatLng(latlng).setContent(`<button class='popup-content' id ='popup'> 落とし物を発見しました！</br></br> ${images}</div>`);
-        var props = this.foundProps;
-        //クリックイベントを設定
-    map.once('popupopen', function () {
-        const btn = document.getElementById('popup');
-        if(btn){
-        btn.addEventListener('click',{props:props, handleEvent:showLostDialog})}
-    });
+                if (prop.layer.markers.length != 0) {
+                    images += `<img src="Image/banpaku_lost${prop.id}.png" width = "70" alt = "Image"}">`;
+                }
+            });
+        if (this.popup == null) {
+            this.popup = L.popup({ offset: L.point(0, -30), closeButton: false, autoClose: false, closeOnClick: false }).setLatLng(latlng).setContent(`<button class='popup-content' id ='popup'> 落とし物を発見しました！</br></br> ${images}</div>`);
+            var props = this.foundProps;
+            //クリックイベントを設定
+            map.once('popupopen', function () {
+                const btn = document.getElementById('popup');
+                if (btn) {
+                    btn.addEventListener('click', { props: props, handleEvent: showLostDialog })
+                }
+            });
 
-    this.popup.openOn(map);}
-    else{
-        var props = this.foundProps;
-        this.popup.setLatLng(latlng);
-        this.popup.setContent(`<button class='popup-content' id ='popup'> 落とし物を発見しました！</br></br> ${images}</div>`);
-        const btn = document.getElementById('popup');
-        if(btn){
-        btn.addEventListener('click',{props:props, handleEvent:showLostDialog})}
+            this.popup.openOn(map);
+        }
+        else {
+            var props = this.foundProps;
+            this.popup.setLatLng(latlng);
+            this.popup.setContent(`<button class='popup-content' id ='popup'> 落とし物を発見しました！</br></br> ${images}</div>`);
+            const btn = document.getElementById('popup');
+            if (btn) {
+                btn.addEventListener('click', { props: props, handleEvent: showLostDialog })
+            }
+        }
     }
-    }
-    visibleChanged(checked){
-        for(var prop of this.foundProps){
+    visibleChanged(checked) {
+        for (var prop of this.foundProps) {
             prop.layer.visibleChanged(checked);
         }
     }
 
     //落とし物が空ならtrueを返す
-    isEmpty =function (){
-        for(var prop of this.foundProps){
-            if(!prop.layer.markers.length != true){
+    isEmpty = function () {
+        for (var prop of this.foundProps) {
+            if (!prop.layer.markers.length != true) {
                 return false;
             }
         }
@@ -68,17 +72,17 @@ class LostPropAdmin {
     }
 
     //すべてのマーカーを削除
-    deleteAllMarker = function(){
-        for(var prop in this.foundProps){
+    deleteAllMarker = function () {
+        for (var prop in this.foundProps) {
             prop.layer.deleteAllMarker();
         }
     }
     //マーカーを追加
-    addMarker = function(id,marker){
-        if(id<0||id>this.foundProps.length){
+    addMarker = function (id, marker) {
+        if (id < 0 || id > this.foundProps.length) {
             return;
         }
-        this.foundProps[id].layer.addToLayer(marker);
+        if (this.foundProps[id].layer.markers.length == 0) { this.foundProps[id].layer.addToLayer(marker); }
     }
 }
 
@@ -93,17 +97,18 @@ showLostDialog = function (e) {
         })
     }
     // インスタンス化してUIを初期化
-    const selector = new ImageSelector("gallery",this.props);
+    const selector = new ImageSelector("gallery", this.props);
     //　選択された画像だけ選択状態に
     this.props.forEach(prop => {
-        if(prop.layer.markers.length != 0){
-        selector.setSelected(prop.id);}
+        if (prop.layer.markers.length != 0) {
+            selector.setSelected(prop.id);
+        }
     });
 }
 
 class ImageSelector {
     lostProps;
-    constructor(containerId,props) {
+    constructor(containerId, props) {
         this.container = document.getElementById(containerId);
         this.images = [{ src: "Image/banpaku_lost0.png", id: 0 },
         { src: "Image/banpaku_lost1.png", id: 1 },
@@ -114,32 +119,33 @@ class ImageSelector {
 
         //　選択された画像だけ選択状態に
         this.lostProps.forEach(prop => {
-        if(prop.layer.markers.length != 0){
-        this.setSelected(prop.id);}
-    });
+            if (prop.layer.markers.length != 0) {
+                this.setSelected(prop.id);
+            }
+        });
     }
     render() {
         this.images.forEach(
             image => {
-            const card = document.createElement("div");
-            card.className = "image-card";
-            const img = document.createElement("img");
-            img.src = image.src;
-            img.alt = `Image ${image.id}`;
-            img.id = `image-${image.id}`;
-            this.imageElements[image.id] = img;
-            const button = document.createElement("button");
-            button.innerText = `回収しました`;
-            this.setUnselected(image.id);
-            button.onclick = () => {
+                const card = document.createElement("div");
+                card.className = "image-card";
+                const img = document.createElement("img");
+                img.src = image.src;
+                img.alt = `Image ${image.id}`;
+                img.id = `image-${image.id}`;
+                this.imageElements[image.id] = img;
+                const button = document.createElement("button");
+                button.innerText = `回収しました`;
                 this.setUnselected(image.id);
-                this.lostProps[image.id].layer.deleteAllMarker();
-            };
-            card.classList.add("gallery");
-            card.appendChild(img);
-            card.appendChild(button);
-            this.container.appendChild(card);
-        });
+                button.onclick = () => {
+                    this.setUnselected(image.id);
+                    this.lostProps[image.id].layer.deleteAllMarker();
+                };
+                card.classList.add("gallery");
+                card.appendChild(img);
+                card.appendChild(button);
+                this.container.appendChild(card);
+            });
     }       // 非選択状態（白黒）
     setUnselected(id) {
         const img = this.imageElements[id];

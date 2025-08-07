@@ -12,7 +12,7 @@ void XYZLLATransNode::losts_callback(const expo_crowd_msgs::Losts &msg){
     ret_msg.header.frame_id = "";
 
     // フレーム抽出.
-    std::string crowd_frame = msg.header.frame_id;
+    std::string crowd_frame = "ylm";
     geometry_msgs::TransformStamped transformStamped;
     try{
         transformStamped = tfBuffer.lookupTransform(map_frame, crowd_frame, ros::Time(0));

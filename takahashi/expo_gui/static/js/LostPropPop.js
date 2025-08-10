@@ -1,5 +1,14 @@
 //ポップアップをodomが送られてくるたびに更新すると描画がカクつくので、表示に間隔を設ける。
 const popupDelay = 10;
+const audio_array = [
+    new Audio("static/Audio/L.wav"),     //001 -1
+    new Audio("static/Audio/M.wav"),     //010 -1
+    new Audio("static/Audio/LM.wav"),    //011 -1
+    new Audio("static/Audio/S.wav"),     //100 -1
+    new Audio("static/Audio/LS.wav"),    //101 -1
+    new Audio("static/Audio/MS.wav"),    //110 -1
+    new Audio("static/Audio/LMS.wav")    //111 -1
+];
 
 class LostPropAdmin {
     constructor() {
@@ -26,12 +35,18 @@ class LostPropAdmin {
             this.count = 0;
         }
         var images = '';
+        var audio_id = 0;
         this.foundProps.forEach(
             prop => {
                 if (prop.layer.markers.length != 0) {
                     images += `<img src="static/banpaku_lost${prop.id}.png" width = "70" alt = "Image"}">`;
+                    audio_id += 2 ** prop.id;
                 }
             });
+        if(audio_id != 0){
+            audio_array[audio_id -1].play();
+        }
+    
         if (this.popup == null) {
             this.popup = L.popup({ offset: L.point(0, -30), closeButton: false, autoClose: false, closeOnClick: false }).setLatLng(latlng).setContent(`<button class='popup-content' id ='popup'> 落とし物を発見しました！</br></br> ${images}</div>`);
             var props = this.foundProps;

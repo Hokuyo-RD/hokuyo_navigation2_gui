@@ -9,6 +9,7 @@ const audio_array = [
     new Audio("./Audio/MS.wav"),    //110 -1
     new Audio("./Audio/LMS.wav")    //111 -1
 ];
+var last_audio_id;
 
 class LostPropAdmin {
     constructor() {
@@ -43,7 +44,8 @@ class LostPropAdmin {
                     audio_id += 2 ** prop.id;
                 }
             });
-        if(audio_id != 0){
+        //if(audio_id != 0){
+        if(audio_id != last_audio_id){
             audio_array[audio_id -1].play();
         }
 

@@ -48,6 +48,7 @@ class LostPropAdmin {
         if(audio_id != last_audio_id){
             audio_array[audio_id -1].play();
         }
+        last_audio_id = audio_id;
 
         if (this.popup == null) {
             this.popup = L.popup({ offset: L.point(0, -30), closeButton: false, autoClose: false, closeOnClick: false }).setLatLng(latlng).setContent(`<button class='popup-content' id ='popup'> 落とし物を発見しました！</br></br> ${images}</div>`);

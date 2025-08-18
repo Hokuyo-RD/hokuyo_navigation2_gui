@@ -74,8 +74,8 @@
 
     <div class="widget title">
         <ul id="flex">
-            <li><img id="h_logo" src="{{ url_for('static',filename='h_logo.png')}}"> </li>
-            <li>　　　<img id="h_QR" src="{{ url_for('static',filename='nakanoshima_QR.png')}}" alt="QRコード"
+            <li><img id="h_logo" src="{{ url_for('static',filename='Image/h_logo.png')}}"> </li>
+            <li>　　　<img id="h_QR" src="{{ url_for('static',filename='Image/nakanoshima_QR.png')}}" alt="QRコード"
                     onclick="showQRDialog"> 　</li>
         </ul>
     </div>
@@ -88,7 +88,7 @@
                     <li><input type="checkbox" checked id="self_position" name="scales" checked
                             onclick="changeGPSMarkerVisible(this.checked)" />
                         <label for="self_position">
-                            <img src="{{ url_for('static',filename='jikoitiIcon.png')}}" alt="アイコン1">
+                            <img src="{{ url_for('static',filename='Image/jikoitiIcon.png')}}" alt="アイコン1">
                             　自己位置
                         </label>
                     </li>
@@ -96,7 +96,7 @@
                     <li><input type="checkbox" checked id="stray" name="scales" checked
                             onclick="stray_control.visibleChanged(this.checked)" />
                         <label for="stray">
-                            <img src="{{ url_for('static', filename='maigoIcon.png') }}" alt="アイコン2">
+                            <img src="{{ url_for('static', filename='Image/maigoIcon.png') }}" alt="アイコン2">
                             　迷子検知
                         </label>
                     </li>
@@ -104,7 +104,7 @@
                     <li><input type="checkbox" checked id="lost_property" name="scales" checked
                             onclick="lost_prop_control.visibleChanged(this.checked)" />
                         <label for="lost_property">
-                            <img src="{{ url_for('static', filename='otosimonoIcon.png') }}" alt="アイコン2">
+                            <img src="{{ url_for('static', filename='Image/otosimonoIcon.png') }}" alt="アイコン2">
                             　落とし物検知
                         </label>
                     </li>
@@ -112,7 +112,7 @@
                     <li><input type="checkbox" checked id="congestion_level" name="scales" checked
                             onclick="konzatu_control.visibleChanged(this.checked)" />
                         <label for="congestion_level">
-                            <img src="{{ url_for('static', filename='sankakuIcon.png') }}" alt="アイコン2">
+                            <img src="{{ url_for('static', filename='Image/sankakuIcon.png') }}" alt="アイコン2">
                             　混雑度検知
                         </label>
                     </li>

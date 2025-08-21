@@ -10,16 +10,18 @@ wizurg_setting
 
 {% block content %}
 <div class="index-page-container">
-    <button id="indoorRunBtn">屋内自律走行設定</button>
-    <button id="outdoorRunBtn">屋外自律走行設定</button>
+    <div id="status-display" style="font-size: 1.2em; margin-bottom: 20px;">現在のモード: 未設定</div>
+    
+    <button id="indoorRunBtn" class="mode-control-btn">屋内自律走行設定</button>
+    <button id="outdoorRunBtn" class="mode-control-btn">屋外自律走行設定</button>
     <form method="post" action="/wizurg" target="_blank">
-        <button type="submit" name="command" value="stop">ロボット停止</button>
+        <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
     </form>
     <form method="post" action="/wizurg" target="_blank">
-        <button type="submit" name="command" value="map">マップ</button>
+        <button type="submit" name="command" value="map" class="mode-control-btn">マップ</button>
     </form>
     <form method="post" action="/wizurg" target="_blank">
-        <button type="submit" name="command" value="demo">手動操作モード</button>
+        <button type="submit" name="command" value="demo" id="demo" class="mode-control-btn">手動操作モード</button>
     </form>
     <br>
     <a href="http://100.123.249.95:5000/" target="_blank" >自律走行経路確認Viewer</a>
@@ -51,12 +53,82 @@ wizurg_setting
     const outdoorPopupContent = document.getElementById('outdoorPopupContent');
     const outdoorRunContent = document.getElementById('outdoorRunContent');
     const closeOutdoorPopupBtn = document.getElementById('closeOutdoorPopupBtn');
+    // 修正箇所: 新しい要素とボタンのリストを取得
+    const statusDisplay = document.getElementById('status-display');
+    const modeControlBtns = document.querySelectorAll('.mode-control-btn');
+    const stopBtn = document.getElementById('stopBtn');
 
     reloadChannel.onmessage = function(event) {
         if (event.data && event.data.action === 'reload') {
             window.location.reload();
         }
     };
+
+    function updateButtonState(mode) {
+        if (mode === 'running' || mode === 'demo') {
+            modeControlBtns.forEach(btn => btn.disabled = true);
+            if (stopBtn) {
+                stopBtn.disabled = false;
+            }
+        } else {
+            modeControlBtns.forEach(btn => btn.disabled = false);
+            if (stopBtn) {
+                stopBtn.disabled = true; // 停止モードでない場合は停止ボタンを無効に
+            }
+        }
+    }
+
+    function updateStatusDisplay(mode) {
+        let message;
+        switch(mode) {
+            case 'running':
+                message = "自律走行モード";
+                break;
+            case 'demo':
+                message = "手動操作モード";
+                break;
+            case 'stopped':
+                message = "停止モード";
+                break;
+            default:
+                message = "未設定";
+        }
+        statusDisplay.textContent = `現在のモード: ${message}`;
+        updateButtonState(mode);
+    }
+    
+    // 修正箇所: サーバーから現在のモードを取得する関数
+    function refreshModeStatus() {
+        fetch('/get_mode')
+            .then(response => response.json())
+            .then(data => {
+                updateStatusDisplay(data.mode);
+            })
+            .catch(error => {
+                console.error('Error fetching mode:', error);
+                updateStatusDisplay('unknown');
+            });
+    }
+
+    // 修正箇所: ページ読み込み時と、5秒ごとにモードを更新
+    window.onload = function() {
+        refreshModeStatus(); // 初回読み込み時に実行
+        setInterval(refreshModeStatus, 5000); // 5秒ごとに実行
+    };
+
+    // 修正箇所: このイベントリスナーは不要になりました。サーバーの応答を待つことで常に正しい状態を取得します。
+    // document.querySelectorAll('form[action="/wizurg"]').forEach(form => {
+    //     form.addEventListener('submit', (event) => {
+    //         const command = event.target.querySelector('button').value;
+    //         if (command === 'execute_indoor_run' || command === 'execute_outdoor_run') {
+    //             updateStatusDisplay('running');
+    //         } else if (command === 'demo') {
+    //             updateStatusDisplay('demo');
+    //         } else if (command === 'stop') {
+    //             updateStatusDisplay('stopped');
+    //         }
+    //     });
+    // });
 
     indoorRunBtn.addEventListener('click', () => {
         fetch('/indoor_run_popup')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, render_template, redirect
+from flask import Flask, request, render_template, redirect, jsonify
 from flask_sockets import Sockets
 import asyncio
 import websockets
@@ -12,6 +12,9 @@ from geventwebsocket.websocket import WebSocket
 
 app = Flask(__name__)
 sockets = Sockets(app)
+
+# グローバル変数で現在のモードを管理
+current_mode = "stopped"
 
 ROSBRIDGE_URI = "ws://localhost:9090"
 
@@ -55,6 +58,12 @@ async def proxy(websocket):
 def websocket_handler(ws):
     asyncio.run(proxy(ws))
 
+# 新しいエンドポイントを追加
+@app.route('/get_mode')
+def get_mode():
+    global current_mode
+    return jsonify(mode=current_mode)
+
 @app.route('/indoor_run')
 def indoor_run():
     return render_template('indoor_run.html')
@@ -84,6 +93,7 @@ def program_executed():
 
 @app.route('/wizurg', methods=['GET', 'POST'])
 def trigger_script():
+    global current_mode
     if request.method == 'GET':
         return render_template('index.html')
     elif request.method == 'POST':
@@ -96,6 +106,7 @@ def trigger_script():
                 Thread(target=run_subprocess, args=([
                     "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_in.sh"
                 ],)).start()
+                current_mode = "running"
                 return redirect('/program_executed')
             else:
                 return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
@@ -107,6 +118,7 @@ def trigger_script():
                 Thread(target=run_subprocess, args=([
                     "/home/colcon_ws/src/hokuyo_navigation2/scripts/nav_single_map.sh"
                 ],)).start()
+                current_mode = "running"
                 return redirect('/program_executed')
             else:
                 return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
@@ -114,11 +126,13 @@ def trigger_script():
             Thread(target=run_subprocess, args=([
                 "/home/colcon_ws/src/hokuyo_navigation2/scripts/web_kill_all_rosnode.sh"
             ],)).start()
+            current_mode = "stopped"
             return render_template('stop.html')
         elif command == "demo":
             Thread(target=run_subprocess, args=([
                 "/home/colcon_ws/src/hokuyo_navigation2/scripts/get_data.sh"
             ],)).start()
+            current_mode = "demo"
             return redirect('/demo_executed')
         elif command == "map":
             return render_template('map.html')

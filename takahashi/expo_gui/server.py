@@ -105,19 +105,19 @@ def trigger_script():
             check3_outdoor = request.form.get("check3_outdoor")
             if check1_outdoor == 'checked' and check2_outdoor == 'checked' and check3_outdoor == 'checked':
                 Thread(target=run_subprocess, args=([
-                    "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_out.sh"
+                    "/home/colcon_ws/src/hokuyo_navigation2/scripts/nav_single_map.sh"
                 ],)).start()
                 return redirect('/program_executed')
             else:
                 return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
         elif command == "stop":
             Thread(target=run_subprocess, args=([
-                "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/web_kill_all_rosnode.sh"
+                "/home/colcon_ws/src/hokuyo_navigation2/scripts/web_kill_all_rosnode.sh"
             ],)).start()
             return render_template('stop.html')
         elif command == "demo":
             Thread(target=run_subprocess, args=([
-                "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_demo.sh"
+                "/home/colcon_ws/src/hokuyo_navigation2/scripts/get_data.sh"
             ],)).start()
             return redirect('/demo_executed')
         elif command == "map":

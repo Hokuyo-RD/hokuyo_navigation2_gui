@@ -2,9 +2,9 @@
     <p>屋内での自律移動の開始前に設定を確認してください。</p>
     <form id="indoorRunForm" method="post" action="/wizurg" target="_blank">
         <div id="checklist-container">
-            <div><input type="checkbox" id="check1" name="check1" value="checked"><label for="check1">自律走行の動作を確認しました。</label></div>
-            <div><input type="checkbox" id="check2" name="check2" value="checked"><label for="check2">周囲に人や障害物がないか確認しました。</label></div>
-            <div><input type="checkbox" id="check3" name="check3" value="checked"><label for="check3">危険物や段差がないか確認しました。</label></div>
+            <div><input type="checkbox" id="check1" name="check1" value="checked"><label for="check1">一時停止スイッチをオンしていること</label></div>
+            <div><input type="checkbox" id="check2" name="check2" value="checked"><label for="check2">オペレータが周りの安全を確認していること</label></div>
+            <div><input type="checkbox" id="check3" name="check3" value="checked"><label for="check3">フリースイッチをオフしていること</label></div>
         </div>
         <input type="hidden" name="command" value="execute_indoor_run">
         <div style="text-align: center; margin-top: 20px;">
@@ -18,7 +18,7 @@
         padding: 20px;
     }
     .indoor-run-popup-content div {
-        margin-bottom: 10px;
+        margin-bottom: 30px;
         text-align: left;
     }
     .indoor-run-popup-content label {

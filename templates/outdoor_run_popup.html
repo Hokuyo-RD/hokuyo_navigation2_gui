@@ -2,9 +2,9 @@
     <p>屋外での自律移動の開始前に設定を確認してください。</p>
     <form id="outdoorRunForm" method="post" action="/wizurg" target="_blank">
         <div id="checklist-container">
-            <div><input type="checkbox" id="check1_outdoor" name="check1_outdoor" value="checked"><label for="check1_outdoor">屋外用マップの準備を確認しました。</label></div>
-            <div><input type="checkbox" id="check2_outdoor" name="check2_outdoor" value="checked"><label for="check2_outdoor">屋外でのGPS信号の受信を確認しました。</label></div>
-            <div><input type="checkbox" id="check3_outdoor" name="check3_outdoor" value="checked"><label for="check3_outdoor">屋外での危険物や段差がないか確認しました。</label></div>
+            <div><input type="checkbox" id="check1_outdoor" name="check1_outdoor" value="checked"><label for="check1_outdoor">一時停止スイッチをオンしていること</label></div>
+            <div><input type="checkbox" id="check2_outdoor" name="check2_outdoor" value="checked"><label for="check2_outdoor">オペレータが周りの安全を確認していること</label></div>
+            <div><input type="checkbox" id="check3_outdoor" name="check3_outdoor" value="checked"><label for="check3_outdoor">フリースイッチをオフしていること</label></div>
         </div>
         <input type="hidden" name="command" value="execute_outdoor_run">
         <div style="text-align: center; margin-top: 20px;">
@@ -18,7 +18,7 @@
         padding: 20px;
     }
     .outdoor-run-popup-content div {
-        margin-bottom: 10px;
+        margin-bottom: 30px;
         text-align: left;
     }
     .outdoor-run-popup-content label {

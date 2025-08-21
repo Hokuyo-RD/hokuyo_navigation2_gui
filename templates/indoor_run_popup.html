@@ -1,17 +1,10 @@
 <div class="indoor-run-popup-content">
-    <p>屋内自律移動の開始前に設定を確認してください。</p>
+    <p>屋内での自律移動の開始前に設定を確認してください。</p>
     <form id="indoorRunForm" method="post" action="/wizurg" target="_blank">
-        <div>
-            <input type="checkbox" id="check1" name="check1" value="checked">
-            <label for="check1">一時停止スイッチをオンしていること</label><br>
-        </div>
-        <div>
-            <input type="checkbox" id="check2" name="check2" value="checked">
-            <label for="check2">オペレータが周りの安全を確認していること</label><br>
-        </div>
-        <div>
-            <input type="checkbox" id="check3" name="check3" value="checked">
-            <label for="check3">フリースイッチをオフしていること</label><br>
+        <div id="checklist-container">
+            <div><input type="checkbox" id="check1" name="check1" value="checked"><label for="check1">自律走行の動作を確認しました。</label></div>
+            <div><input type="checkbox" id="check2" name="check2" value="checked"><label for="check2">周囲に人や障害物がないか確認しました。</label></div>
+            <div><input type="checkbox" id="check3" name="check3" value="checked"><label for="check3">危険物や段差がないか確認しました。</label></div>
         </div>
         <input type="hidden" name="command" value="execute_indoor_run">
         <div style="text-align: center; margin-top: 20px;">
@@ -19,55 +12,16 @@
         </div>
     </form>
 </div>
-
-<script>
-    const popupIndoorRunForm = document.getElementById('indoorRunForm');
-    const popupCheck1 = document.getElementById('check1');
-    const popupCheck2 = document.getElementById('check2');
-    const popupCheck3 = document.getElementById('check3');
-    const popupExecuteBtn = document.getElementById('executeBtn');
-
-    function updatePopupExecuteButtonState() {
-        if (popupCheck1.checked && popupCheck2.checked && popupCheck3.checked) {
-            popupExecuteBtn.disabled = false;
-            popupExecuteBtn.classList.remove('inactive-button');
-            popupExecuteBtn.classList.add('active-button');
-        } else {
-            popupExecuteBtn.disabled = true;
-            popupExecuteBtn.classList.add('inactive-button');
-            popupExecuteBtn.classList.remove('active-button');
-        }
-    }
-
-    popupCheck1.addEventListener('change', updatePopupExecuteButtonState);
-    popupCheck2.addEventListener('change', updatePopupExecuteButtonState);
-    popupCheck3.addEventListener('change', updatePopupExecuteButtonState);
-
-    popupIndoorRunForm.addEventListener('submit', (event) => {
-        if (!popupCheck1.checked || !popupCheck2.checked || !popupCheck3.checked) {
-            event.preventDefault();
-            alert('すべてのチェック項目にチェックを入れてください。');
-        } else {
-            document.getElementById('popupContainer').style.display = 'none';
-            document.getElementById('indoorRunContent').innerHTML = '';
-        }
-    });
-
-    updatePopupExecuteButtonState(); // 初期状態を反映
-</script>
-
 <style>
     .indoor-run-popup-content {
         text-align: center;
         padding: 20px;
     }
-
     .indoor-run-popup-content div {
         margin-bottom: 10px;
         text-align: left;
     }
-
     .indoor-run-popup-content label {
-        margin-left: 5px;
+        margin-left: 5px; /* ✅ 間隔を追加 */
     }
 </style>

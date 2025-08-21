@@ -1,17 +1,10 @@
 <div class="outdoor-run-popup-content">
-    <p>屋外自律移動の開始前に設定を確認してください。</p>
+    <p>屋外での自律移動の開始前に設定を確認してください。</p>
     <form id="outdoorRunForm" method="post" action="/wizurg" target="_blank">
-        <div>
-            <input type="checkbox" id="check1_outdoor" name="check1_outdoor" value="checked">
-            <label for="check1_outdoor">一時停止スイッチをオンしていること</label><br>
-        </div>
-        <div>
-            <input type="checkbox" id="check2_outdoor" name="check2_outdoor" value="checked">
-            <label for="check2_outdoor">オペレータが周りの安全を確認していること</label><br>
-        </div>
-        <div>
-            <input type="checkbox" id="check3_outdoor" name="check3_outdoor" value="checked">
-            <label for="check3_outdoor">フリースイッチをオフしていること</label><br>
+        <div id="checklist-container">
+            <div><input type="checkbox" id="check1_outdoor" name="check1_outdoor" value="checked"><label for="check1_outdoor">屋外用マップの準備を確認しました。</label></div>
+            <div><input type="checkbox" id="check2_outdoor" name="check2_outdoor" value="checked"><label for="check2_outdoor">屋外でのGPS信号の受信を確認しました。</label></div>
+            <div><input type="checkbox" id="check3_outdoor" name="check3_outdoor" value="checked"><label for="check3_outdoor">屋外での危険物や段差がないか確認しました。</label></div>
         </div>
         <input type="hidden" name="command" value="execute_outdoor_run">
         <div style="text-align: center; margin-top: 20px;">
@@ -19,55 +12,16 @@
         </div>
     </form>
 </div>
-
-<script>
-    const outdoorRunForm = document.getElementById('outdoorRunForm');
-    const check1_outdoor = document.getElementById('check1_outdoor');
-    const check2_outdoor = document.getElementById('check2_outdoor');
-    const check3_outdoor = document.getElementById('check3_outdoor');
-    const executeBtn_outdoor = document.getElementById('executeBtn_outdoor');
-
-    function updateOutdoorExecuteButtonState() {
-        if (check1_outdoor.checked && check2_outdoor.checked && check3_outdoor.checked) {
-            executeBtn_outdoor.disabled = false;
-            executeBtn_outdoor.classList.remove('inactive-button');
-            executeBtn_outdoor.classList.add('active-button');
-        } else {
-            executeBtn_outdoor.disabled = true;
-            executeBtn_outdoor.classList.add('inactive-button');
-            executeBtn_outdoor.classList.remove('active-button');
-        }
-    }
-
-    check1_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
-    check2_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
-    check3_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
-
-    outdoorRunForm.addEventListener('submit', (event) => {
-        if (!check1_outdoor.checked || !check2_outdoor.checked || !check3_outdoor.checked) {
-            event.preventDefault();
-            alert('すべてのチェック項目にチェックを入れてください。');
-        } else {
-            document.getElementById('popupContainer').style.display = 'none';
-            document.getElementById('indoorRunContent').innerHTML = ''; // 他のポップアップコンテンツ領域をクリア
-        }
-    });
-
-    updateOutdoorExecuteButtonState(); // 初期状態を反映
-</script>
-
 <style>
     .outdoor-run-popup-content {
         text-align: center;
         padding: 20px;
     }
-
     .outdoor-run-popup-content div {
         margin-bottom: 10px;
         text-align: left;
     }
-
     .outdoor-run-popup-content label {
-        margin-left: 5px;
+        margin-left: 5px; /* ✅ 間隔を追加 */
     }
 </style>

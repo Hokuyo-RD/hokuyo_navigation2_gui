@@ -2,7 +2,7 @@
 
 {% block title %}
 wizurg_setting
-{% endblock  %}
+{% endblock %}
 
 {% block header %}
 <h1>WizURG操作画面</h1>
@@ -10,16 +10,18 @@ wizurg_setting
 
 {% block content %}
 <div class="index-page-container">
-    <button id="indoorRunBtn">屋内自律走行設定</button>
-    <button id="outdoorRunBtn">屋外自律走行設定</button>
+    <div id="status-display" style="font-size: 1.2em; margin-bottom: 20px;">現在のモード: 未設定</div>
+    
+    <button id="indoorRunBtn" class="mode-control-btn">屋内自律走行設定</button>
+    <button id="outdoorRunBtn" class="mode-control-btn">屋外自律走行設定</button>
     <form method="post" action="/wizurg" target="_blank">
-        <button type="submit" name="command" value="stop">ロボット停止</button>
+        <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
     </form>
     <form method="post" action="/wizurg" target="_blank">
         <button type="submit" name="command" value="map">マップ</button>
     </form>
     <form method="post" action="/wizurg" target="_blank">
-        <button type="submit" name="command" value="demo">手動操作モード</button>
+        <button type="submit" name="command" value="demo" id="demo" class="mode-control-btn">手動操作モード</button>
     </form>
     <br>
     <a href="http://100.123.249.95:5000/" target="_blank" >自律走行経路確認Viewer</a>
@@ -44,13 +46,50 @@ wizurg_setting
     const indoorRunBtn = document.getElementById('indoorRunBtn');
     const outdoorRunBtn = document.getElementById('outdoorRunBtn');
     const indoorPopupContainer = document.getElementById('indoorPopupContainer');
-    const indoorPopupContent = document.getElementById('indoorPopupContent');
     const indoorRunContent = document.getElementById('indoorRunContent');
     const closeIndoorPopupBtn = document.getElementById('closeIndoorPopupBtn');
     const outdoorPopupContainer = document.getElementById('outdoorPopupContainer');
-    const outdoorPopupContent = document.getElementById('outdoorPopupContent');
     const outdoorRunContent = document.getElementById('outdoorRunContent');
     const closeOutdoorPopupBtn = document.getElementById('closeOutdoorPopupBtn');
+    
+    const statusDisplay = document.getElementById('status-display');
+    const modeControlBtns = document.querySelectorAll('.mode-control-btn');
+    const stopBtn = document.getElementById('stop');
+    const demoBtn = document.getElementById('demo');
+
+    function initializeCheckboxes(container) {
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        const executeBtn = container.querySelector('button[type="submit"]');
+
+        function updateExecuteButtonState() {
+            if (!executeBtn) return;
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            executeBtn.disabled = !allChecked;
+            if (allChecked) {
+                executeBtn.classList.remove('inactive-button');
+                executeBtn.classList.add('active-button');
+            } else {
+                executeBtn.classList.add('inactive-button');
+                executeBtn.classList.remove('active-button');
+            }
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateExecuteButtonState);
+        });
+
+        const form = container.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                if (!allChecked) {
+                    event.preventDefault();
+                    alert('すべてのチェック項目にチェックを入れてください。');
+                }
+            });
+        }
+        updateExecuteButtonState();
+    }
 
     reloadChannel.onmessage = function(event) {
         if (event.data && event.data.action === 'reload') {
@@ -58,13 +97,67 @@ wizurg_setting
         }
     };
 
+    function updateButtonState(mode) {
+        if (mode === 'running' || mode === 'demo') {
+            modeControlBtns.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('inactive-button');
+            });
+            if (stopBtn) {
+                stopBtn.disabled = false;
+                stopBtn.classList.remove('inactive-button');
+            }
+        } else {
+            modeControlBtns.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('inactive-button');
+            });
+        }
+    }
+
+    function updateStatusDisplay(mode) {
+        let message;
+        switch(mode) {
+            case 'running':
+                message = "自律走行モード";
+                break;
+            case 'demo':
+                message = "手動操作モード";
+                break;
+            case 'stopped':
+                message = "停止モード";
+                break;
+            default:
+                message = "未設定";
+        }
+        statusDisplay.textContent = `現在のモード: ${message}`;
+        updateButtonState(mode);
+    }
+    
+    function refreshModeStatus() {
+        fetch('/get_mode')
+            .then(response => response.json())
+            .then(data => {
+                updateStatusDisplay(data.mode);
+            })
+            .catch(error => {
+                console.error('Error fetching mode:', error);
+                updateStatusDisplay('unknown');
+            });
+    }
+
+    window.onload = function() {
+        refreshModeStatus();
+        setInterval(refreshModeStatus, 5000);
+    };
+
     indoorRunBtn.addEventListener('click', () => {
         fetch('/indoor_run_popup')
             .then(response => response.text())
             .then(data => {
                 indoorRunContent.innerHTML = data;
+                initializeCheckboxes(indoorRunContent);
                 indoorPopupContainer.style.display = 'flex';
-                initializeIndoorRunPopup();
             })
             .catch(error => {
                 console.error('Error fetching indoor_run.html:', error);
@@ -77,8 +170,8 @@ wizurg_setting
             .then(response => response.text())
             .then(data => {
                 outdoorRunContent.innerHTML = data;
+                initializeCheckboxes(outdoorRunContent);
                 outdoorPopupContainer.style.display = 'flex';
-                initializeOutdoorRunPopup();
             })
             .catch(error => {
                 console.error('Error fetching outdoor_run_popup.html:', error);
@@ -109,97 +202,9 @@ wizurg_setting
             outdoorRunContent.innerHTML = '';
         }
     });
-
-    function initializeIndoorRunPopup() {
-        const popupIndoorRunForm = document.getElementById('indoorRunForm');
-        const popupCheck1 = document.getElementById('check1');
-        const popupCheck2 = document.getElementById('check2');
-        const popupCheck3 = document.getElementById('check3');
-        const popupExecuteBtn = document.getElementById('executeBtn');
-
-        function updateIndoorExecuteButtonState() {
-            if (popupCheck1 && popupCheck2 && popupCheck3 && popupExecuteBtn) {
-                if (popupCheck1.checked && popupCheck2.checked && popupCheck3.checked) {
-                    popupExecuteBtn.disabled = false;
-                    popupExecuteBtn.classList.remove('inactive-button');
-                    popupExecuteBtn.classList.add('active-button');
-                } else {
-                    popupExecuteBtn.disabled = true;
-                    popupExecuteBtn.classList.add('inactive-button');
-                    popupExecuteBtn.classList.remove('active-button');
-                }
-            }
-        }
-
-        if (popupCheck1 && popupCheck2 && popupCheck3) {
-            popupCheck1.addEventListener('change', updateIndoorExecuteButtonState);
-            popupCheck2.addEventListener('change', updateIndoorExecuteButtonState);
-            popupCheck3.addEventListener('change', updateIndoorExecuteButtonState);
-        }
-
-        if (popupIndoorRunForm) {
-            popupIndoorRunForm.addEventListener('submit', (event) => {
-                if (popupCheck1 && popupCheck2 && popupCheck3) {
-                    if (!popupCheck1.checked || !popupCheck2.checked || !popupCheck3.checked) {
-                        event.preventDefault();
-                        alert('すべてのチェック項目にチェックを入れてください。');
-                    }
-                } else {
-                    event.preventDefault(); // チェックボックスが見つからない場合も送信を防ぐ
-                    alert('エラー: チェック項目が見つかりません。');
-                }
-            });
-        }
-
-        updateIndoorExecuteButtonState(); // 初期状態を反映
-    }
-
-    function initializeOutdoorRunPopup() {
-        const outdoorRunForm = document.getElementById('outdoorRunForm');
-        const check1_outdoor = document.getElementById('check1_outdoor');
-        const check2_outdoor = document.getElementById('check2_outdoor');
-        const check3_outdoor = document.getElementById('check3_outdoor');
-        const executeBtn_outdoor = document.getElementById('executeBtn_outdoor');
-
-        function updateOutdoorExecuteButtonState() {
-            if (check1_outdoor && check2_outdoor && check3_outdoor && executeBtn_outdoor) {
-                if (check1_outdoor.checked && check2_outdoor.checked && check3_outdoor.checked) {
-                    executeBtn_outdoor.disabled = false;
-                    executeBtn_outdoor.classList.remove('inactive-button');
-                    executeBtn_outdoor.classList.add('active-button');
-                } else {
-                    executeBtn_outdoor.disabled = true;
-                    executeBtn_outdoor.classList.add('inactive-button');
-                    executeBtn_outdoor.classList.remove('active-button');
-                }
-            }
-        }
-
-        if (check1_outdoor && check2_outdoor && check3_outdoor) {
-            check1_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
-            check2_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
-            check3_outdoor.addEventListener('change', updateOutdoorExecuteButtonState);
-        }
-
-        if (outdoorRunForm) {
-            outdoorRunForm.addEventListener('submit', (event) => {
-                if (check1_outdoor && check2_outdoor && check3_outdoor) {
-                    if (!check1_outdoor.checked || !check2_outdoor.checked || !check3_outdoor.checked) {
-                        event.preventDefault();
-                        alert('すべてのチェック項目にチェックを入れてください。');
-                    }
-                } else {
-                    event.preventDefault();
-                    alert('エラー: チェック項目が見つかりません。');
-                }
-            });
-        }
-
-        updateOutdoorExecuteButtonState(); // 初期状態を反映
-    }
 </script>
-{% endblock  %}
+{% endblock %}
 
 {% block footer %}
 index_footer
-{% endblock  %}
+{% endblock %}

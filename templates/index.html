@@ -151,6 +151,60 @@ wizurg_setting
         setInterval(refreshModeStatus, 5000);
     };
 
+    function updateButtonState(mode) {
+        if (mode === 'running' || mode === 'demo') {
+            modeControlBtns.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('inactive-button');
+            });
+            if (stopBtn) {
+                stopBtn.disabled = false;
+                stopBtn.classList.remove('inactive-button');
+            }
+        } else {
+            modeControlBtns.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('inactive-button');
+            });
+        }
+    }
+
+    function updateStatusDisplay(mode) {
+        let message;
+        switch(mode) {
+            case 'running':
+                message = "自律走行モード";
+                break;
+            case 'demo':
+                message = "手動操作モード";
+                break;
+            case 'stopped':
+                message = "停止モード";
+                break;
+            default:
+                message = "未設定";
+        }
+        statusDisplay.textContent = `現在のモード: ${message}`;
+        updateButtonState(mode);
+    }
+    
+    function refreshModeStatus() {
+        fetch('/get_mode')
+            .then(response => response.json())
+            .then(data => {
+                updateStatusDisplay(data.mode);
+            })
+            .catch(error => {
+                console.error('Error fetching mode:', error);
+                updateStatusDisplay('unknown');
+            });
+    }
+
+    window.onload = function() {
+        refreshModeStatus();
+        setInterval(refreshModeStatus, 5000);
+    };
+
     indoorRunBtn.addEventListener('click', () => {
         fetch('/indoor_run_popup')
             .then(response => response.text())

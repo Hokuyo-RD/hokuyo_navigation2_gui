@@ -4,11 +4,21 @@ from flask import Flask, request, render_template, redirect, jsonify
 from flask_sockets import Sockets
 import asyncio
 import websockets
+import os
 import subprocess
 from threading import Thread
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 from geventwebsocket.websocket import WebSocket
+
+
+# 環境変数をチェックして、実行するスクリプトのベースパスを決定
+if 'DOCKER_CONTAINER' in os.environ:
+    # Dockerコンテナ内でのパス
+    BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
+else:
+    # ホストOS上でのパス
+    BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/" # ホストOS上の正しいパスに置き換えてください
 
 app = Flask(__name__)
 sockets = Sockets(app)
@@ -103,9 +113,8 @@ def trigger_script():
             check2 = request.form.get("check2")
             check3 = request.form.get("check3")
             if check1 == 'checked' and check2 == 'checked' and check3 == 'checked':
-                Thread(target=run_subprocess, args=([
-                    "/home/hokuyo/catkin_ws/src/expo_wizurg/scripts/expo_in.sh"
-                ],)).start()
+                script_path = os.path.join(BASE_PATH, "expo_in")
+                Thread(target=run_subprocess, args=([script_path],)).start()
                 current_mode = "running"
                 return redirect('/program_executed')
             else:
@@ -115,23 +124,20 @@ def trigger_script():
             check2_outdoor = request.form.get("check2_outdoor")
             check3_outdoor = request.form.get("check3_outdoor")
             if check1_outdoor == 'checked' and check2_outdoor == 'checked' and check3_outdoor == 'checked':
-                Thread(target=run_subprocess, args=([
-                    "/home/colcon_ws/src/hokuyo_navigation2/scripts/nav_single_map.sh"
-                ],)).start()
+                script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
+                Thread(target=run_subprocess, args=([script_path],)).start()
                 current_mode = "running"
                 return redirect('/program_executed')
             else:
                 return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
         elif command == "stop":
-            Thread(target=run_subprocess, args=([
-                "/home/colcon_ws/src/hokuyo_navigation2/scripts/web_kill_all_rosnode.sh"
-            ],)).start()
+            script_path = os.path.join(BASE_PATH, "web_kill_all_rosnode.sh")
+            Thread(target=run_subprocess, args=([script_path],)).start()
             current_mode = "stopped"
             return render_template('stop.html')
         elif command == "demo":
-            Thread(target=run_subprocess, args=([
-                "/home/colcon_ws/src/hokuyo_navigation2/scripts/get_data.sh"
-            ],)).start()
+            script_path = os.path.join(BASE_PATH, "get_data.sh")
+            Thread(target=run_subprocess, args=([script_path],)).start()
             current_mode = "demo"
             return redirect('/demo_executed')
         elif command == "map":

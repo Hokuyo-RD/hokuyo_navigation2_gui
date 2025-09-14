@@ -15,10 +15,10 @@ from geventwebsocket.websocket import WebSocket
 # 環境変数をチェックして、実行するスクリプトのベースパスを決定
 if 'DOCKER_CONTAINER' in os.environ:
     # Dockerコンテナ内でのパス
-    BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
+    BASE_PATH = "$HOME/colcon_ws/src/hokuyo_navigation2/scripts/"
 else:
     # ホストOS上でのパス
-    BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/" # ホストOS上の正しいパスに置き換えてください
+    BASE_PATH = "$HOME/colcon_ws/src/hokuyo_navigation2/scripts/" # ホストOS上の正しいパスに置き換えてください
 
 app = Flask(__name__)
 sockets = Sockets(app)

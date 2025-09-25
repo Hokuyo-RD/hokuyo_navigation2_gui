@@ -1,10 +1,15 @@
 <div class="outdoor-run-popup-content">
-    <p>屋外での自律移動の開始前に設定を確認してください。</p>
-    <form id="outdoorRunForm" method="post" action="/wizurg" target="_blank">
+    <p>自律移動の開始前に設定を確認してください。</p>
+    <form id="outdoorRunForm" method="post" action="/gui" target="_blank">
         <div id="checklist-container">
             <div><input type="checkbox" id="check1_outdoor" name="check1_outdoor" value="checked"><label for="check1_outdoor">一時停止スイッチをオンしていること</label></div>
             <div><input type="checkbox" id="check2_outdoor" name="check2_outdoor" value="checked"><label for="check2_outdoor">オペレータが周りの安全を確認していること</label></div>
             <div><input type="checkbox" id="check3_outdoor" name="check3_outdoor" value="checked"><label for="check3_outdoor">フリースイッチをオフしていること</label></div>
+        </div>
+        
+        <div class="input-field">
+            <label for="arguments">スクリプト引数:</label>
+            <input type="text" id="arguments" name="arguments" placeholder="例: arg1 arg2">
         </div>
         <input type="hidden" name="command" value="execute_outdoor_run">
         <div style="text-align: center; margin-top: 20px;">
@@ -22,6 +27,35 @@
         text-align: left;
     }
     .outdoor-run-popup-content label {
-        margin-left: 5px; /* ✅ 間隔を追加 */
+        margin-left: 5px;
+    }
+    .input-field {
+        margin-top: 20px; /* ✅ 新しい入力フィールドの間隔 */
+        text-align: center;
     }
 </style>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('#checklist-container input[type="checkbox"]');
+        const executeBtn = document.getElementById('executeBtn_outdoor');
+        const outdoorRunForm = document.getElementById('outdoorRunForm');
+
+        function checkFormValidity() {
+            const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+            if (allChecked) {
+                executeBtn.disabled = false;
+                executeBtn.classList.remove('inactive-button');
+            } else {
+                executeBtn.disabled = true;
+                executeBtn.classList.add('inactive-button');
+            }
+        }
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', checkFormValidity);
+        });
+
+        // ページ読み込み時に初期状態を確認
+        checkFormValidity();
+    });
+</script>

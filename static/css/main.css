@@ -30,7 +30,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center; /* 垂直方向中央寄せ */
+    justify-content: center;
     gap: 15px;
     flex-grow: 1;
 }
@@ -39,18 +39,18 @@ button {
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 20px 40px; /* 少し大きく */
+    padding: 20px 40px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
-    font-size: 1.2em; /* 少し大きく */
+    font-size: 1.2em;
     font-weight: bold;
-    border-radius: 10px; /* 角を少し丸く */
+    border-radius: 10px;
     cursor: pointer;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
     transition: background-color 0.3s ease;
-    width: 250px; /* 少し大きく */
-    height: 120px; /* 少し大きく */
+    width: 250px;
+    height: 120px;
     box-sizing: border-box;
 }
 
@@ -98,126 +98,126 @@ button[value="map"]:hover {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px; /* 間隔を少し大きく */
+    gap: 20px;
     padding: 20px;
 }
 
 .index-page-container button {
-    font-size: 1.3em; /* 少し大きく */
-    padding: 25px 50px; /* 少し大きく */
-    border-radius: 10px; /* 角を少し丸く */
+    font-size: 1.3em;
+    padding: 25px 50px;
+    border-radius: 10px;
 }
 
 /* スマートフォン向けのスタイル (最大幅 767px) */
 @media screen and (max-width: 767px) {
     .header h1 {
-        font-size: 2em; /* 少し大きく */
+        font-size: 2em;
     }
 
     .content {
-        padding: 15px; /* 少し大きく */
+        padding: 15px;
         gap: 15px;
     }
 
     button {
         width: 100%;
         height: auto;
-        padding-top: 60px; /* 縦のパディングを大きく */
-        padding-bottom: 60px; /* 縦のパディングを大きく */
-        padding-left: 20px; /* 横のパディングを少し大きく */
-        padding-right: 20px; /* 横のパディングを少し大きく */
-        font-size: 1.2em; /* 少し大きく */
-        border-radius: 10px; /* 角を少し丸く */
+        padding-top: 60px;
+        padding-bottom: 60px;
+        padding-left: 20px;
+        padding-right: 20px;
+        font-size: 1.2em;
+        border-radius: 10px;
     }
 
     .footer {
-        font-size: 1em; /* 少し大きく */
+        font-size: 1em;
     }
 
     .index-page-container {
-        padding: 15px; /* 少し大きく */
+        padding: 15px;
         gap: 15px;
     }
 
     .index-page-container button {
         width: 100%;
-        padding-top: 60px; /* 縦のパディングを大きく */
-        padding-bottom: 60px; /* 縦のパディングを大きく */
-        padding-left: 20px; /* 横のパディングを少し大きく */
-        padding-right: 20px; /* 横のパディングを少し大きく */
-        font-size: 1.3em; /* 少し大きく */
-        border-radius: 10px; /* 角を少し丸く */
+        padding-top: 60px;
+        padding-bottom: 60px;
+        padding-left: 20px;
+        padding-right: 20px;
+        font-size: 1.3em;
+        border-radius: 10px;
     }
 }
 
 /* PC 向けのスタイル (最小幅 768px) */
 @media screen and (min-width: 768px) {
     .header h1 {
-        font-size: 2.4em; /* 少し大きく */
+        font-size: 2.4em;
     }
 
     .content {
-        padding: 40px; /* 少し大きく */
-        gap: 25px; /* 間隔を少し大きく */
+        padding: 40px;
+        gap: 25px;
     }
 
     button {
-        width: 500px; /* 少し大きく */
-        height: 140px; /* 少し大きく */
-        font-size: 1.4em; /* 少し大きく */
-        padding: 25px 50px; /* 少し大きく */
-        border-radius: 10px; /* 角を少し丸く */
+        width: 500px;
+        height: 140px;
+        font-size: 1.4em;
+        padding: 25px 50px;
+        border-radius: 10px;
     }
 
     .footer {
-        font-size: 1.1em; /* 少し大きく */
+        font-size: 1.1em;
     }
 
     .index-page-container button {
-        width: 600px; /* 少し大きく */
-        font-size: 1.5em; /* 少し大きく */
-        padding: 30px 60px; /* 少し大きく */
-        border-radius: 10px; /* 角を少し丸く */
+        width: 600px;
+        font-size: 1.5em;
+        padding: 30px 60px;
+        border-radius: 10px;
     }
 }
 
 .indoor-run-container {
-    margin-top: 30px; /* 少し大きく */
-    padding: 20px; /* 少し大きく */
-    border: 2px solid #ccc; /* 少し太く */
-    border-radius: 8px; /* 少し大きく */
+    margin-top: 30px;
+    padding: 20px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
     background-color: #f9f9f9;
-    text-align: center; /* コンテンツを中央寄せ */
+    text-align: center;
 }
 
 .indoor-run-container div {
-    margin-bottom: 15px; /* 間隔を少し大きく */
-    text-align: left; /* チェックボックスとラベルは左寄せに戻す */
+    margin-bottom: 15px;
+    text-align: left;
 }
 
 .indoor-run-container label {
-    margin-left: 8px; /* 間隔を少し大きく */
-    font-size: 1.2em; /* ラベルの文字サイズを大きく */
+    margin-left: 8px;
+    font-size: 1.2em;
 }
 
 .indoor-run-container div input[type="checkbox"] {
-    width: 45px; /* チェックボックスの幅を大きく */
-    height: 45px; /* チェックボックスの高さを大きく */
-    margin-right: 20px; /* ラベルとの間隔を大きく */
-    vertical-align: middle; /* ラベルと垂直方向中央揃え */
+    width: 45px;
+    height: 45px;
+    margin-right: 20px;
+    vertical-align: middle;
 }
 
 .indoor-run-container div label {
-    font-size: 1.2em; /* ラベルの文字サイズを大きく */
-    vertical-align: middle; /* チェックボックスと垂直方向中央揃え */
+    font-size: 1.2em;
+    vertical-align: middle;
 }
 
 .indoor-run-container a {
-    display: block; /* ブロック要素にして中央寄せを適用しやすく */
-    margin-top: 40px; /* 間隔を少し大きく */
+    display: block;
+    margin-top: 40px;
     color: #007bff;
     text-decoration: none;
-    font-size: 1.1em; /* 文字サイズを少し大きく */
+    font-size: 1.1em;
 }
 
 .indoor-run-container a:hover {
@@ -226,13 +226,13 @@ button[value="map"]:hover {
 
 /* 新しいスタイル */
 .inactive-button {
-    opacity: 0.5 !important; /* 少し濃く */
-    background-color: #cccccc !important; /* 灰色 */
-    color: #666666 !important; /* 文字色も少し濃いめの灰色 */
+    opacity: 0.5 !important;
+    background-color: #cccccc !important;
+    color: #666666 !important;
     cursor: not-allowed;
-    font-size: 1.4em !important; /* ボタン内の文字サイズも大きく */
-    padding: 25px 50px !important; /* ボタンのパディングも大きく */
-    border-radius: 10px !important; /* 角を少し丸く */
+    font-size: 1.4em !important;
+    padding: 25px 50px !important;
+    border-radius: 10px !important;
 }
 
 .active-button {
@@ -240,9 +240,9 @@ button[value="map"]:hover {
     color: white !important;
     opacity: 1;
     cursor: pointer;
-    font-size: 1.4em !important; /* ボタン内の文字サイズも大きく */
-    padding: 25px 50px !important; /* ボタンのパディングも大きく */
-    border-radius: 10px !important; /* 角を少し丸く */
+    font-size: 1.4em !important;
+    padding: 25px 50px !important;
+    border-radius: 10px !important;
 }
 
 /* static/main.css (追記) */
@@ -250,16 +250,16 @@ button[value="map"]:hover {
 /* static/main.css (追記) */
 
 .popup-container {
-    display: none; /* 初期状態では非表示 */
-    position: fixed; /* 画面全体を覆う */
+    display: none;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* 半透明の背景 */
-    justify-content: center; /* 水平方向中央揃え */
-    align-items: center; /* 垂直方向中央揃え */
-    z-index: 1000; /* 他の要素より前面に表示 */
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 }
 
 .popup-content {
@@ -268,15 +268,15 @@ button[value="map"]:hover {
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     display: flex;
-    flex-direction: column; /* 要素を縦に並べる */
-    align-items: stretch; /* 子要素をコンテナの幅に合わせる */
-    position: relative; /* 子要素の配置基準 */
+    flex-direction: column;
+    align-items: stretch;
+    position: relative;
 }
 
 .close-button {
-    position: static; /* 相対配置に戻す */
-    align-self: center; /* 中央寄せ */
-    margin-top: 20px; /* 他の要素との間隔 */
+    position: static;
+    align-self: center;
+    margin-top: 20px;
     padding: 5px 10px;
     font-size: 0.8em;
     cursor: pointer;
@@ -285,14 +285,14 @@ button[value="map"]:hover {
     border: 1px solid #007bff;
     border-radius: 4px;
     width: 1000;
-    order: 2; /* 「自律走行開始」ボタンより後に配置 */
+    order: 2;
 }
 
 .indoor-run-popup-content {
     text-align: center;
     padding: 20px;
-    margin-bottom: 10px; /* 閉じるボタンとの間隔を調整 */
-    order: 1; /* 「自律走行開始」ボタンより前に配置 */
+    margin-bottom: 10px;
+    order: 1;
 }
 
 .indoor-run-popup-content div {
@@ -308,7 +308,7 @@ button[value="map"]:hover {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    order: 1; /* 「自律走行開始」ボタンより前に配置 */
+    order: 1;
 }
 
 #indoorRunForm > div {
@@ -316,36 +316,35 @@ button[value="map"]:hover {
 }
 
 #indoorRunForm > div:last-of-type {
-    margin-top: 20px; /* チェックボックスとボタンの間隔 */
+    margin-top: 20px;
     margin-bottom: 0;
 }
 
 #indoorRunForm > div[style*="text-align: center;"] {
-    /* 「自律走行開始」ボタンの div */
     margin-top: 30px;
-    margin-bottom: 5px; /* 閉じるボタンとの間隔 */
-    order: 1; /* 「自律走行開始」ボタンより前に配置 */
+    margin-bottom: 5px;
+    order: 1;
 }
 
 #indoorRunForm > div[style*="text-align: center;"] > button {
     font-size: 1.5em;
     padding: 10px 20px;
-    width: auto; /* 必要に応じて調整 */
+    width: auto;
 }
 
 /* 必要に応じて、.indoor-run-popup-content 内の要素のスタイルも調整 */
 
 .popup-container {
-    display: none; /* 初期状態では非表示 */
-    position: fixed; /* 画面全体を覆う */
+    display: none;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* 半透明の背景 */
-    justify-content: center; /* 水平方向中央揃え */
-    align-items: center; /* 垂直方向中央揃え */
-    z-index: 1000; /* 他の要素より前面に表示 */
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 }
 
 .popup-content {
@@ -353,32 +352,32 @@ button[value="map"]:hover {
     padding: 30px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    position: relative; /* 閉じるボタンの配置基準 */
-    display: flex; /* Flexbox を使用して要素を配置 */
-    flex-direction: column; /* 要素を縦に並べる */
-    align-items: stretch; /* 子要素をコンテナの幅に合わせる */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .close-button {
-    position: static; /* 相対配置に戻す */
-    align-self: center; /* 中央寄せ */
-    margin-top: 20px; /* 他の要素との間隔 */
+    position: static;
+    align-self: center;
+    margin-top: 20px;
     padding: 5px 10px;
     font-size: 0.8em;
     cursor: pointer;
-    background-color: #007bff; /* 青色に変更 */
-    color: white; /* 文字色を白に */
-    border: 1px solid #007bff; /* 枠線も青色に */
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
     border-radius: 4px;
-    width: 80px; /* 幅を小さく設定 (例: 80px) */
-    text-align: center; /* ボタン内の文字を中央寄せ */
-    order: 2; /* 「自律走行開始」ボタンより後に配置 */
+    width: 80px;
+    text-align: center;
+    order: 2;
 }
 
 .indoor-run-popup-content {
     text-align: center;
     padding: 20px;
-    margin-bottom: 20px; /* 閉じるボタンとの間隔 */
+    margin-bottom: 20px;
     font-size: 0.9em;
 }
 
@@ -394,93 +393,89 @@ button[value="map"]:hover {
 .indoor-run-popup-content div input[type="checkbox"] {
     margin-right: 8px;
     vertical-align: middle;
-    transform: scale(2.0); /* チェックボックスを 2.0倍に拡大 */
-    -webkit-transform: scale(2.0); /* Safari、Chrome 用 */
+    transform: scale(2.0);
+    -webkit-transform: scale(2.0);
 }
 
 .indoor-run-popup-content div label {
-    margin-left: 15px; /* 拡大に合わせてラベルとの間隔を調整 */
+    margin-left: 15px;
     vertical-align: middle;
-    font-size: 0.9em; /* 少し大きくするとバランスが良いかもしれません */
+    font-size: 0.9em;
 }
 
 #indoorRunForm {
-    /* 必要に応じてフォームのスタイルを調整 */
 }
 
 #indoorRunForm > div {
-    /* チェックボックスとラベルのグループ */
+    margin-bottom: 40px;
 }
 
 #indoorRunForm > div:last-of-type {
-    /* 最後のチェックボックスグループ */
-    margin-bottom: 20px; /* 「自律走行開始」ボタンとの間隔 */
+    margin-bottom: 20px;
 }
 
 #indoorRunForm > div[style="text-align: center; margin-top: 20px;"] {
-    /* 「自律走行開始」ボタンの div */
-    margin-top: auto; /* 下に押しやる */
+    margin-top: auto;
     text-align: center;
 }
 
 #indoorRunForm > div[style="text-align: center; margin-top: 20px;"] > button {
-    font-size: 1.5em; /* ボタンの文字サイズを調整 */
-    padding: 10px 20px; /* ボタンのパディングを調整 */
+    font-size: 1.5em;
+    padding: 10px 20px;
 }
 
 /* チェックされていない状態のラベル */
 input[type="checkbox"] + label {
-    border: 2px solid red; /* 赤色のボーダー */
+    border: 2px solid red;
     padding: 5px 10px;
     font-weight: bold;
     color: red;
-  }
+}
 
 input[type="checkbox"]:checked + label {
-  border: 2px solid #28a745; /* 緑色のボーダー (不要になったのでコメントアウトまたは削除) */
-  padding: 5px 10px;
-  font-weight: bold;
-  color: #28a745; /* チェックが入ったら文字色を緑にする */
-  /* transition: background-color 0.3s ease; /* ホバー時のアニメーション (今回は不要) */
+    border: 2px solid #28a745;
+    padding: 5px 10px;
+    font-weight: bold;
+    color: #28a745;
 }
 
 .outdoor-run-container {
-    margin-top: 30px; /* 少し大きく */
-    padding: 20px; /* 少し大きく */
-    border: 2px solid #ccc; /* 少し太く */
-    border-radius: 8px; /* 少し大きく */
+    margin-top: 30px;
+    padding: 20px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
     background-color: #f9f9f9;
-    text-align: center; /* コンテンツを中央寄せ */
+    text-align: center;
 }
 
 .outdoor-run-container div {
-    margin-bottom: 15px; /* 間隔を少し大きく */
-    text-align: left; /* チェックボックスとラベルは左寄せに戻す */
+    margin-bottom: 15px;
+    text-align: left;
 }
 
 .outdoor-run-container label {
-    margin-left: 8px; /* 間隔を少し大きく */
-    font-size: 1.2em; /* ラベルの文字サイズを大きく */
+    margin-left: 8px;
+    font-size: 1.2em;
 }
 
 .outdoor-run-container div input[type="checkbox"] {
-    width: 45px; /* チェックボックスの幅を大きく */
-    height: 45px; /* チェックボックスの高さを大きく */
-    margin-right: 20px; /* ラベルとの間隔を大きく */
-    vertical-align: middle; /* ラベルと垂直方向中央揃え */
+    width: 45px;
+    height: 45px;
+    margin-right: 20px;
+    vertical-align: middle;
 }
 
 .outdoor-run-container div label {
-    font-size: 1.2em; /* ラベルの文字サイズを大きく */
-    vertical-align: middle; /* チェックボックスと垂直方向中央揃え */
+    font-size: 1.2em;
+    vertical-align: middle;
 }
 
 .outdoor-run-container a {
-    display: block; /* ブロック要素にして中央寄せを適用しやすく */
-    margin-top: 40px; /* 間隔を少し大きく */
+    display: block;
+    margin-top: 40px;
     color: #007bff;
     text-decoration: none;
-    font-size: 1.1em; /* 文字サイズを少し大きく */
+    font-size: 1.1em;
 }
 
 .outdoor-run-container a:hover {
@@ -490,7 +485,7 @@ input[type="checkbox"]:checked + label {
 .outdoor-run-popup-content {
     text-align: center;
     padding: 20px;
-    margin-bottom: 20px; /* 閉じるボタンとの間隔 */
+    margin-bottom: 20px;
     font-size: 0.9em;
 }
 
@@ -506,14 +501,14 @@ input[type="checkbox"]:checked + label {
 .outdoor-run-popup-content div input[type="checkbox"] {
     margin-right: 8px;
     vertical-align: middle;
-    transform: scale(2.0); /* チェックボックスを 2.0倍に拡大 */
-    -webkit-transform: scale(2.0); /* Safari、Chrome 用 */
+    transform: scale(2.0);
+    -webkit-transform: scale(2.0);
 }
 
 .outdoor-run-popup-content div label {
-    margin-left: 15px; /* 拡大に合わせてラベルとの間隔を調整 */
+    margin-left: 15px;
     vertical-align: middle;
-    font-size: 0.9em; /* 少し大きくするとバランスが良いかもしれません */
+    font-size: 0.9em;
 }
 
 #outdoorRunForm {
@@ -527,34 +522,68 @@ input[type="checkbox"]:checked + label {
 }
 
 #outdoorRunForm > div:last-of-type {
-    margin-top: 20px; /* チェックボックスとボタンの間隔 */
+    margin-top: 20px;
     margin-bottom: 0;
 }
 
 #outdoorRunForm > div[style*="text-align: center;"] {
-    /* 「自律走行開始」ボタンの div */
-    margin-top: auto; /* 下に押しやる */
+    margin-top: auto;
     text-align: center;
 }
 
 #outdoorRunForm > div[style*="text-align: center;"] > button {
-    font-size: 1.5em; /* ボタンの文字サイズを調整 */
-    padding: 10px 20px; /* ボタンのパディングを調整 */
-    width: auto; /* 必要に応じて調整 */
+    font-size: 1.5em;
+    padding: 10px 20px;
+    width: auto;
 }
 
 /* チェックされていない状態のラベル */
 input[type="checkbox"] + label {
-    border: 2px solid red; /* 赤色のボーダー */
+    border: 2px solid red;
     padding: 5px 10px;
     font-weight: bold;
     color: red;
 }
 
 input[type="checkbox"]:checked + label {
-  border: 2px solid #28a745; /* 緑色のボーダー (不要になったのでコメントアウトまたは削除) */
-  padding: 5px 10px;
-  font-weight: bold;
-  color: #28a745; /* チェックが入ったら文字色を緑にする */
-  /* transition: background-color 0.3s ease; /* ホバー時のアニメーション (今回は不要) */
+    border: 2px solid #28a745;
+    padding: 5px 10px;
+    font-weight: bold;
+    color: #28a745;
+}
+
+/* --- ここから .input-field のスタイル --- */
+.input-field {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.input-field label {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.input-field input[type="text"] {
+    padding: 12px;
+    font-size: 1.1em;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+
+.input-field input[type="text"]:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }

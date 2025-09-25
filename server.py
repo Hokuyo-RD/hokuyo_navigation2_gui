@@ -11,14 +11,13 @@ from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 from geventwebsocket.websocket import WebSocket
 
-
 # 環境変数をチェックして、実行するスクリプトのベースパスを決定
 if 'DOCKER_CONTAINER' in os.environ:
     # Dockerコンテナ内でのパス
     BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
 else:
     # ホストOS上でのパス
-    BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/" # ホストOS上の正しいパスに置き換えてください
+    BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/"
 
 app = Flask(__name__)
 sockets = Sockets(app)
@@ -101,7 +100,7 @@ def run_subprocess(command_list):
 def program_executed():
     return render_template('program_executed.html', message="自律走行が開始されました。周囲の安全に気をつけて下さい。")
 
-@app.route('/wizurg', methods=['GET', 'POST'])
+@app.route('/gui', methods=['GET', 'POST'])
 def trigger_script():
     global current_mode
     if request.method == 'GET':
@@ -123,9 +122,14 @@ def trigger_script():
             check1_outdoor = request.form.get("check1_outdoor")
             check2_outdoor = request.form.get("check2_outdoor")
             check3_outdoor = request.form.get("check3_outdoor")
+            arguments = request.form.get("arguments", "").strip() # 引数を取得
             if check1_outdoor == 'checked' and check2_outdoor == 'checked' and check3_outdoor == 'checked':
                 script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
-                Thread(target=run_subprocess, args=([script_path],)).start()
+                # 引数をsubprocess.runに渡せる形式にする
+                command_list = [script_path]
+                if arguments:
+                    command_list.extend(arguments.split())
+                Thread(target=run_subprocess, args=(command_list,)).start()
                 current_mode = "running"
                 return redirect('/program_executed')
             else:

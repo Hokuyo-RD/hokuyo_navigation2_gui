@@ -1,27 +1,26 @@
 {% extends 'layout.html' %}
 
 {% block title %}
-wizurg_setting
+hokuyo_nav2_gui
 {% endblock %}
 
 {% block header %}
-<h1>WizURG操作画面</h1>
+<h1>hokuyo_nav2_gui</h1>
 {% endblock header %}
 
 {% block content %}
 <div class="index-page-container">
     <div id="status-display" style="font-size: 1.2em; margin-bottom: 20px;">現在のモード: 未設定</div>
-    
+    <form method="post" action="/gui" target="_blank">
+        <button type="submit" name="command" value="demo" id="demo" class="mode-control-btn">手動操作モード</button>
+    </form>
     <button id="indoorRunBtn" class="mode-control-btn">屋内自律走行設定</button>
     <button id="outdoorRunBtn" class="mode-control-btn">屋外自律走行設定</button>
-    <form method="post" action="/wizurg" target="_blank">
+    <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
     </form>
-    <form method="post" action="/wizurg" target="_blank">
+    <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="map">マップ</button>
-    </form>
-    <form method="post" action="/wizurg" target="_blank">
-        <button type="submit" name="command" value="demo" id="demo" class="mode-control-btn">手動操作モード</button>
     </form>
     <br>
     <a href="http://100.99.252.7:5000/" target="_blank" >自律走行経路確認Viewer</a>
@@ -206,5 +205,5 @@ wizurg_setting
 {% endblock %}
 
 {% block footer %}
-index_footer
+HOKUYO AUTOMATIC CO., LTD.
 {% endblock %}

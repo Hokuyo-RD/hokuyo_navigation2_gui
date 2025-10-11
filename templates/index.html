@@ -14,16 +14,19 @@ hokuyo_nav2_gui
     <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="demo" id="demo" class="mode-control-btn">手動操作モード</button>
     </form>
+    <button id="mappingBtn" class="mode-control-btn">マッピング設定</button>
     <button id="indoorRunBtn" class="mode-control-btn">屋内自律走行設定</button>
     <button id="outdoorRunBtn" class="mode-control-btn">屋外自律走行設定</button>
+    
     <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
     </form>
     <form method="post" action="/gui" target="_blank">
-        <button type="submit" name="command" value="map">マップ</button>
+        <button type="submit" name="command" value="map">2D地図エディタ</button>
     </form>
     <br>
     <a href="http://192.168.1.100:5000/" target="_blank" >自律走行経路確認Viewer</a>
+
     <div id="indoorPopupContainer" class="popup-container">
         <div id="indoorPopupContent" class="popup-content">
             <button id="closeIndoorPopupBtn" class="close-button">閉じる</button>
@@ -38,18 +41,33 @@ hokuyo_nav2_gui
             </div>
         </div>
     </div>
+    
+    <div id="mappingPopupContainer" class="popup-container" style="display: none;">
+        <div id="mappingPopupContent" class="popup-content">
+            <button id="closeMappingPopupBtn" class="close-button">閉じる</button>
+            <div id="mappingRunContent">
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
     const indoorRunBtn = document.getElementById('indoorRunBtn');
     const outdoorRunBtn = document.getElementById('outdoorRunBtn');
+    const mappingBtn = document.getElementById('mappingBtn');
+
     const indoorPopupContainer = document.getElementById('indoorPopupContainer');
     const indoorRunContent = document.getElementById('indoorRunContent');
     const closeIndoorPopupBtn = document.getElementById('closeIndoorPopupBtn');
+    
     const outdoorPopupContainer = document.getElementById('outdoorPopupContainer');
     const outdoorRunContent = document.getElementById('outdoorRunContent');
     const closeOutdoorPopupBtn = document.getElementById('closeOutdoorPopupBtn');
+    
+    const mappingPopupContainer = document.getElementById('mappingPopupContainer');
+    const mappingRunContent = document.getElementById('mappingRunContent');
+    const closeMappingPopupBtn = document.getElementById('closeMappingPopupBtn');
     
     const statusDisplay = document.getElementById('status-display');
     const modeControlBtns = document.querySelectorAll('.mode-control-btn');
@@ -58,19 +76,26 @@ hokuyo_nav2_gui
 
     function initializeCheckboxes(container) {
         const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-        const executeBtn = container.querySelector('button[type="submit"]');
+        // 実行ボタンが複数ある場合に対応
+        const executeBtns = container.querySelectorAll('button[type="submit"]');
 
         function updateExecuteButtonState() {
-            if (!executeBtn) return;
+            if (executeBtns.length === 0) return;
+            const hasCheckboxes = checkboxes.length > 0;
+            if (!hasCheckboxes) return; 
+
             const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-            executeBtn.disabled = !allChecked;
-            if (allChecked) {
-                executeBtn.classList.remove('inactive-button');
-                executeBtn.classList.add('active-button');
-            } else {
-                executeBtn.classList.add('inactive-button');
-                executeBtn.classList.remove('active-button');
-            }
+            
+            executeBtns.forEach(btn => {
+                btn.disabled = !allChecked;
+                if (allChecked) {
+                    btn.classList.remove('inactive-button');
+                    btn.classList.add('active-button');
+                } else {
+                    btn.classList.add('inactive-button');
+                    btn.classList.remove('active-button');
+                }
+            });
         }
 
         checkboxes.forEach(cb => {
@@ -80,10 +105,13 @@ hokuyo_nav2_gui
         const form = container.querySelector('form');
         if (form) {
             form.addEventListener('submit', (event) => {
-                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-                if (!allChecked) {
-                    event.preventDefault();
-                    alert('すべてのチェック項目にチェックを入れてください。');
+                const hasCheckboxes = checkboxes.length > 0;
+                if (hasCheckboxes) {
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    if (!allChecked) {
+                        event.preventDefault();
+                        alert('すべてのチェック項目にチェックを入れてください。');
+                    }
                 }
             });
         }
@@ -97,20 +125,36 @@ hokuyo_nav2_gui
     };
 
     function updateButtonState(mode) {
-        if (mode === 'running' || mode === 'demo') {
-            modeControlBtns.forEach(btn => {
-                btn.disabled = true;
-                btn.classList.add('inactive-button');
-            });
+        if (mode === 'running' || mode === 'demo' || mode === 'mapping') {
+            // メイン画面のモード選択ボタンを無効化
+            indoorRunBtn.disabled = true;
+            indoorRunBtn.classList.add('inactive-button');
+            outdoorRunBtn.disabled = true;
+            outdoorRunBtn.classList.add('inactive-button');
+            mappingBtn.disabled = true;
+            mappingBtn.classList.add('inactive-button');
+            demoBtn.disabled = true;
+            demoBtn.classList.add('inactive-button');
+
             if (stopBtn) {
                 stopBtn.disabled = false;
                 stopBtn.classList.remove('inactive-button');
             }
         } else {
-            modeControlBtns.forEach(btn => {
-                btn.disabled = false;
-                btn.classList.remove('inactive-button');
-            });
+            // 停止モードの場合、すべてのボタンを有効化
+            indoorRunBtn.disabled = false;
+            indoorRunBtn.classList.remove('inactive-button');
+            outdoorRunBtn.disabled = false;
+            outdoorRunBtn.classList.remove('inactive-button');
+            mappingBtn.disabled = false;
+            mappingBtn.classList.remove('inactive-button');
+            demoBtn.disabled = false;
+            demoBtn.classList.remove('inactive-button');
+            
+            if (stopBtn) {
+                stopBtn.disabled = false; 
+                stopBtn.classList.remove('inactive-button');
+            }
         }
     }
 
@@ -122,6 +166,9 @@ hokuyo_nav2_gui
                 break;
             case 'demo':
                 message = "手動操作モード";
+                break;
+            case 'mapping':
+                message = "マッピングモード";
                 break;
             case 'stopped':
                 message = "停止モード";
@@ -159,7 +206,7 @@ hokuyo_nav2_gui
                 indoorPopupContainer.style.display = 'flex';
             })
             .catch(error => {
-                console.error('Error fetching indoor_run.html:', error);
+                console.error('Error fetching indoor_run_popup.html:', error);
                 alert('屋内自律走行設定の読み込みに失敗しました。');
             });
     });
@@ -177,6 +224,20 @@ hokuyo_nav2_gui
                 alert('屋外自律走行設定の読み込みに失敗しました。');
             });
     });
+    
+    mappingBtn.addEventListener('click', () => {
+        fetch('/mapping_popup')
+            .then(response => response.text())
+            .then(data => {
+                mappingRunContent.innerHTML = data;
+                // 🚨 マッピングにはチェックボックスがないため、initializeCheckboxesの呼び出しを削除 🚨
+                mappingPopupContainer.style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Error fetching mapping_popup.html:', error);
+                alert('マッピング設定の読み込みに失敗しました。');
+            });
+    });
 
     closeIndoorPopupBtn.addEventListener('click', () => {
         indoorPopupContainer.style.display = 'none';
@@ -186,6 +247,11 @@ hokuyo_nav2_gui
     closeOutdoorPopupBtn.addEventListener('click', () => {
         outdoorPopupContainer.style.display = 'none';
         outdoorRunContent.innerHTML = '';
+    });
+    
+    closeMappingPopupBtn.addEventListener('click', () => {
+        mappingPopupContainer.style.display = 'none';
+        mappingRunContent.innerHTML = '';
     });
 
     indoorPopupContainer.addEventListener('click', (event) => {
@@ -199,6 +265,13 @@ hokuyo_nav2_gui
         if (event.target === outdoorPopupContainer) {
             outdoorPopupContainer.style.display = 'none';
             outdoorRunContent.innerHTML = '';
+        }
+    });
+    
+    mappingPopupContainer.addEventListener('click', (event) => {
+        if (event.target === mappingPopupContainer) {
+            mappingPopupContainer.style.display = 'none';
+            mappingRunContent.innerHTML = '';
         }
     });
 </script>

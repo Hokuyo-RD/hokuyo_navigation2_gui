@@ -1,46 +1,43 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>ファイルブラウザ</title>
-    <style>
-        body { font-family: sans-serif; }
-        .item { margin: 5px 0; }
-        .dir-item::before { content: '📁 '; }
-        .file-item::before { content: '📄 '; }
-    </style>
-</head>
-<body>
-    <h1>サーバーファイルブラウザ</h1>
-    <p>現在のディレクトリ: <code>{{ current_dir }}</code></p>
-    
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
+<h1>File Browser</h1>
+<h2>Current Directory: <code>{{ current_dir_name }}</code></h2>
+
+{% if current_path %}
+    <p>
+        <a href="{{ url_for('browse', path=parent_path) }}">
+            <strong>[..] Go Up</strong>
+        </a>
+    </p>
+{% endif %}
+
+<h3>Directories</h3>
+<ul>
+{% for dir in dirs %}
+    <li>
+        <a href="{{ url_for('browse', path=current_path + ('/' if current_path else '') + dir) }}">
+            📁 {{ dir }}
+        </a>
+    </li>
+{% endfor %}
+</ul>
+
+<h3>Files</h3>
+<ul>
+{% for file in files %}
+    <li>
+        <form method="POST" action="{{ url_for('handle_file_path') }}" style="display:inline;">
+            <input type="hidden" name="file_path" value="{{ current_path + ('/' if current_path else '') + file }}">
+            <button type="submit" style="background:none; border:none; color:blue; cursor:pointer; text-decoration:underline;">📄 {{ file }}</button>
+        </form>
+    </li>
+{% endfor %}
+</ul>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
         <ul class="flashes">
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
+            {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
         </ul>
-      {% endif %}
-    {% endwith %}
-
-    <h2>ディレクトリ</h2>
-    <ul>
-        {% for dir in dirs %}
-            <li class="item dir-item">{{ dir }}</li>
-        {% endfor %}
-    </ul>
-
-    <h2>ファイル</h2>
-    <ul>
-        {% for file in files %}
-            <li class="item file-item">
-                <form action="{{ url_for('handle_file_path') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="file_name" value="{{ file }}">
-                    <button type="submit">{{ file }}</button>
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+    {% endif %}
+{% endwith %}

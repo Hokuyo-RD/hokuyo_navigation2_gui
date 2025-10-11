@@ -64,7 +64,6 @@
     </div>
 
     <script>
-        // JavaScriptは変更なし
         document.addEventListener('DOMContentLoaded', () => {
             const topicCheckboxes = document.querySelectorAll('#topic-checkboxes input[name="topics"]');
             const allCheckBtn = document.getElementById('all-check-btn');
@@ -104,17 +103,27 @@
                         return;
                     }
 
+                    // 🌟 修正されたJavaScriptロジック 🌟
+                    // URLSearchParams に配列を直接渡すとカンマ区切り文字列に結合されるため、
+                    // 配列の要素をループで個別に 'topics' キーに追加し、
+                    // Flask側で request.form.getlist('topics') でリストとして正しく受け取れるようにします。
+                    const formData = new URLSearchParams();
+                    formData.append('input_bag_path', inputBagPath);
+                    formData.append('output_filename', outputFilename);
+                    
+                    selectedTopics.forEach(topic => {
+                        formData.append('topics', topic);
+                    });
+                    // 🌟 修正終わり 🌟
+
+
                     try {
                         const response = await fetch('/convert', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded',
                             },
-                            body: new URLSearchParams({
-                                'input_bag_path': inputBagPath,
-                                'output_filename': outputFilename,
-                                'topics': selectedTopics  
-                            })
+                            body: formData // 修正された formData を使用
                         });
 
                         const result = await response.json();

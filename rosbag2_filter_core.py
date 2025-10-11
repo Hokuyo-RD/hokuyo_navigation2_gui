@@ -1,4 +1,3 @@
-# rosbag2_filter_core.py
 import os
 import glob
 import shutil
@@ -10,6 +9,7 @@ def _get_bag_info(bag_file_path):
     """
     与えられたパスからrosbagのURIとstorage_idを決定する。
     """
+    bag_file_path = os.path.abspath(bag_file_path) # 絶対パスに正規化
     input_uri_for_reader = None
     input_storage_id = None
     
@@ -37,7 +37,6 @@ def _get_bag_info(bag_file_path):
         elif bag_file_path.endswith('.mcap'):
             input_storage_id = 'mcap'
         elif bag_file_path.endswith('.bag'):
-            # ROS 2では.bag拡張子もsqlite3として扱うことが多い
             input_storage_id = 'sqlite3' 
         else:
             return None, None, "Unsupported bag file extension."
@@ -77,25 +76,29 @@ def get_topic_list(bag_file_path):
 def filter_rosbag(input_bag_path, output_bag_folder_path, keeping_topics):
     """
     指定されたトピックのみを保持して新しいrosbagファイルを作成します。
+    （メッセージタイプ未解決時も生データコピーを試みるロジックを適用）
     """
     if not keeping_topics:
         raise ValueError("Please select at least one topic to keep.")
+
+    input_bag_path = os.path.abspath(input_bag_path)
+    output_bag_folder_path = os.path.abspath(output_bag_folder_path) # パスの正規化
 
     input_uri_for_reader, input_storage_id, error_msg = _get_bag_info(input_bag_path)
     if error_msg:
         raise ValueError(f"Input bag error: {error_msg}")
         
-    # 出力パスのディレクトリチェック
+    # 【重要】出力ディレクトリのクリーンアップ
     if os.path.exists(output_bag_folder_path):
-        if os.path.isdir(output_bag_folder_path) and os.listdir(output_bag_folder_path):
-            raise FileExistsError(f"Output bag directory '{output_bag_folder_path}' already exists and is not empty.")
-        elif not os.path.isdir(output_bag_folder_path):
-             os.remove(output_bag_folder_path)
-             os.makedirs(output_bag_folder_path, exist_ok=True)
-    else:
-        os.makedirs(output_bag_folder_path, exist_ok=True)
-
-
+        if os.path.isdir(output_bag_folder_path):
+            print(f"DEBUG: Found existing directory. Removing it: {output_bag_folder_path}")
+            try:
+                shutil.rmtree(output_bag_folder_path)
+            except Exception as e:
+                raise RuntimeError(f"Failed to remove existing output directory '{output_bag_folder_path}'. Permissions or file lock issue? Error: {e}")
+        elif os.path.isfile(output_bag_folder_path):
+            os.remove(output_bag_folder_path)
+            
     reader = SequentialReader()
     writer = SequentialWriter()
     
@@ -108,7 +111,7 @@ def filter_rosbag(input_bag_path, output_bag_folder_path, keeping_topics):
         # 書き込み設定
         storage_options_write = StorageOptions(uri=output_bag_folder_path, storage_id='sqlite3')
         converter_options_write = ConverterOptions()
-        writer.open(storage_options_write, converter_options_write)
+        writer.open(storage_options_write, converter_options_write) 
         
         # トピック情報
         topic_types_info = reader.get_all_topics_and_types()
@@ -118,22 +121,35 @@ def filter_rosbag(input_bag_path, output_bag_folder_path, keeping_topics):
         # トピックの登録
         for topic_name in topics_to_filter.copy():
             msg_type_str = topic_names_to_types.get(topic_name)
+            
             if msg_type_str:
+                # -----------------------------------------------------
+                # ★ メッセージロード試行 (失敗しても処理を継続) ★
+                # -----------------------------------------------------
                 try:
                     get_message(msg_type_str) 
-                    
-                    topic_metadata = TopicMetadata(
-                        name=topic_name,
-                        type=msg_type_str,
-                        serialization_format='cdr',
-                        offered_qos_profiles="" 
-                    )
-                    writer.create_topic(topic_metadata)
                 except Exception as e:
-                    print(f"Warning: Could not load message type {msg_type_str} for topic {topic_name}: {e}. Skipping.")
+                    print(f"Warning: Could not load message type {msg_type_str} for topic {topic_name}: {e}. Proceeding with TopicMetadata registration to enable raw data copy.")
+                    
+                # TopicMetadata オブジェクトを作成
+                topic_metadata = TopicMetadata(
+                    name=topic_name,
+                    type=msg_type_str,
+                    serialization_format='cdr',
+                    offered_qos_profiles=""
+                )
+                
+                try:
+                    # メタデータとして登録を試みる
+                    writer.create_topic(topic_metadata)
+                except Exception as e_reg:
+                    # 登録自体が完全に失敗した場合のみ、スキップ（除外）
+                    print(f"Error: Failed to register topic {topic_name}. Skipping. Error: {e_reg}")
                     topics_to_filter.discard(topic_name)
+            
             else:
-                print(f"Warning: No type found for topic {topic_name}. Skipping.")
+                # Bagメタデータにタイプ情報がない場合のみスキップ
+                print(f"Warning: No type found in Bag metadata for topic {topic_name}. Skipping.")
                 topics_to_filter.discard(topic_name)
 
         # メッセージの書き込み

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, render_template, redirect, jsonify, url_for, flash
+from flask import Flask, request, render_template, redirect, jsonify, url_for, flash, send_from_directory
 from flask_sockets import Sockets
 import asyncio
 import websockets
 import os
 import shutil
-import zipfile # ROS Bag フィルタ機能用
+import zipfile 
 import subprocess
 from threading import Thread
 from gevent import pywsgi
@@ -16,10 +16,9 @@ import shlex
 
 # --- ROS Bag フィルタのコアロジックをインポート ---
 try:
-    # 実際には rosbag2_filter_core.py ファイルが必要です
-    # 存在しない場合でも、サーバーは起動し、エラーは無視されます。
     from rosbag2_filter_core import get_topic_list, filter_rosbag
 except ImportError as e:
+    # コアロジックのインポート失敗を警告
     print(f"Error: Core logic file (rosbag2_filter_core.py) or ROS 2 libraries not found/sourced: {e}")
 
 # --- パス設定 ---
@@ -34,7 +33,7 @@ else:
 # ROS Bag フィルタ機能のルートディレクトリ
 ROSBAG_ROOT_DIR = '/home/hokuyo/colcon_ws/src/hokuyo_navigation2/rosbag'
 
-# ROS Bag フィルタのダウンロードフォルダ
+# ROS Bag フィルタのダウンロードフォルダは ROSBAG_ROOT_DIR と同じ
 DOWNLOAD_FOLDER = ROSBAG_ROOT_DIR
 ALLOWED_EXTENSIONS = {'bag', 'db3', 'mcap'}
 
@@ -45,7 +44,7 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
 sockets = Sockets(app)
-app.secret_key = 'your_secret_key_here' # 任意の秘密鍵を設定してください
+app.secret_key = 'your_secret_key_here' 
 
 # グローバル変数で現在のモードを管理
 current_mode = "stopped"
@@ -87,21 +86,23 @@ async def proxy(websocket):
 def websocket_handler(ws):
     asyncio.run(proxy(ws))
 
-# ユーティリティ: ディレクトリをZIP圧縮する (ROS Bag フィルタ機能用)
+# ユーティリティ: ディレクトリをZIP圧縮する
 def zip_directory(path, zip_filename):
     """指定されたパスのディレクトリをZIPファイルに圧縮する"""
     with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        root_dir_name = os.path.basename(path)
         for root, dirs, files in os.walk(path):
             for file in files:
                 file_path = os.path.join(root, file)
-                zipf.write(file_path, os.path.relpath(file_path, os.path.dirname(path)))
+                archive_path = os.path.join(root_dir_name, os.path.relpath(file_path, path))
+                zipf.write(file_path, archive_path)
 
 def run_subprocess(command_list):
     """別スレッドでサブプロセスを実行するための関数"""
     subprocess.run(command_list)
 
 # ----------------------------------------------------
-# 既存の自律走行GUI関連のルート
+# 既存の自律走行GUI関連のルート (省略 - 変更なし)
 # ----------------------------------------------------
 @app.route('/get_mode')
 def get_mode():
@@ -141,11 +142,16 @@ def program_executed():
     return render_template('program_executed.html', message="自律走行が開始されました。周囲の安全に気をつけて下さい。")
 
 # ----------------------------------------------------
-# 統合されたROS Bag フィルタ機能のルート (ファイルブラウザとして利用)
+# 統合されたROS Bag フィルタ機能のルート
 # ----------------------------------------------------
 
-@app.route('/', defaults={'path': ''})
-@app.route('/browse_rosbag', defaults={'path': ''}) # ★ROS Bag機能のエントリポイント
+@app.route('/')
+@app.route('/gui')
+def main_gui():
+    # 既存の自律走行GUIのメイン画面
+    return render_template('index.html') 
+
+@app.route('/browse_rosbag', defaults={'path': ''}) 
 @app.route('/browse_rosbag/<path:path>')
 def browse_rosbag(path):
     """ROS Bag フィルタ用のファイルブラウザ"""
@@ -153,7 +159,7 @@ def browse_rosbag(path):
     
     full_path = os.path.join(ROSBAG_ROOT_DIR, path)
     
-    # セキュリティチェック
+    # セキュリティチェック 
     absolute_root_dir = os.path.abspath(ROSBAG_ROOT_DIR)
     absolute_full_path = os.path.abspath(full_path)
     
@@ -173,7 +179,6 @@ def browse_rosbag(path):
         
         parent_path = os.path.dirname(path) if path else None
 
-        # テンプレート名を 'browse.html' から 'rosbag_browse.html' に変更
         return render_template('rosbag_browse.html', 
                                files=files, 
                                dirs=dirs, 
@@ -217,7 +222,6 @@ def select_rosbag():
             
             flash(f'ROS Bag "{file_path}" を読み込みました。トピックを選択してください。', 'success')
             
-            # テンプレート名を 'select_topics.html' から 'rosbag_select_topics.html' に変更
             return render_template('rosbag_select_topics.html', 
                                    topic_list=topic_list, 
                                    input_bag_path=full_path)
@@ -237,7 +241,7 @@ def select_rosbag():
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    # ... (ROS Bag フィルタ機能から変更なし)
+    """トピックフィルタリングを実行し、結果のダウンロードパスを返す"""
     input_bag_path = request.form.get('input_bag_path')
     selected_topics = request.form.getlist('topics')
     output_filename_base = request.form.get('output_filename')
@@ -248,14 +252,25 @@ def convert():
         return jsonify({'status': 'error', 'message': 'トピックを一つ以上選択してください。'}), 400
 
     if not output_filename_base:
-        base_name = os.path.basename(input_bag_path).split('.')[0]
+        # 入力パスがファイルの場合はディレクトリ名、ディレクトリの場合はその名前をベースにする
+        if os.path.isfile(input_bag_path):
+            base_name = os.path.basename(os.path.dirname(input_bag_path))
+        else:
+            base_name = os.path.basename(input_bag_path)
+            
+        # パスが空の場合はデフォルト名を使用
+        if not base_name or base_name == '.':
+             base_name = 'untitled_bag'
+             
         output_filename_base = f'{base_name}_filtered'
     
     output_bag_dir = os.path.join(DOWNLOAD_FOLDER, output_filename_base)
     
     try:
-        # filter_rosbag 関数が NameError を起こす可能性があるため try-except に追加
         result_message = filter_rosbag(input_bag_path, output_bag_dir, selected_topics)
+        
+        # ターミナル出力で結果を確認するため、結果を明示的にログ出力
+        print(f"DEBUG: Conversion finished. Result: {result_message}") 
         
         return jsonify({
             'status': 'success',
@@ -266,18 +281,20 @@ def convert():
     except NameError:
         return jsonify({'status': 'error', 'message': 'ROS Bagフィルタのコア機能がインポートされていません。ROS環境を確認してください。'}), 500
     except Exception as e:
+        # 詳細なエラーをターミナルに出力
+        print(f"ERROR: Conversion failed with exception: {e}")
         return jsonify({'status': 'error', 'message': f'変換中にエラーが発生しました: {e}'}), 500
 
 @app.route('/download/<path:filename>')
 def download_file(filename):
-    # ... (ROS Bag フィルタ機能から変更なし)
+    """フィルタリングされたBagディレクトリをZIP圧縮してダウンロードさせる"""
     bag_dir_path = os.path.join(DOWNLOAD_FOLDER, filename)
     zip_filename = f'{filename}.zip'
     zip_path = os.path.join(DOWNLOAD_FOLDER, zip_filename)
     
     if not os.path.isdir(bag_dir_path):
         flash('ダウンロード用のファイルが見つかりません。', 'error')
-        return redirect(url_for('browse_rosbag')) # ★リダイレクト先を修正
+        return redirect(url_for('browse_rosbag'))
 
     try:
         zip_directory(bag_dir_path, zip_path)
@@ -289,7 +306,7 @@ def download_file(filename):
         )
     except Exception as e:
         flash(f'ファイルのZIP化中にエラーが発生しました: {e}', 'error')
-        return redirect(url_for('browse_rosbag')) # ★リダイレクト先を修正
+        return redirect(url_for('browse_rosbag'))
     finally:
         if os.path.exists(zip_path):
             os.remove(zip_path)
@@ -302,14 +319,10 @@ def download_file(filename):
 def trigger_script():
     global current_mode
     if request.method == 'GET':
-        # ★元のメインページ（自律走行GUI）のHTMLテンプレートを指定
         return render_template('index.html') 
     elif request.method == 'POST':
         command = request.form.get("command") or request.get_json().get("command")
 
-        # ... (他の自律走行コマンドのロジックは変更なし)
-        # ... (execute_indoor_run, execute_outdoor_run)
-        
         if command == "execute_indoor_run":
             check1 = request.form.get("check1")
             check2 = request.form.get("check2")
@@ -325,7 +338,7 @@ def trigger_script():
             check1_outdoor = request.form.get("check1_outdoor")
             check2_outdoor = request.form.get("check2_outdoor")
             check3_outdoor = request.form.get("check3_outdoor")
-            arguments = request.form.get("arguments", "").strip() # 引数を取得
+            arguments = request.form.get("arguments", "").strip() 
             if check1_outdoor == 'checked' and check2_outdoor == 'checked' and check3_outdoor == 'checked':
                 script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
                 command_list = [script_path]
@@ -337,18 +350,14 @@ def trigger_script():
             else:
                 return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
         
-        # 🌟 変更点: start_mapping_filter コマンドの処理 🌟
         elif command == "execute_mapping_filter":
-            # マッピングフィルター機能のファイルブラウザにリダイレクト
-            current_mode = "stopped" # モードをstoppedに戻すか、専用のモードを設定
+            current_mode = "stopped" 
             flash("ROS Bagフィルタリング機能に遷移します。フィルタ対象のROS Bagを選択してください。", "info")
-            return redirect(url_for('browse_rosbag')) # ROS Bagブラウザのルートに遷移
+            return redirect(url_for('browse_rosbag')) 
         
         elif command.startswith("execute_mapping_"):
-            # 既存のマッピング実行ロジック (start_mapping.sh)
             mapping_type = command.replace("execute_mapping_", "")
             
-            # start_maping.sh に修正 (以前の指示に基づく)
             script_path = os.path.join(BASE_PATH, "start_maping.sh")
             command_list = [script_path, mapping_type]
             
@@ -367,22 +376,12 @@ def trigger_script():
             current_mode = "demo"
             return redirect('/demo_executed')
         elif command == "map":
-            # 既存のファイルブラウザ機能（ファイル実行用）は削除されていないが、
-            # ROS Bag機能が/browse_rosbagに分離されたため、
-            # この 'map' コマンドが元々何をしていたかによって調整が必要
-            # 今回は /browse_rosbag が ROS Bag フィルタのメイン画面となるため、
-            # 'map' は ROS Bag フィルタのブラウザに遷移するものと仮定します。
-            # もし元の 'map' が別のファイルブラウザ ('/browse') を指していた場合は、
-            # そのルートを復活させ、ここでリダイレクトしてください。
-            flash("マッピングに関連するファイル処理は、現在ROS Bagフィルタ機能に統合されています。", "info")
-            return redirect(url_for('browse_rosbag'))
+            return redirect('/mapping_popup')
         else:
             print(command)
             return "Unknown command", 400
 
 if __name__ == '__main__':
-    # Flaskのメインアプリケーションを '/gui' から起動するように修正 (例)
-    # デフォルトの '/' は ROS Bag ブラウザのエイリアスとして残しています。
     server = pywsgi.WSGIServer(('0.0.0.0', 5050), app, handler_class=WebSocketHandler)
     print("WebSocket Proxy server started at ws://0.0.0.0:5050/ws")
     server.serve_forever()

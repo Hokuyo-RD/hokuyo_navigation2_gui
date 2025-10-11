@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ROS Bag フィルタ - トピック選択</title>
+    <style>
+        /* CSSは変更なし */
+        body { font-family: sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        .topic-list { 
+            height: 300px; 
+            overflow-y: scroll; 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            margin-bottom: 20px;
+            margin-top: 10px;
+        }
+        .status-message { margin-top: 15px; font-weight: bold; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 8px 15px; margin-right: 10px; cursor: pointer;}
+        input[type="text"] { width: 300px; padding: 5px; }
+        .back-link { margin-bottom: 20px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ROS Bag フィルタ - トピック選択</h1>
+
+        <a href="{{ url_for('browse_rosbag') }}" class="back-link">← ファイルブラウザに戻る</a>
+
+        <h2>1. 読み込み済み ROS Bag</h2>
+        <p>ファイルパス: <code>{{ input_bag_path }}</code></p>
+        
+        <h2>2. 変換するトピックの選択</h2>
+        
+        <div id="conversion-section">
+            <input type="hidden" id="input_bag_path" value="{{ input_bag_path }}">
+
+            <button id="all-check-btn">全てチェック</button>
+            <button id="all-uncheck-btn">全てチェック解除</button>
+
+            <div class="topic-list" id="topic-checkboxes">
+                {% for topic in topic_list %}
+                    <div>
+                        <input type="checkbox" name="topics" value="{{ topic }}" id="topic-{{ loop.index }}" checked>
+                        <label for="topic-{{ loop.index }}">{{ topic }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <hr>
+            <h2>3. 変換実行</h2>
+
+            <label for="output_filename">出力ファイル名 (rosbagディレクトリ名):</label>
+            <input type="text" id="output_filename" placeholder="e.g., filtered_bag">
+            <small>(拡張子は不要です)</small><br><br>
+
+            <button id="convert-btn">変換実行</button>
+            
+            <div class="status-message" id="status-message"></div>
+            <div class="status-message" id="download-link"></div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScriptは変更なし
+        document.addEventListener('DOMContentLoaded', () => {
+            const topicCheckboxes = document.querySelectorAll('#topic-checkboxes input[name="topics"]');
+            const allCheckBtn = document.getElementById('all-check-btn');
+            const allUncheckBtn = document.getElementById('all-uncheck-btn');
+            const convertBtn = document.getElementById('convert-btn');
+            const statusMessage = document.getElementById('status-message');
+            const downloadLinkDiv = document.getElementById('download-link');
+
+            if (allCheckBtn) {
+                allCheckBtn.addEventListener('click', () => {
+                    topicCheckboxes.forEach(cb => cb.checked = true);
+                });
+                
+                allUncheckBtn.addEventListener('click', () => {
+                    topicCheckboxes.forEach(cb => cb.checked = false);
+                });
+            }
+
+            if (convertBtn) {
+                convertBtn.addEventListener('click', async () => {
+                    statusMessage.textContent = '⏱️ 変換処理を実行中... しばらくお待ちください。';
+                    statusMessage.style.color = 'orange';
+                    downloadLinkDiv.innerHTML = '';
+                    convertBtn.disabled = true;
+
+                    const selectedTopics = Array.from(topicCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value);
+
+                    const inputBagPath = document.getElementById('input_bag_path').value;
+                    const outputFilename = document.getElementById('output_filename').value;
+
+                    if (selectedTopics.length === 0) {
+                        statusMessage.textContent = '❌ エラー: トピックを一つ以上選択してください。';
+                        statusMessage.style.color = 'red';
+                        convertBtn.disabled = false;
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/convert', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: new URLSearchParams({
+                                'input_bag_path': inputBagPath,
+                                'output_filename': outputFilename,
+                                'topics': selectedTopics  
+                            })
+                        });
+
+                        const result = await response.json();
+                        
+                        if (result.status === 'success') {
+                            statusMessage.textContent = `✅ 変換が完了しました！ ${result.message}`;
+                            statusMessage.style.color = 'green';
+                            
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = `/download/${result.download_path}`;
+                            downloadLink.textContent = `🔗 フィルタ済み bagファイル (${result.download_path}.zip) をダウンロード`;
+                            downloadLink.style.fontWeight = 'bold';
+                            downloadLinkDiv.appendChild(downloadLink);
+
+                        } else {
+                            statusMessage.textContent = `❌ 変換エラー: ${result.message}`;
+                            statusMessage.style.color = 'red';
+                        }
+
+                    } catch (error) {
+                        statusMessage.textContent = `❌ ネットワークまたは致命的なエラーが発生しました: ${error}`;
+                        statusMessage.style.color = 'red';
+                        console.error('Conversion failed:', error);
+                    } finally {
+                        convertBtn.disabled = false;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -21,7 +21,15 @@
 <body>
     <div class="container">
         <h1>ROS Bag ファイルブラウザ (フィルタ機能)</h1>
-        <p><a href="{{ url_for('trigger_script') }}">← メインGUI (自律走行) に戻る</a></p>
+        <p><a href="#" onclick="closeCurrentTab(); return false;">← メインGUI (自律走行) に戻る</a></p>
+        <script>
+            function closeCurrentTab() {
+                // 現在のタブを閉じます
+                // ブラウザのセキュリティ設定により、
+                // ユーザー操作（クリック）から開かれたウィンドウ/タブのみ閉じることができます。
+                window.close();
+            }
+        </script>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}

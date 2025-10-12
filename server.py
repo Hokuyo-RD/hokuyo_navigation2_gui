@@ -80,8 +80,13 @@ def zip_directory(path, zip_filename):
 
 def run_subprocess(command_list):
     """別スレッドでサブプロセスを実行するための関数"""
-    # shlexは不要と判断し削除。リスト形式のコマンドを直接実行する。
     subprocess.run(command_list)
+
+def _is_safe_path(full_path, root_dir):
+    """ディレクトリトラバーサル攻撃を防ぐための安全なパスチェック"""
+    absolute_root_dir = os.path.abspath(root_dir)
+    absolute_full_path = os.path.abspath(full_path)
+    return absolute_full_path.startswith(absolute_root_dir)
 
 
 # ==============================================================================
@@ -183,12 +188,6 @@ def program_executed():
 # ==============================================================================
 # 7. ROS Bag フィルタ機能ルート
 # ==============================================================================
-
-def _is_safe_path(full_path, root_dir):
-    """ディレクトリトラバーサル攻撃を防ぐための安全なパスチェック"""
-    absolute_root_dir = os.path.abspath(root_dir)
-    absolute_full_path = os.path.abspath(full_path)
-    return absolute_full_path.startswith(absolute_root_dir)
 
 @app.route('/browse_rosbag', defaults={'path': ''}) 
 @app.route('/browse_rosbag/<path:path>')
@@ -375,15 +374,30 @@ def trigger_script():
         else:
             return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
     
+    # 🌟 追加したロジック: sync コマンドの処理 🌟
+    elif command == "execute_mapping_sync":
+        # 'start_maping.sh' に引数 'sync' を渡して実行
+        script_path = os.path.join(BASE_PATH, "start_maping.sh")
+        command_list = [script_path, "sync"] # コマンドライン引数を "sync" に設定
+        
+        Thread(target=run_subprocess, args=(command_list,)).start()
+        current_mode = "mapping" 
+        return redirect('/mapping_executed')
+    # ----------------------------------------
+
+    # ROS Bag filter の処理
     elif command == "execute_mapping_filter":
         current_mode = "stopped" 
         flash("ROS Bagフィルタリング機能に遷移します。フィルタ対象のROS Bagを選択してください。", "info")
         return redirect(url_for('browse_rosbag')) 
     
+    # マッピング処理全般（p2o, lio_raw, pcd2pgmなど、引数を渡すもの）
     elif command.startswith("execute_mapping_"):
+        # コマンドからオプション名を取得 (例: execute_mapping_p2o -> p2o)
         mapping_type = command.replace("execute_mapping_", "")
         
         script_path = os.path.join(BASE_PATH, "start_maping.sh")
+        # mapping_type を引数として渡す
         command_list = [script_path, mapping_type]
         
         Thread(target=run_subprocess, args=(command_list,)).start()

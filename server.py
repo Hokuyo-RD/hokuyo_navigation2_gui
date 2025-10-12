@@ -22,7 +22,8 @@ from geventwebsocket.websocket import WebSocket
 
 # ローカルモジュール (ROS Bag フィルタのコアロジック)
 try:
-    from rosbag2_filter_core import get_topic_list, filter_rosbag
+    # 実際にはここでは使わないが、他の部分で使われているため残す
+    from rosbag2_filter_core import get_topic_list, filter_rosbag 
 except ImportError as e:
     print(f"Error: Core logic file (rosbag2_filter_core.py) or ROS 2 libraries not found/sourced: {e}")
 
@@ -90,7 +91,7 @@ def _is_safe_path(full_path, root_dir):
 
 
 # ==============================================================================
-# 5. WebSocket プロキシ処理
+# 5. WebSocket プロキシ処理 (省略 - 変更なし)
 # ==============================================================================
 
 async def forward(ws, target):
@@ -129,7 +130,7 @@ def websocket_handler(ws):
 
 
 # ==============================================================================
-# 6. GUI/情報取得ルート
+# 6. GUI/情報取得ルート (省略 - 変更なし)
 # ==============================================================================
 
 @app.route('/')
@@ -186,9 +187,10 @@ def program_executed():
 
 
 # ==============================================================================
-# 7. ROS Bag フィルタ機能ルート
+# 7. ROS Bag フィルタ機能ルート (ROS Bag 選択ロジックを再利用)
 # ==============================================================================
 
+# ★ 既存の browse_rosbag をそのまま再利用します ★
 @app.route('/browse_rosbag', defaults={'path': ''}) 
 @app.route('/browse_rosbag/<path:path>')
 def browse_rosbag(path):
@@ -222,9 +224,11 @@ def browse_rosbag(path):
         flash(f"ディレクトリ操作中にエラーが発生しました: {e}", "error")
         return redirect(url_for('browse_rosbag'))
 
+# ... (select_rosbag, convert, download_file は変更なしのため省略) ...
+
 @app.route('/select_rosbag', methods=['POST'])
 def select_rosbag():
-    """ファイル/ディレクトリパスからトピックリストを取得し、選択画面へ遷移する"""
+    """ファイル/ディレクトリパスからトピックリストを取得し、選択画面へ遷移する (ROS Bag Filter用)"""
     file_path = request.form.get('file_path') 
     
     if not file_path:
@@ -374,15 +378,11 @@ def trigger_script():
         else:
             return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
     
-    # 🌟 追加したロジック: sync コマンドの処理 🌟
+    # 🌟 修正箇所: sync コマンドの処理をファイル選択にリダイレクト 🌟
     elif command == "execute_mapping_sync":
-        # 'start_maping.sh' に引数 'sync' を渡して実行
-        script_path = os.path.join(BASE_PATH, "start_maping.sh")
-        command_list = [script_path, "sync"] # コマンドライン引数を "sync" に設定
-        
-        Thread(target=run_subprocess, args=(command_list,)).start()
-        current_mode = "mapping" 
-        return redirect('/mapping_executed')
+        flash("トピック同期に使用するROS Bagを選択し、新しいBagの名前を入力してください。", "info")
+        # 新しいROS Bagブラウザールートにリダイレクト
+        return redirect(url_for('browse_sync_rosbag')) 
     # ----------------------------------------
 
     # ROS Bag filter の処理
@@ -396,7 +396,7 @@ def trigger_script():
         # コマンドからオプション名を取得 (例: execute_mapping_p2o -> p2o)
         mapping_type = command.replace("execute_mapping_", "")
         
-        script_path = os.path.join(BASE_PATH, "start_maping.sh")
+        script_path = os.path.join(BASE_PATH, "start_mapping.sh")
         # mapping_type を引数として渡す
         command_list = [script_path, mapping_type]
         
@@ -425,7 +425,78 @@ def trigger_script():
 
 
 # ==============================================================================
-# 9. メインエントリーポイント
+# 9. 新規追加: sync オプションのためのファイル選択と実行ルート
+# ==============================================================================
+
+@app.route('/browse_sync_rosbag', defaults={'path': ''}) 
+@app.route('/browse_sync_rosbag/<path:path>')
+def browse_sync_rosbag(path):
+    """sync オプションのためにROS Bagファイルまたはディレクトリを選択するブラウザ画面"""
+    full_path = os.path.join(ROSBAG_ROOT_DIR, path)
+    
+    if not _is_safe_path(full_path, ROSBAG_ROOT_DIR):
+        flash("セキュリティ上の理由により、このディレクトリにはアクセスできません。", "error")
+        return redirect(url_for('browse_sync_rosbag'))
+    
+    # browse_rosbag.htmlを再利用しますが、フォームのPOST先は異なります
+    return render_template('rosbag_browse.html', 
+                           files=os.listdir(full_path) if os.path.isdir(full_path) else [], 
+                           dirs=[item for item in os.listdir(full_path) if os.path.isdir(os.path.join(full_path, item))], 
+                           current_path=path, 
+                           current_dir_name=os.path.basename(full_path) if path else ROSBAG_ROOT_DIR, 
+                           root_dir=ROSBAG_ROOT_DIR,
+                           parent_path=os.path.dirname(path) if path else None,
+                           # 実行ボタンの遷移先を /execute_sync_mapping に設定するフラグ
+                           sync_mode=True)
+
+@app.route('/execute_sync_mapping', methods=['POST'])
+def execute_sync_mapping():
+    """sync オプションのROS Bagと名前を取得し、スクリプトを実行する"""
+    input_file_path = request.form.get('file_path')
+    output_filename = request.form.get('output_filename', '').strip()
+    
+    if not input_file_path:
+        flash("ROS Bagファイルまたはディレクトリが選択されていません。", "error")
+        return redirect(url_for('browse_sync_rosbag'))
+    
+    full_input_path = os.path.join(ROSBAG_ROOT_DIR, input_file_path)
+
+    if not _is_safe_path(full_input_path, ROSBAG_ROOT_DIR) or not os.path.exists(full_input_path):
+        flash("選択されたファイルパスが無効です。", "error")
+        return redirect(url_for('browse_sync_rosbag', path=os.path.dirname(input_file_path)))
+
+    if not output_filename:
+        flash("新しいROS Bagの名前を入力してください。", "error")
+        return redirect(url_for('browse_sync_rosbag', path=os.path.dirname(input_file_path)))
+
+    # ROS Bagのディレクトリ名/ファイル名（拡張子なし）を取得
+    base_name = os.path.basename(full_input_path)
+    if os.path.isfile(full_input_path):
+        # 拡張子を削除
+        base_name = os.path.splitext(base_name)[0]
+    
+    # 実行コマンドの構築
+    script_path = os.path.join(BASE_PATH, "start_mapping.sh")
+    command_list = [
+        script_path, 
+        "sync", 
+        base_name, 
+        output_filename
+    ]
+    
+    # スクリプトをバックグラウンドで実行
+    Thread(target=run_subprocess, args=(command_list,)).start()
+    
+    global current_mode
+    current_mode = "mapping" # モードをマッピング中として設定
+    flash(f"トピック同期処理が開始されました。'{base_name}' から '{output_filename}' を生成します。", "success")
+    
+    # 実行完了画面にリダイレクト
+    return redirect('/mapping_executed')
+
+
+# ==============================================================================
+# 10. メインエントリーポイント (省略 - 変更なし)
 # ==============================================================================
 
 if __name__ == '__main__':

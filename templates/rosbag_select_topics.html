@@ -165,14 +165,16 @@
         const inputBagPath = "{{ input_bag_path }}";
         const syncMode = {{ sync_mode | default('false') | lower }};
         
-        // 🌟 修正: Pythonから渡された実際の時間をそのまま使用 (1.5倍しない) 🌟
+        // 🌟 修正済み: Pythonから渡された実際の時間をそのまま使用 (1.5倍しない) 🌟
         const bagDurationSec = {{ bag_duration_sec | default(120) }}; 
         
         // 処理時間の目安 (Bagの長さの1.0倍をシミュレーション時間とする)
-        const ESTIMATED_PROCESS_TIME_SEC = bagDurationSec; // 🌟 修正箇所 🌟
+        const ESTIMATED_PROCESS_TIME_SEC = bagDurationSec; 
 
         let startTime = 0;
         let elapsedInterval = null;
+        const POLLING_INTERVAL_MS = 5000;
+        let pollingInterval = null;
 
         // ROS Bagの長さ（秒）を分:秒形式に変換
         function formatDuration(seconds) {
@@ -200,12 +202,14 @@
             progressBarFill.style.width = `${progress}%`;
             progressBarFill.textContent = `${Math.round(progress)}%`;
 
-            // 処理が完了するはずの時間の1.5倍経過してもサーバーからの応答がない場合、警告を出す
-            // (Syncモードの長時間処理対応のため、このシミュレーションを長く保持する)
-            if (elapsedSec >= ESTIMATED_PROCESS_TIME_SEC　&& elapsedInterval && syncMode) { 
-                 // Syncモードはバックグラウンド実行のため、時間がかかってもタイマーは止めない
-                 document.getElementById('progress-message').textContent = '処理に時間がかかっています。スクリプトがバックグラウンドで続行しているか、ログを確認してください。';
+            // 推定時間を超えたら警告色に
+            if (elapsedSec >= ESTIMATED_PROCESS_TIME_SEC && progress < 100) { 
                  progressBarFill.style.backgroundColor = '#ffc107'; // 警告色
+                 if (syncMode) {
+                     document.getElementById('progress-message').textContent = '処理が推定時間を超過しています。完了をポーリングで監視中です...';
+                 }
+            } else if (progress < 100) {
+                 progressBarFill.style.backgroundColor = '#007bff'; // 通常色
             }
         }
         
@@ -215,6 +219,10 @@
             if (elapsedInterval) {
                 clearInterval(elapsedInterval);
                 elapsedInterval = null;
+            }
+            if (pollingInterval) {
+                clearInterval(pollingInterval); // ポーリングも停止
+                pollingInterval = null;
             }
             
             progressBarFill.style.width = '100%';
@@ -232,6 +240,41 @@
                 document.getElementById('reset-button').style.display = 'inline-block';
             }
         }
+
+        // 🌟 新規: サーバーにポーリングして同期処理の完了をチェックする関数 🌟
+        function startPolling(outputFilename) {
+            if (pollingInterval) clearInterval(pollingInterval); 
+
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/check_sync_status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ output_filename: outputFilename })
+                    });
+                    const result = await response.json();
+
+                    if (result.status === 'finished') {
+                        clearInterval(pollingInterval); // 完了したのでポーリングを停止
+                        showDownloadResult('success', result.download_path);
+                        
+                    } else if (result.status === 'in_progress') {
+                        // 処理続行中: UIはシミュレーションを継続
+                        // console.log(result.message);
+                        
+                    } else if (result.status === 'error') {
+                        // サーバーエラー
+                        clearInterval(pollingInterval);
+                        showDownloadResult('error', `同期ポーリングエラー: ${result.message}`);
+                    }
+
+                } catch (error) {
+                    console.error('ポーリング中のネットワークエラー:', error);
+                    // ネットワークエラーが発生しても、サーバーが落ちていなければ再試行
+                }
+            }, POLLING_INTERVAL_MS);
+        }
+        // ----------------------------------------------------
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -286,10 +329,10 @@
                         showDownloadResult('success', result.download_path);
                     } else {
                          // Syncモード: サーバーでバックグラウンド処理が開始
-                         // 実際にはこの後、サーバーの状態をポーリングするべきだが、
-                         // プログレスバーのシミュレーションと仮定して、タイマーは継続する
                          document.getElementById('progress-message').textContent = result.message;
-                         // タイマーは継続させ、ダウンロード完了を待つロジック（後続のポーリング）に移行
+                         
+                         // 🚨 完了をポーリングで監視開始 🚨
+                         startPolling(result.download_path);
                     }
                 } else {
                     // サーバー側でエラーが発生

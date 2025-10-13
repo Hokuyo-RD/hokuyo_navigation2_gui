@@ -86,7 +86,7 @@ def zip_directory(path, zip_filename):
 def run_subprocess(command_list):
     """別スレッドでサブプロセスを実行するための関数"""
     try:
-        # check=Trueでエラー発生時に例外を発生させる
+        # check=Trueでエラー発生時に例外を発生させる (元のロジック維持)
         subprocess.run(command_list, check=True, capture_output=True, text=True)
         print(f"Subprocess finished successfully: {command_list}")
     except subprocess.CalledProcessError as e:
@@ -260,7 +260,7 @@ def select_rosbag():
             topics_info = get_topic_list(full_path)
             topic_list = sorted(topics_info.keys())
             
-            # 🌟 修正: ROS Bagの再生時間を取得するロジック (ros2 bag info 優先) 🌟
+            # 🌟 ROS Bagの再生時間を取得するロジック (ros2 bag info 優先) 🌟
             bag_duration_sec = 0
             
             # 1. ros2 bag info コマンドで秒数を取得
@@ -310,9 +310,7 @@ def select_rosbag():
                          print(f"Duration found via metadata.yaml: {bag_duration_sec}s")
 
             
-            # 🌟 修正箇所 🌟
-            # 処理時間の目安として、取得したduration（秒）を使用し、120秒の最小値を適用しない
-            # ただし、float値を整数に丸める処理は残す（テンプレートに渡すため）
+            # 🌟 修正済み: 処理時間の目安として、取得したduration（秒）をそのまま使用（最小値なし） 🌟
             if bag_duration_sec > 0:
                 estimated_duration = round(bag_duration_sec)
             else:
@@ -386,7 +384,7 @@ def convert():
             
             # 別スレッドで実行
             Thread(target=run_subprocess, args=(command_list,)).start()
-            result_message = f"トピック同期スクリプトがバックグラウンドで開始されました。出力先: {output_filename_base}"
+            result_message = f"トピック同期スクリプトがバックグラウンドで開始されました。出力ファイル名: {output_filename_base}。完了までお待ちください。"
             
         else:
             # トピックフィルタリング処理: filter_rosbag を実行
@@ -405,6 +403,46 @@ def convert():
     except Exception as e:
         print(f"ERROR: Conversion/Sync failed with exception: {e}")
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
+
+@app.route('/check_sync_status', methods=['POST'])
+def check_sync_status():
+    """
+    トピック同期処理の完了ステータスをチェックするAPI。
+    rosbag_record_with_timeout.bash が作成したフラグファイルの有無で判定する。
+    """
+    data = request.get_json()
+    output_filename = data.get('output_filename')
+
+    if not output_filename:
+        return jsonify({'status': 'error', 'message': '出力ファイル名が指定されていません。'}), 400
+
+    # 完了フラグファイルのパス
+    # Note: rosbag_record_with_timeout.bash が $2/$1.SYNC_DONE を作成することに依存
+    flag_file_name = f'{output_filename}.SYNC_DONE'
+    flag_file_path = os.path.join(DOWNLOAD_FOLDER, flag_file_name)
+    
+    # 完了ファイルが存在するかチェック
+    if os.path.exists(flag_file_path):
+        # 完了ファイルを削除して、次の実行に備える（クリーンアップ）
+        try:
+            os.remove(flag_file_path)
+            print(f"Sync completion flag removed: {flag_file_path}")
+        except Exception as e:
+            print(f"Warning: Failed to remove flag file {flag_file_path}: {e}")
+            
+        # 処理終了を返す
+        return jsonify({
+            'status': 'finished', 
+            'message': 'トピック同期処理が完了しました。',
+            'download_path': output_filename
+        })
+    else:
+        # 処理続行中を返す
+        return jsonify({
+            'status': 'in_progress', 
+            'message': '処理を続行中です...'
+        })
+
 
 @app.route('/download/<path:filename>')
 def download_file(filename):

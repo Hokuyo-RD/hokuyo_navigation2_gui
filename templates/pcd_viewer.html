@@ -31,6 +31,7 @@
             position: absolute;
             bottom: 20px;
             right: 20px;
+            /* リセットボタンのスペースを含めグリッドを定義 */
             display: grid; 
             grid-template-columns: repeat(2, 70px);
             gap: 10px;
@@ -39,16 +40,16 @@
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
-        /* 🌟 追加：モデル回転コントロールのCSS (左下に配置) 🌟 */
+        /* モデル回転コントロールのCSS (左下に配置) */
         #model-rotation-controls {
             position: absolute;
             bottom: 20px;
-            left: 20px; /* 左側に配置 */
+            left: 20px;
             display: grid; 
             grid-template-columns: repeat(2, 70px);
             gap: 10px;
             padding: 15px;
-            background: rgba(240, 248, 255, 0.85); /* カメラと区別する色 */
+            background: rgba(240, 248, 255, 0.85);
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
@@ -73,8 +74,26 @@
             background: #eee;
         }
         .model-rotation-button {
-             background: #f0f0f0; /* モデル回転ボタンの色 */
+             background: #f0f0f0;
              border: 1px solid #aaa;
+        }
+        
+        /* 🌟 リセットボタン固有のスタイル 🌟 */
+        #reset-camera-button {
+            grid-column: 1 / 3; /* 2列全体を使用 */
+            background: #ff5757;
+            color: white;
+            height: 40px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: bold;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+        }
+        #reset-camera-button:active {
+            background: #e04a4a;
         }
         
         .axis-label {
@@ -99,7 +118,13 @@
         
         let scene, camera, renderer, loader;
         let controls; 
-        let pointsMesh = null; // 🌟 追加: 点群オブジェクトを保持 🌟
+        let pointsMesh = null;
+
+        // 🌟 カメラの初期設定を保存するグローバル変数 🌟
+        const initialCamera = {
+            position: new THREE.Vector3(),
+            target: new THREE.Vector3()
+        };
 
         /**
          * ターゲットを中心にカメラを回転させる関数 (ヨー/ピッチ/ロール)
@@ -115,21 +140,19 @@
             
             let rotationAxis = new THREE.Vector3();
 
-            // 回転軸を決定
+            // 回転軸を決定 (Y-up座標系)
             if (axis === 'y') {
                 // Y軸回転 (ヨー: 地面に対して垂直)
                 rotationAxis.set(0, 1, 0);
             } else if (axis === 'x') {
                 // X軸回転 (ピッチ: 水平軸周りの上下回転)
-                // カメラのワールド回転行列からローカルX軸（右方向）を正確に取得
                 const tempY = new THREE.Vector3();
                 const tempZ = new THREE.Vector3();
                 camera.matrixWorld.extractBasis(rotationAxis, tempY, tempZ);
-                rotationAxis.normalize(); // X軸（右ベクトル）
+                rotationAxis.normalize(); 
             } else if (axis === 'z') {
                 // Z軸回転 (ロール: 視線軸周りの回転)
-                // カメラのローカルZ軸（視線方向）を使用
-                camera.getWorldDirection(rotationAxis).negate(); // 視線方向
+                camera.getWorldDirection(rotationAxis).negate(); 
             } else {
                 return;
             }
@@ -141,7 +164,7 @@
             offset.applyQuaternion(quaternion);
             camera.position.copy(target).add(offset);
             
-            // ロール回転の場合、カメラのアップベクトルも回転させる必要がある
+            // ロール回転の場合、カメラのアップベクトルも回転させる
             if (axis === 'z') {
                 camera.up.applyQuaternion(quaternion);
             }
@@ -175,8 +198,25 @@
             // モデルの回転
             pointsMesh.rotateOnWorldAxis(rotationAxis, angle);
             
-            // カメラコントロールを更新して再描画を促す
             controls.update(); 
+        }
+
+        /**
+         * 🌟 カメラの位置を初期設定にリセットする関数 🌟
+         */
+        function resetCamera() {
+            if (!controls || !initialCamera.position.lengthSq()) return;
+
+            // カメラの位置とターゲットを初期値に戻す
+            camera.position.copy(initialCamera.position);
+            controls.target.copy(initialCamera.target);
+            
+            // カメラのアップベクトルをY軸 (0, 1, 0) にリセット
+            camera.up.set(0, 1, 0); 
+            
+            // コントロールを更新
+            controls.update();
+            camera.lookAt(controls.target);
         }
 
         function init() {
@@ -194,14 +234,16 @@
             scene.background = new THREE.Color(0x333333);
             
             camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-            camera.position.set(5, 5, 5);
+            // 初期位置は(5, 5, 5)からスタート (PCDロード後に調整される)
+            camera.position.set(5, 5, 5); 
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(width, height);
             container.appendChild(renderer.domElement);
 
             // 軸ヘルパー（ギズモ）の追加
-            const axesHelper = new THREE.AxesHelper(10); 
+            // 🌟 修正: 軸の長さを 10 -> 1 に変更 🌟
+            const axesHelper = new THREE.AxesHelper(1); 
             axesHelper.isAxesHelper = true; 
             scene.add(axesHelper);
 
@@ -213,7 +255,7 @@
             controls.enableDamping = true; 
             controls.dampingFactor = 0.05;
             
-            // Orbital Camera設定: ターゲット中心回転
+            // Orbital Camera設定: ターゲット中心回転 (Y-up座標系)
             controls.enablePan = true;
             controls.screenSpacePanning = false; 
             controls.minDistance = 1;
@@ -221,15 +263,15 @@
             
             // タッチ操作の最適化
             controls.touches = {
-                ONE: THREE.TOUCH.ROTATE,       // 1本指: 回転
-                TWO: THREE.TOUCH.DOLLY_PAN     // 2本指: ズームとパン
+                ONE: THREE.TOUCH.ROTATE,       
+                TWO: THREE.TOUCH.DOLLY_PAN     
             };
 
             // マウスボタンの設定
             controls.mouseButtons = {
-                LEFT: THREE.MOUSE.ROTATE,    // 左クリックでターゲット中心回転
-                MIDDLE: THREE.MOUSE.DOLLY,   // ズーム
-                RIGHT: THREE.MOUSE.PAN       // 右クリックで平面移動
+                LEFT: THREE.MOUSE.ROTATE,    
+                MIDDLE: THREE.MOUSE.DOLLY,   
+                RIGHT: THREE.MOUSE.PAN       
             };
             
             // 4. PCDファイルの読み込み
@@ -240,7 +282,7 @@
                 // 読み込み成功時のコールバック
                 function (points) {
                     scene.add(points);
-                    pointsMesh = points; // 🌟 点群オブジェクトを変数に保持 🌟
+                    pointsMesh = points; 
                     
                     document.getElementById('loading-message').style.display = 'none';
                     document.getElementById('info').innerHTML = `マップ: <b>${filename}</b><br>点群数: ${points.geometry.attributes.position.count}`;
@@ -256,8 +298,15 @@
                     const size = new THREE.Vector3();
                     boundingBox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
-                    camera.position.copy(center).add(new THREE.Vector3(maxDim, maxDim, maxDim).multiplyScalar(0.5));
                     
+                    // カメラの位置を再設定（点群の中心から対角線上に離れた位置）
+                    const initialPos = center.clone().add(new THREE.Vector3(maxDim, maxDim, maxDim).multiplyScalar(0.5));
+                    camera.position.copy(initialPos);
+                    
+                    // 🌟 初期カメラ設定をグローバル変数に保存 🌟
+                    initialCamera.position.copy(initialPos);
+                    initialCamera.target.copy(center);
+
                     // 軸ヘルパーのサイズと位置を調整
                     const existingAxesHelper = scene.children.find(obj => obj.isAxesHelper);
                     if (existingAxesHelper) {
@@ -295,13 +344,16 @@
             document.getElementById('rotate-z-left').addEventListener('click', () => rotateCamera('z', 1));
             document.getElementById('rotate-z-right').addEventListener('click', () => rotateCamera('z', -1));
             
-            // 🌟 モデル回転ボタンイベントリスナー 🌟
+            // モデル回転ボタンイベントリスナー
             document.getElementById('model-rotate-x-up').addEventListener('click', () => rotateModel('x', 1));
             document.getElementById('model-rotate-x-down').addEventListener('click', () => rotateModel('x', -1));
             document.getElementById('model-rotate-y-left').addEventListener('click', () => rotateModel('y', 1));
             document.getElementById('model-rotate-y-right').addEventListener('click', () => rotateModel('y', -1));
             document.getElementById('model-rotate-z-left').addEventListener('click', () => rotateModel('z', 1));
             document.getElementById('model-rotate-z-right').addEventListener('click', () => rotateModel('z', -1));
+
+            // 🌟 カメラリセットボタンイベントリスナー 🌟
+            document.getElementById('reset-camera-button').addEventListener('click', resetCamera);
         }
 
         function onWindowResize() {
@@ -368,6 +420,7 @@
         <div style="grid-column: 1 / 3; text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
             カメラ操作 (Target Orbit)
         </div>
+        
         <div id="rotate-z-left" class="rotation-button">
             ⟲
             <span class="axis-label axis-z">Z (ロール)</span>
@@ -394,6 +447,8 @@
             ↓
             <span class="axis-label axis-x">X (ピッチ)</span>
         </div>
+        
+        <button id="reset-camera-button" class="rotation-button">カメラリセット</button>
     </div>
 </body>
 </html>

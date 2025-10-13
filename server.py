@@ -209,7 +209,7 @@ def program_executed():
 @app.route('/browse_rosbag', defaults={'path': ''}) 
 @app.route('/browse_rosbag/<path:path>')
 def browse_rosbag(path):
-    """ROS Bag フィルタ/同期/P2O用のファイルブラウザ"""
+    """ROS Bag フィルタ/同期/P2O/LIO-RAW用のファイルブラウザ"""
     full_path = os.path.join(ROSBAG_ROOT_DIR, path)
     
     if not _is_safe_path(full_path, ROSBAG_ROOT_DIR):
@@ -230,6 +230,8 @@ def browse_rosbag(path):
         # URLパラメータからモードを取得
         sync_mode_browse = request.args.get('mode') == 'sync'
         p2o_mode_browse = request.args.get('mode') == 'p2o'
+        # 🌟 LIO-RAW モードのフラグ追加 🌟
+        lio_raw_mode_browse = request.args.get('mode') == 'lio_raw'
         
         return render_template('rosbag_browse.html', 
                                files=files, 
@@ -240,7 +242,9 @@ def browse_rosbag(path):
                                parent_path=parent_path,
                                # browse_rosbag.htmlの遷移先制御用
                                sync_mode=sync_mode_browse,
-                               p2o_mode=p2o_mode_browse) 
+                               p2o_mode=p2o_mode_browse,
+                               # 🌟 LIO-RAW モードの制御フラグ 🌟
+                               lio_raw_mode=lio_raw_mode_browse) 
 
     except (FileNotFoundError, PermissionError) as e:
         flash(f"ディレクトリ操作中にエラーが発生しました: {e}", "error")
@@ -264,6 +268,8 @@ def select_rosbag():
     
     is_sync_mode = request.form.get('mode') == 'sync' 
     is_p2o_mode = request.form.get('mode') == 'p2o' 
+    # 🌟 LIO-RAW モードのフラグ追加 🌟
+    is_lio_raw_mode = request.form.get('mode') == 'lio_raw' 
 
     is_rosbag = os.path.isdir(full_path) or full_path.lower().endswith(tuple(f'.{ext}' for ext in ALLOWED_EXTENSIONS))
     
@@ -311,7 +317,7 @@ def select_rosbag():
                         elif 'rosbag2_bagfile_information' in metadata and 'duration' in metadata['rosbag2_bagfile_information']:
                             bag_duration_sec = metadata['rosbag2_bagfile_information']['duration'] / 1_000_000_000
             
-            # P2O/Sync処理はBagの長さに依存するため、Bagの長さを目安とする
+            # P2O/Sync/LIO-RAW処理はBagの長さに依存するため、Bagの長さを目安とする
             if bag_duration_sec > 0:
                 estimated_duration = round(bag_duration_sec)
             else:
@@ -325,6 +331,8 @@ def select_rosbag():
                                    input_bag_path=full_path,
                                    sync_mode=is_sync_mode,
                                    p2o_mode=is_p2o_mode, 
+                                   # 🌟 LIO-RAW モードの制御フラグ 🌟
+                                   lio_raw_mode=is_lio_raw_mode,
                                    bag_duration_sec=estimated_duration) 
             
         except NameError:
@@ -411,8 +419,26 @@ def convert():
 @app.route('/p2o_mapping', methods=['POST'])
 def p2o_mapping():
     """P2O SLAM 処理を開始し、結果のダウンロードパスを返す (API)"""
+    return _start_mapping_process('p2o', request)
+
+# ------------------------------------------------------
+# 🌟 LIO-RAW マッピング実行用 API (新規追加) 🌟
+# ------------------------------------------------------
+@app.route('/lio_raw_mapping', methods=['POST'])
+def lio_raw_mapping():
+    """LIO-RAW SLAM 処理を開始し、結果のダウンロードパスを返す (API)"""
+    return _start_mapping_process('lio_raw', request)
+
+# ------------------------------------------------------
+# 共通マッピング開始ヘルパー関数
+# ------------------------------------------------------
+def _start_mapping_process(mode, req):
+    """
+    指定されたモードでマッピング処理を開始する共通ヘルパー関数。
+    mode: 'p2o' または 'lio_raw'
+    """
     try:
-        data = request.get_json()
+        data = req.get_json()
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'リクエストJSONのパースエラー: {e}'}), 400
 
@@ -430,28 +456,24 @@ def p2o_mapping():
     else:
         base_name = os.path.basename(input_bag_path.rstrip('/'))
     
-    # 🌟 修正: 完了フラグの出力パスをMAP_DIRに変更 🌟
-    flag_file_name_full = f'{output_map_name}.P2O_DONE'
+    # 🌟 修正: 完了フラグの出力パスをMAP_DIRに変更し、モードを組み込む 🌟
+    flag_file_name_full = f'{output_map_name}.{mode.upper()}_DONE'
     
     try:
-        # start_mapping.sh p2o input_bag_name output_map_name map_dir_path flag_file_name
-        # スクリプトが map_dir_path に flag_file_name を作成することを前提
+        # start_mapping.sh <mode> <inbagname> <map_name> <pcd_output_dir> <flag_file_name>
         script_path = os.path.join(BASE_PATH, "start_mapping.sh")
         command_list = [
             script_path, 
-            "p2o", 
+            mode,            # 0. モード ('p2o' または 'lio_raw')
             base_name,       # 1. 選択したROS Bag名
             output_map_name, # 2. 新しいマップ名 (PCD名)
             MAP_DIR,         # 3. マップ保存ディレクトリパス
             flag_file_name_full # 4. 完了フラグファイル名
         ]
         
-        # 実行ログに出力するフラグパスも修正
-        log_flag_path = os.path.join(MAP_DIR, flag_file_name_full)
-        
         # 別スレッドで実行
         Thread(target=run_subprocess, args=(command_list,)).start()
-        result_message = f"P2O マッピングスクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name} (フラグファイル: {flag_file_name_full} at {MAP_DIR})"
+        result_message = f"{mode.upper()} マッピングスクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name}"
         
         # クライアント側でポーリング/完了待機が必要なため、ここでは成功応答を返す。
         return jsonify({
@@ -461,23 +483,26 @@ def p2o_mapping():
         })
         
     except Exception as e:
-        print(f"ERROR: P2O Mapping failed with exception: {e}")
+        print(f"ERROR: {mode.upper()} Mapping failed with exception: {e}")
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
 
+
 # ------------------------------------------------------
-# P2O マッピング完了チェック用 API (完了フラグパス修正済み)
+# P2O/LIO-RAW マッピング完了チェック用 API (共通化)
 # ------------------------------------------------------
-@app.route('/check_p2o_status', methods=['POST'])
-def check_p2o_status():
-    """P2O SLAM 処理の完了ステータスをチェックするAPI。完了時にPCDダウンロードURLを返す。"""
-    data = request.get_json()
+def _check_mapping_status(mode, req):
+    """
+    P2O または LIO-RAW SLAM 処理の完了ステータスをチェックする共通ヘルパー関数。
+    mode: 'p2o' または 'lio_raw'
+    """
+    data = req.get_json()
     output_map_name = data.get('output_map_name')
 
     if not output_map_name:
         return jsonify({'status': 'error', 'message': '出力マップ名が指定されていません。'}), 400
 
     # 🌟 修正: 完了フラグのパスを MAP_DIR に変更 🌟
-    flag_file_name = f'{output_map_name}.P2O_DONE'
+    flag_file_name = f'{output_map_name}.{mode.upper()}_DONE'
     flag_file_path = os.path.join(MAP_DIR, flag_file_name) 
     
     # 完了ファイルが存在するかチェック
@@ -486,25 +511,25 @@ def check_p2o_status():
         pcd_filename = f'{output_map_name}.pcd'
         pcd_file_path = os.path.join(MAP_DIR, pcd_filename)
         
+        # 完了フラグを削除
+        try:
+            os.remove(flag_file_path)
+            print(f"{mode.upper()} completion flag removed: {flag_file_path}")
+        except Exception as e:
+            print(f"Warning: Failed to remove flag file {flag_file_path}: {e}")
+            
         if not os.path.exists(pcd_file_path):
             return jsonify({
                 'status': 'error', 
-                'message': f'完了フラグは存在しますが、PCDファイル "{pcd_filename}" が {MAP_DIR} に見つかりません。'
+                'message': f'PCDファイルが見つかりません。フラグは存在しましたが、"{pcd_filename}" が {MAP_DIR} に見つかりません。'
             })
-            
-        # 完了ファイルを削除して、次の実行に備える（クリーンアップ）
-        try:
-            os.remove(flag_file_path)
-            print(f"P2O completion flag removed: {flag_file_path}")
-        except Exception as e:
-            print(f"Warning: Failed to remove flag file {flag_file_path}: {e}")
             
         # ダウンロードURLを生成
         download_url = url_for('download_map', filename=pcd_filename)
         
         return jsonify({
             'status': 'finished', 
-            'message': 'P2O SLAM 処理が完了しました。PCDファイルをダウンロードできます。',
+            'message': f'{mode.upper()} SLAM 処理が完了しました。PCDファイルをダウンロードできます。',
             'map_name': output_map_name,
             'download_url': download_url 
         })
@@ -512,9 +537,23 @@ def check_p2o_status():
         # 処理続行中を返す
         return jsonify({
             'status': 'in_progress', 
-            'message': 'P2O SLAM 処理を続行中です...'
+            'message': f'{mode.upper()} SLAM 処理を続行中です...'
         })
+
+@app.route('/check_p2o_status', methods=['POST'])
+def check_p2o_status():
+    """P2O SLAM 処理の完了ステータスをチェックするAPI。"""
+    return _check_mapping_status('p2o', request)
+
 # ------------------------------------------------------
+# 🌟 LIO-RAW マッピング完了チェック用 API (新規追加) 🌟
+# ------------------------------------------------------
+@app.route('/check_lio_raw_status', methods=['POST'])
+def check_lio_raw_status():
+    """LIO-RAW SLAM 処理の完了ステータスをチェックするAPI。"""
+    return _check_mapping_status('lio_raw', request)
+# ------------------------------------------------------
+
 
 @app.route('/check_sync_status', methods=['POST'])
 def check_sync_status():
@@ -590,7 +629,7 @@ def download_file(filename):
 @app.route('/download_map/<filename>')
 def download_map(filename):
     """
-    PCDファイルをダウンロードさせる。(P2O完了後にフロントエンドから呼ばれる)
+    PCDファイルをダウンロードさせる。(P2O/LIO-RAW完了後にフロントエンドから呼ばれる)
     """
     try:
         directory = MAP_DIR
@@ -708,7 +747,13 @@ def trigger_script():
         flash("P2O マッピングに使用するROS Bagを選択してください。", "info")
         return redirect(url_for('browse_rosbag', mode='p2o'))
     
-    # マッピング処理全般（lio_raw, pcd2pgmなど）
+    # 🌟 LIO-RAW マッピングへの遷移 (新規追加) 🌟
+    elif command == "execute_mapping_lio_raw":
+        current_mode = "stopped"
+        flash("LIO-RAW マッピングに使用するROS Bagを選択してください。", "info")
+        return redirect(url_for('browse_rosbag', mode='lio_raw'))
+    
+    # マッピング処理全般（pcd2pgmなど、ROS Bag選択を伴わない旧来のモード）
     elif command.startswith("execute_mapping_"):
         mapping_type = command.replace("execute_mapping_", "")
         

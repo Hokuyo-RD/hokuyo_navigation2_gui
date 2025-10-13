@@ -70,7 +70,8 @@
         button:hover {
             background-color: #0056b3;
         }
-        #p2o-options {
+        /* P2O/LIO-RAW オプションの共通スタイル */
+        #p2o-options, #lio-raw-options {
             border: 1px solid #ccc;
             padding: 15px;
             border-radius: 5px;
@@ -150,7 +151,8 @@
                 トピック同期 (Sync)
             {% elif p2o_mode %}
                 P2O マッピング
-            {% else %}
+            {% elif lio_raw_mode %}
+                LIO-RAW マッピング {% else %}
                 トピックフィルタリング (Filter)
             {% endif %}
         </p>
@@ -160,12 +162,11 @@
         <input type="hidden" id="input-bag-path" value="{{ input_bag_path }}">
         <input type="hidden" id="is-sync-mode" value="{{ sync_mode | tojson }}">
         <input type="hidden" id="is-p2o-mode" value="{{ p2o_mode | tojson }}">
-
-        <label for="output-filename">出力ファイル/マップ名:</label>
+        <input type="hidden" id="is-lio-raw-mode" value="{{ lio_raw_mode | tojson }}"> <label for="output-filename">出力ファイル/マップ名:</label>
         {% set default_name = input_bag_path.split('/')[-1].split('.')[:-1]|join('.') %}
         <input type="text" id="output-filename" placeholder="例: {{ default_name }}_processed" value="{{ default_name }}_processed">
         
-        <div id="filter-options" style="{% if sync_mode or p2o_mode %}display: none;{% endif %}">
+        <div id="filter-options" style="{% if sync_mode or p2o_mode or lio_raw_mode %}display: none;{% endif %}">
             <label>選択するトピック (フィルタリングモードのみ):</label>
             <div class="topic-list">
                 {% for topic in topic_list %}
@@ -182,13 +183,19 @@
             <p>P2Oモードでは、トピック同期処理後のクリーンなROS Bagを入力として使用することが推奨されます。</p>
             <p><strong>出力マップ名:</strong> 上記の「出力ファイル/マップ名」がそのまま最終的なPCDファイル名に使用されます。</p>
         </div>
-
+        
+        <div id="lio-raw-options" style="{% if not lio_raw_mode %}display: none;{% endif %}">
+            <h3>LIO-RAW マッピング オプション</h3>
+            <p>LIO-RAWモードでは、計測したROS Bagを入力として使用し、GNSSによる補正前のLIOの地図を生成します。</p>
+            <p><strong>出力マップ名:</strong> 上記の「出力ファイル/マップ名」がそのまま最終的なPCDファイル名に使用されます。</p>
+        </div>
         <button type="submit" id="start-button">
             {% if sync_mode %}
                 同期処理を開始
             {% elif p2o_mode %}
                 P2O マッピングを開始
-            {% else %}
+            {% elif lio_raw_mode %}
+                LIO-RAW マッピングを開始 {% else %}
                 フィルタリングを開始
             {% endif %}
         </button>
@@ -217,38 +224,44 @@
     const progressMessage = document.getElementById('progress-message');
     const messageArea = document.getElementById('message-area');
     const downloadLink = document.getElementById('download-link');
-    const viewerLink = document.getElementById('viewer-link'); // 🌟 新規追加 🌟
-
+    const viewerLink = document.getElementById('viewer-link');
+    
+    // 🌟 LIO-RAW モードのフラグを取得 🌟
     const inputBagPath = document.getElementById('input-bag-path').value;
     const isSyncMode = JSON.parse(document.getElementById('is-sync-mode').value);
     const isP2OMode = JSON.parse(document.getElementById('is-p2o-mode').value);
-    const bagDurationSec = {{ bag_duration_sec | default(120) }}; // ポーリング間隔の基準に使用
+    const isLioRawMode = JSON.parse(document.getElementById('is-lio-raw-mode').value); // 🌟 LIO-RAW フラグ 🌟
+    const isMappingMode = isP2OMode || isLioRawMode; // マッピングモードの共通フラグ
+    const bagDurationSec = {{ bag_duration_sec | default(120) }};
 
     let pollingTimer = null;
-    let progressCounter = 0;
     let totalPollingTime = 0;
 
     // 処理結果を表示する関数 (成功/エラー)
-    function showDownloadResult(status, filenameOrMapName, isP2O = false, downloadUrl = null) {
+    function showDownloadResult(status, filenameOrMapName, mode, downloadUrl = null) {
         if (pollingTimer) {
             clearInterval(pollingTimer);
             pollingTimer = null;
         }
 
-        progressMessage.textContent = status === 'success' || status === 'finished' ? '処理が完了しました。' : '処理が失敗しました。';
-        messageArea.textContent = status === 'success' || status === 'finished' ? '' : 'エラーが発生しました。ログを確認してください。';
-        progressBarFill.style.width = '100%';
-        document.getElementById('reset-button').style.display = 'inline-block';
+        const isMapping = (mode === 'p2o' || mode === 'lio_raw');
+        const modeName = mode.toUpperCase();
 
+        progressMessage.textContent = status === 'finished' ? `✅ ${modeName} 処理が完了しました。` : '処理が失敗しました。';
+        messageArea.textContent = status === 'finished' ? '' : '❌ エラーが発生しました。ログを確認してください。';
+        
+        progressBarFill.style.width = '100%';
+        progressBarFill.style.backgroundColor = status === 'finished' ? '#28a745' : '#dc3545';
+        
+        document.getElementById('reset-button').style.display = 'inline-block';
         downloadLink.style.display = 'none';
-        viewerLink.style.display = 'none'; // 初期化
+        viewerLink.style.display = 'none';
 
         if (status === 'finished') {
-            progressBarFill.style.backgroundColor = '#28a745';
             
-            if (isP2O) {
-                // P2Oモード完了時
-                progressMessage.textContent = `P2O マッピングが完了しました。マップ名: ${filenameOrMapName}。`;
+            if (isMapping) {
+                // マッピングモード完了時 (P2O/LIO-RAW)
+                progressMessage.textContent = `${modeName} マッピングが完了しました。マップ名: ${filenameOrMapName}。`;
                 
                 if (downloadUrl) {
                     // 1. ダウンロードリンク (PCDファイルとしてダウンロード)
@@ -259,9 +272,9 @@
                     downloadLink.target = '_self';
 
                     // 2. ビューアリンク (新しいウィンドウで開く)
-                    viewerLink.href = `/view_map/${filenameOrMapName}`; // 🌟 P2Oビューアルート 🌟
+                    viewerLink.href = `/view_map/${filenameOrMapName}`;
                     viewerLink.style.display = 'block'; 
-                    viewerLink.style.backgroundColor = '#007bff'; // ビューアボタンの色
+                    viewerLink.style.backgroundColor = '#007bff';
                 } else {
                     progressMessage.textContent += ' (警告: ダウンロードURLがありません)';
                 }
@@ -275,24 +288,35 @@
                 downloadLink.style.backgroundColor = '#28a745';
                 downloadLink.target = '_self'; 
             }
-        } else if (status === 'error') {
-            progressBarFill.style.backgroundColor = '#dc3545';
         }
     }
 
 
     // 処理状況をポーリングする関数
-    function startPolling(outputFilename, isP2O) {
+    function startPolling(outputFilename, mode) {
         progressArea.style.display = 'block';
         startButton.style.display = 'none';
         
-        progressCounter = 0;
         totalPollingTime = 0;
+        progressBarFill.style.backgroundColor = '#007bff'; // 初期色は青
+        progressBarFill.textContent = '0%';
+
+        let endpoint;
+        if (mode === 'p2o') {
+            endpoint = '/check_p2o_status';
+        } else if (mode === 'lio_raw') {
+            endpoint = '/check_lio_raw_status'; // 🌟 LIO-RAWのAPI 🌟
+        } else if (mode === 'sync' || mode === 'filter') {
+            endpoint = '/check_sync_status';
+        } else {
+            console.error("Unknown mode for polling:", mode);
+            return;
+        }
 
         // ポーリングの実行ロジック (約1秒間隔)
         pollingTimer = setInterval(async () => {
-            const endpoint = isP2O ? '/check_p2o_status' : '/check_sync_status';
-            const payload = isP2O ? 
+            const isMapping = (mode === 'p2o' || mode === 'lio_raw');
+            const payload = isMapping ? 
                 { output_map_name: outputFilename } : 
                 { output_filename: outputFilename };
             
@@ -304,19 +328,16 @@
                 });
                 const data = await response.json();
 
-                if (data.status === 'finished') {
-                    showDownloadResult('finished', outputFilename, isP2O, data.download_url);
-                    return;
-                } else if (data.status === 'error') {
-                    progressMessage.textContent = 'エラー: ' + data.message;
-                    messageArea.textContent = '処理に失敗しました。';
-                    showDownloadResult('error', outputFilename, isP2O);
+                if (data.status === 'finished' || data.status === 'error') {
+                    showDownloadResult(data.status, outputFilename, mode, data.download_url);
                     return;
                 }
 
                 // 進行中のプログレスバー更新
                 totalPollingTime += 1000; // 1秒ごとに増やす
-                const maxExpectedTime = isP2O ? bagDurationSec * 1000 * 2 : bagDurationSec * 1000 * 1.5; // P2Oは長めに設定
+                // P2O/LIO-RAWは長めに設定 (Filter/Syncは1.5倍、Mappingは2倍)
+                const multiplier = isMapping ? 2 : 1.5; 
+                const maxExpectedTime = bagDurationSec * 1000 * multiplier; 
                 
                 let progress = Math.min(99, Math.round((totalPollingTime / maxExpectedTime) * 90)); // 99%で停止
                 
@@ -330,7 +351,7 @@
                 console.error('Polling error:', error);
                 progressMessage.textContent = 'サーバーとの通信中にエラーが発生しました。';
                 messageArea.textContent = '処理に失敗しました。';
-                showDownloadResult('error', outputFilename, isP2O);
+                showDownloadResult('error', outputFilename, mode);
             }
         }, 1000); // 1秒間隔でポーリング
     }
@@ -346,40 +367,49 @@
             return;
         }
 
-        // トピック選択の収集 (Filterモードのみ)
-        let selectedTopics = [];
-        if (!isSyncMode && !isP2OMode) {
-            const checkboxes = document.querySelectorAll('#filter-options input[name="topics"]:checked');
-            selectedTopics = Array.from(checkboxes).map(cb => cb.value);
-
-            if (selectedTopics.length === 0) {
-                messageArea.textContent = 'トピックを一つ以上選択してください。';
-                return;
-            }
-        }
-        
         messageArea.textContent = '';
         progressArea.style.display = 'block';
         startButton.style.display = 'none';
         progressMessage.innerHTML = '<span class="loading-icon"></span> 処理を開始しています...';
         progressBarFill.style.width = '1%';
-        progressBarFill.style.backgroundColor = '#007bff'; // 初期色は青
+        progressBarFill.style.backgroundColor = '#007bff';
 
-        let apiUrl = isP2OMode ? '/p2o_mapping' : '/convert';
-        
+        let apiUrl = '/convert';
+        let mode = 'filter'; // デフォルト
+
         let payload = {
             input_bag_path: inputBagPath,
             output_filename: outputFilename,
             is_sync_mode: isSyncMode,
         };
         
-        if (isP2OMode) {
+        if (isSyncMode) {
+            mode = 'sync';
+        } else if (isP2OMode) {
+            apiUrl = '/p2o_mapping';
+            mode = 'p2o';
             payload = {
                 input_bag_path: inputBagPath,
-                output_map_name: outputFilename, // P2Oは output_map_name を使用
+                output_map_name: outputFilename,
             };
-        } else if (!isSyncMode) {
-            payload.topics = selectedTopics;
+        } else if (isLioRawMode) { // 🌟 LIO-RAWモードの処理 🌟
+            apiUrl = '/lio_raw_mapping';
+            mode = 'lio_raw';
+            payload = {
+                input_bag_path: inputBagPath,
+                output_map_name: outputFilename,
+            };
+        } else {
+            // Filterモード
+            const checkboxes = document.querySelectorAll('#filter-options input[name="topics"]:checked');
+            payload.topics = Array.from(checkboxes).map(cb => cb.value);
+
+            if (payload.topics.length === 0) {
+                messageArea.textContent = 'トピックを一つ以上選択してください。';
+                startButton.style.display = 'block'; // エラーでボタン再表示
+                progressArea.style.display = 'none';
+                return;
+            }
         }
 
 
@@ -393,18 +423,18 @@
 
             if (data.status === 'success') {
                 // 処理スクリプトは開始されたが、完了はしていない。ポーリングを開始する。
-                startPolling(outputFilename, isP2OMode);
+                startPolling(outputFilename, mode);
                 progressMessage.textContent = data.message;
             } else {
                 progressMessage.textContent = 'エラー: ' + data.message;
                 messageArea.textContent = '処理の開始に失敗しました。';
-                showDownloadResult('error', outputFilename, isP2OMode);
+                showDownloadResult('error', outputFilename, mode);
             }
 
         } catch (error) {
             progressMessage.textContent = 'サーバー通信中にエラーが発生しました。';
             messageArea.textContent = '処理の開始に失敗しました。';
-            showDownloadResult('error', outputFilename, isP2OMode);
+            showDownloadResult('error', outputFilename, mode);
         }
     });
 

@@ -24,7 +24,8 @@
             (トピック同期用)
             {% elif p2o_mode %}
             (P2O マッピング用)
-            {% else %}
+            {% elif lio_raw_mode %}
+            **(LIO-RAW マッピング用)** {% else %}
             (フィルタリング用)
             {% endif %}
         </h1>
@@ -64,6 +65,8 @@
             <input type="hidden" name="mode" value="sync">
             {% elif p2o_mode %}
             <input type="hidden" name="mode" value="p2o">
+            {% elif lio_raw_mode %}
+            <input type="hidden" name="mode" value="lio_raw">
             {% endif %}
 
             <button type="submit" id="select_button" disabled>ROS Bagとして選択</button>
@@ -71,7 +74,7 @@
         </form>
 
         <ul id="file-list">
-            {% set current_mode_param = 'sync' if sync_mode else ('p2o' if p2o_mode else None) %}
+            {% set current_mode_param = 'sync' if sync_mode else ('p2o' if p2o_mode else ('lio_raw' if lio_raw_mode else None)) %}
 
             {% if parent_path is not none %}
                 <li class="parent-link">
@@ -119,7 +122,6 @@
             event.currentTarget.classList.add('selected');
 
             // フォームの hidden フィールドにパスを設定
-            // Flaskのルートは先頭の'/'を自動的に扱うため、ここではパスから先頭の'/'を取り除く
             filePathInput.value = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
 
             const isSelectable = isRosBag(name, isDir);

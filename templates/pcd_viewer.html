@@ -54,6 +54,16 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
         
+        /* 🌟 修正: タイトルの中央揃えを確実にするCSS 🌟 */
+        .control-title {
+            grid-column: 1 / 3;
+            text-align: center; /* 親要素で中央揃え */
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+            /* white-space: pre-wrap; は削除 */
+        }
+        
         .rotation-button, .model-rotation-button {
             width: 70px;
             height: 70px;
@@ -78,9 +88,11 @@
              border: 1px solid #aaa;
         }
         
-        /* リセットボタン固有のスタイル */
+        /* カメラリセットボタンを幅に合わせて中央揃え */
         #reset-camera-button {
             grid-column: 1 / 3; /* 2列全体を使用 */
+            width: 100%; /* 親グリッドアイテムの幅いっぱいにする */
+            box-sizing: border-box; /* paddingとborderをwidthに含める */
             background: #ff5757;
             color: white;
             height: 40px;
@@ -89,8 +101,9 @@
             border-radius: 8px;
             margin-top: 10px;
             font-weight: bold;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             cursor: pointer;
+            text-align: center; /* テキストをボタン内で中央揃え */
         }
         #reset-camera-button:active {
             background: #e04a4a;
@@ -393,8 +406,8 @@
     <div id="info">マップ名: -</div>
 
     <div id="model-rotation-controls">
-        <div style="grid-column: 1 / 3; text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
-            モデル回転 (World Axis)
+        <div class="control-title">
+            モデル回転 <br>(World Axis)
         </div>
         
         <div id="model-rotate-y-left" class="model-rotation-button">
@@ -426,8 +439,8 @@
     </div>
 
     <div id="rotation-controls">
-        <div style="grid-column: 1 / 3; text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
-            カメラ操作 (Target Orbit)
+        <div class="control-title">
+            カメラ操作 <br>(Target Orbit)
         </div>
         
         <div id="rotate-z-left" class="rotation-button">
@@ -457,7 +470,7 @@
             <span class="axis-label axis-x">X (ピッチ)</span>
         </div>
         
-        <button id="reset-camera-button" class="rotation-button">カメラリセット</button>
+        <button id="reset-camera-button">カメラリセット</button>
     </div>
 </body>
 </html>

@@ -39,6 +39,8 @@
             background: rgba(255, 255, 255, 0.85);
             border-radius: 12px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            align-items: center; /* テキストを中央揃えにするため追加 */
+            text-align: center;  /* テキストを中央揃えにするため追加 */
         }
 
         .control-title {
@@ -48,6 +50,9 @@
             margin-bottom: 5px;
         }
         
+        /* .zoom-button は削除されるため、関連スタイルも不要になりますが、
+           今後のためにコメントアウトして残しておきます */
+        /*
         .zoom-button {
             width: 100%;
             height: 40px;
@@ -66,9 +71,11 @@
         .zoom-button:active {
             background: #eee;
         }
+        */
 
         /* カメラリセットボタンを幅に合わせて中央揃え */
-        #reset-camera-button {
+        #reset-camera-button,
+        #rotate-z-180-button { /* 新しいボタンにもスタイルを適用 */
             width: 100%;
             box-sizing: border-box;
             background: #ff5757;
@@ -82,7 +89,8 @@
             cursor: pointer;
             text-align: center;
         }
-        #reset-camera-button:active {
+        #reset-camera-button:active,
+        #rotate-z-180-button:active { /* 新しいボタンにもスタイルを適用 */
             background: #e04a4a;
         }
         
@@ -198,7 +206,7 @@
         const JOYSTICK_RADIUS = 75; 
         const ROLL_JOYSTICK_HALF_WIDTH = 140; // スライダージョイスティックの移動可能な最大幅 (コンテナ幅の約半分)
         const MAX_ROTATION_SPEED = Math.PI / 90; // 1秒あたり2度
-        const MAX_PAN_SPEED = 0.1; // 1秒あたり移動量
+        const MAX_PAN_SPEED = 1.0; // 1秒あたり移動量
         
         let activeJoystick = null; // 現在ドラッグ中のジョイスティックのIDを保持 ('pan', 'rotation', 'rollZ')
         let panVector = new THREE.Vector2(0, 0); // X, Y (モデル移動)
@@ -246,6 +254,15 @@
             camera.lookAt(controls.target);
         }
 
+        /**
+         * モデルをZ軸周りに180度回転させる関数
+         */
+        function rotateModelZ180() {
+            if (pointsMesh) {
+                pointsMesh.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), Math.PI); // Math.PI は180度
+                controls.update(); // 変更を反映
+            }
+        }
         
         // --- ジョイスティック制御ロジック ---
 
@@ -538,7 +555,7 @@
                     boundingBox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
                     
-                    const cameraDistance = maxDim * 1.5;
+                    const cameraDistance = maxDim * 0.5;
                     
                     // 初期カメラ位置をY軸の真下から見上げる状態に設定 
                     const initialY = -cameraDistance; 
@@ -586,13 +603,16 @@
             document.getElementById('object-rotation-joystick').addEventListener('mousedown', onJoystickStart);
             document.getElementById('object-rotation-joystick').addEventListener('touchstart', onJoystickStart, { passive: false });
             
-            // 🌟 Z軸ロール（水平ジョイスティック）イベントリスナーを追加 🌟
+            // Z軸ロール（水平ジョイスティック）イベントリスナーを追加
             document.getElementById('roll-z-joystick-container').addEventListener('mousedown', onJoystickStart);
             document.getElementById('roll-z-joystick-container').addEventListener('touchstart', onJoystickStart, { passive: false });
 
 
             // カメラ/モデルリセットボタン
             document.getElementById('reset-camera-button').addEventListener('click', resetCamera);
+
+            // 🌟 Z軸180度回転ボタンのイベントリスナーを追加 🌟
+            document.getElementById('rotate-z-180-button').addEventListener('click', rotateModelZ180);
         }
 
         function onWindowResize() {
@@ -668,20 +688,15 @@
 
     <div id="rotation-controls">
         <div class="control-title">
-            カメラ操作 (マウス/タッチ)
+            カメラ操作
         </div>
         
-        <div class="zoom-button">
-            回転 (左クリック / 1本指)
-        </div>
-        <div class="zoom-button">
-            パン (右クリック / 2本指)
-        </div>
-        <div class="zoom-button">
-            ズーム (ホイール / ピンチ)
-        </div>
+        <div>回転 (左クリック / 1本指)</div>
+        <div>パン (右クリック / 2本指)</div>
+        <div>ズーム (ホイール / ピンチ)</div>
         
-        <button id="reset-camera-button">カメラ/モデル リセット</button>
+        <button id="reset-camera-button" style="margin-top: 10px;">カメラ/モデル リセット</button>
+        <button id="rotate-z-180-button">モデル Z軸 180°回転</button>
     </div>
 </body>
 </html>

@@ -54,14 +54,12 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
         
-        /* 🌟 修正: タイトルの中央揃えを確実にするCSS 🌟 */
         .control-title {
             grid-column: 1 / 3;
-            text-align: center; /* 親要素で中央揃え */
+            text-align: center; /* タイトル全体を中央揃え */
             font-weight: bold;
             font-size: 14px;
             margin-bottom: 5px;
-            /* white-space: pre-wrap; は削除 */
         }
         
         .rotation-button, .model-rotation-button {
@@ -145,6 +143,7 @@
          */
         function resetCameraUpVector() {
             if (!camera) return;
+            // AxesHelperのY軸と連動
             camera.up.x = 0;
             camera.up.y = 1;
             camera.up.z = 0;
@@ -320,10 +319,13 @@
                     boundingBox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
                     
-                    // カメラの位置を再設定（シーンの原点から対角線上に離れた位置）
+                    // 🌟 修正点: カメラの位置をY軸の真上（上から見た状態）に設定 🌟
                     const cameraDistance = maxDim * 1.5;
-                    const initialPos = new THREE.Vector3(cameraDistance, cameraDistance, cameraDistance);
+                    const initialPos = new THREE.Vector3(0, cameraDistance, 0); // X=0, Z=0で真上
                     camera.position.copy(initialPos);
+                    
+                    // カメラのアップベクトルをY軸（上）にリセット
+                    resetCameraUpVector(); 
                     
                     // 初期カメラ設定をグローバル変数に保存
                     initialCamera.position.copy(initialPos);

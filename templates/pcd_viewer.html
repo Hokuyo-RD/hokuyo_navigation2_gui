@@ -137,6 +137,11 @@
             position: new THREE.Vector3(),
             target: new THREE.Vector3()
         };
+        // 🌟 追加: モデルの初期設定を保存するグローバル変数 🌟
+        const initialModel = {
+            position: new THREE.Vector3(),
+            rotation: new THREE.Euler()
+        };
 
         /**
          * カメラのアップベクトルを標準のY軸正方向(0, 1, 0)にリセットする関数
@@ -223,19 +228,25 @@
         }
 
         /**
-         * カメラの位置を初期設定にリセットする関数
+         * カメラとモデルの位置・回転を初期設定にリセットする関数
          */
         function resetCamera() {
             if (!controls || !initialCamera.position.lengthSq()) return;
 
-            // カメラの位置とターゲットを初期値に戻す
+            // 1. カメラの位置とターゲットを初期値に戻す
             camera.position.copy(initialCamera.position);
             controls.target.copy(initialCamera.target);
             
-            // カメラのアップベクトルをリセットする関数を呼び出し
+            // 2. カメラのアップベクトルをリセットする関数を呼び出し
             resetCameraUpVector();
             
-            // コントロールを更新
+            // 🌟 修正点: 3. モデルの位置と回転を初期値に戻す 🌟
+            if (pointsMesh && initialModel.position.lengthSq() > 0) {
+                pointsMesh.position.copy(initialModel.position);
+                pointsMesh.rotation.copy(initialModel.rotation);
+            }
+            
+            // 4. コントロールを更新
             controls.update();
             camera.lookAt(controls.target);
         }
@@ -312,20 +323,25 @@
 
                     // OrbitControlsのtargetを点群の中心のワールド座標に設定
                     controls.target.set(0, 0, 0); // 点群モデルがシーンの中心にあるため
+                    
+                    // 🌟 修正点: モデルの初期状態を保存 🌟
+                    initialModel.position.copy(pointsMesh.position);
+                    initialModel.rotation.copy(pointsMesh.rotation);
+
 
                     const size = new THREE.Vector3();
                     boundingBox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
                     
                     // カメラの初期距離
-                    const cameraDistance = maxDim * 1.5;
+                    const cameraDistance = 0.5 * maxDim;
                     
-                    // 🌟 修正点 1: Y座標を負の値にしてY軸の真下から見上げる状態に設定 🌟
-                    const initialY = -cameraDistance; // Y軸180度回転
-                    const initialPos = new THREE.Vector3(0, initialY, 0); 
+                    // Y軸に180度回転した姿勢 (Y軸の真下から見上げる状態) に設定 
+                    const initialY = -cameraDistance; 
+                    const initialPos = new THREE.Vector3(0, initialY, 0); // X=0, Z=0で真下
                     camera.position.copy(initialPos);
                     
-                    // 🌟 修正点 2: カメラのアップベクトルを標準のY軸正方向(0, 1, 0)に戻す 🌟
+                    // カメラのアップベクトルをY軸（上）にリセット
                     resetCameraUpVector(); 
                     
                     // 初期カメラ設定をグローバル変数に保存

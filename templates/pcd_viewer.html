@@ -139,14 +139,12 @@
         };
 
         /**
-         * カメラのアップベクトルをワールドのY軸にリセットする (camera.up.set(0, 1, 0) の代替)
+         * カメラのアップベクトルを標準のY軸正方向(0, 1, 0)にリセットする関数
          */
         function resetCameraUpVector() {
             if (!camera) return;
             // AxesHelperのY軸と連動
-            camera.up.x = 0;
-            camera.up.y = 1;
-            camera.up.z = 0;
+            camera.up.set(0, 1, 0); 
         }
         
         /**
@@ -319,12 +317,15 @@
                     boundingBox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
                     
-                    // 🌟 修正点: カメラの位置をY軸の真上（上から見た状態）に設定 🌟
+                    // カメラの初期距離
                     const cameraDistance = maxDim * 1.5;
-                    const initialPos = new THREE.Vector3(0, cameraDistance, 0); // X=0, Z=0で真上
+                    
+                    // 🌟 修正点 1: Y座標を負の値にしてY軸の真下から見上げる状態に設定 🌟
+                    const initialY = -cameraDistance; // Y軸180度回転
+                    const initialPos = new THREE.Vector3(0, initialY, 0); 
                     camera.position.copy(initialPos);
                     
-                    // カメラのアップベクトルをY軸（上）にリセット
+                    // 🌟 修正点 2: カメラのアップベクトルを標準のY軸正方向(0, 1, 0)に戻す 🌟
                     resetCameraUpVector(); 
                     
                     // 初期カメラ設定をグローバル変数に保存

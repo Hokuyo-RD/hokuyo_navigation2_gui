@@ -39,11 +39,11 @@ except ImportError as e:
 # 環境変数 DOCKER_CONTAINER の有無でパスを分岐
 if 'DOCKER_CONTAINER' in os.environ:
     BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
-    # 🌟 追加: PCDファイルディレクトリのパス (DOCKER環境) 🌟
+    # 🌟 PCDファイルディレクトリのパス (DOCKER環境) 🌟
     HOKUYO_NAV2_PKG_PATH = "/home/colcon_ws/src/hokuyo_navigation2" 
 else:
     BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/"
-    # 🌟 追加: PCDファイルディレクトリのパス (非DOCKER環境) 🌟
+    # 🌟 PCDファイルディレクトリのパス (非DOCKER環境) 🌟
     HOKUYO_NAV2_PKG_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2"
 
 # ROS Bag フィルタのルートディレクトリと設定
@@ -51,7 +51,7 @@ ROSBAG_ROOT_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'rosbag')
 DOWNLOAD_FOLDER = ROSBAG_ROOT_DIR 
 ALLOWED_EXTENSIONS = {'bag', 'db3', 'mcap'}
 
-# 🌟 追加: PCDファイルの保存ディレクトリ 🌟
+# 🌟 PCDファイルの保存ディレクトリ (完了フラグの出力先もここにする) 🌟
 MAP_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'map')
 
 # WebSocket 設定
@@ -74,7 +74,7 @@ current_mode = "stopped"
 # フォルダが存在しない場合は作成
 os.makedirs(ROSBAG_ROOT_DIR, exist_ok=True)
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-# 🌟 追加: MAP_DIRが存在しない場合は作成 🌟
+# 🌟 MAP_DIRが存在しない場合は作成 🌟
 os.makedirs(MAP_DIR, exist_ok=True)
 
 
@@ -263,7 +263,7 @@ def select_rosbag():
         return redirect(url_for('browse_rosbag', path=os.path.dirname(file_path)))
     
     is_sync_mode = request.form.get('mode') == 'sync' 
-    is_p2o_mode = request.form.get('mode') == 'p2o' # 🌟 P2Oモード 🌟
+    is_p2o_mode = request.form.get('mode') == 'p2o' 
 
     is_rosbag = os.path.isdir(full_path) or full_path.lower().endswith(tuple(f'.{ext}' for ext in ALLOWED_EXTENSIONS))
     
@@ -311,9 +311,8 @@ def select_rosbag():
                         elif 'rosbag2_bagfile_information' in metadata and 'duration' in metadata['rosbag2_bagfile_information']:
                             bag_duration_sec = metadata['rosbag2_bagfile_information']['duration'] / 1_000_000_000
             
-            # 処理時間の目安として、取得したduration（秒）をそのまま使用（最小値なし）
+            # P2O/Sync処理はBagの長さに依存するため、Bagの長さを目安とする
             if bag_duration_sec > 0:
-                # P2O/Sync処理はBagの長さに依存するため、Bagの長さを目安とする
                 estimated_duration = round(bag_duration_sec)
             else:
                 estimated_duration = 120
@@ -325,8 +324,7 @@ def select_rosbag():
                                    topic_list=topic_list, 
                                    input_bag_path=full_path,
                                    sync_mode=is_sync_mode,
-                                   p2o_mode=is_p2o_mode, # 🌟 P2Oモード 🌟
-                                   # テンプレートに時間を渡す
+                                   p2o_mode=is_p2o_mode, 
                                    bag_duration_sec=estimated_duration) 
             
         except NameError:
@@ -376,7 +374,7 @@ def convert():
     
     try:
         if is_sync_mode:
-            # 🌟 トピック同期処理: start_mapping.sh sync input_bag_name output_bag_name で実行 🌟
+            # トピック同期処理: start_mapping.sh sync input_bag_name output_bag_name で実行 
             script_path = os.path.join(BASE_PATH, "start_mapping.sh")
             command_list = [
                 script_path, 
@@ -408,7 +406,7 @@ def convert():
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
 
 # ------------------------------------------------------
-# P2O マッピング実行用 API
+# P2O マッピング実行用 API (完了フラグパス修正)
 # ------------------------------------------------------
 @app.route('/p2o_mapping', methods=['POST'])
 def p2o_mapping():
@@ -419,33 +417,41 @@ def p2o_mapping():
         return jsonify({'status': 'error', 'message': f'リクエストJSONのパースエラー: {e}'}), 400
 
     input_bag_path = data.get('input_bag_path')
-    output_map_name = data.get('output_map_name') # output_map_name は output_filename と同じ値が来る
+    output_map_name = data.get('output_map_name')
 
     if not input_bag_path or not os.path.exists(input_bag_path):
         return jsonify({'status': 'error', 'message': '入力ファイルが見つかりません。パスを確認してください。'}), 400
     if not output_map_name:
         return jsonify({'status': 'error', 'message': '出力マップ名を入力してください。'}), 400
 
-    # ROS Bagのディレクトリ名/ファイル名（拡張子なし）を取得 
     base_name = os.path.basename(input_bag_path)
     if os.path.isfile(input_bag_path):
         base_name = os.path.splitext(base_name)[0]
     else:
         base_name = os.path.basename(input_bag_path.rstrip('/'))
     
+    # 🌟 修正: 完了フラグの出力パスをMAP_DIRに変更 🌟
+    flag_file_name_full = f'{output_map_name}.P2O_DONE'
+    
     try:
-        # 🌟 P2O マッピング処理: start_mapping.sh p2o input_bag_name output_map_name で実行 🌟
+        # start_mapping.sh p2o input_bag_name output_map_name map_dir_path flag_file_name
+        # スクリプトが map_dir_path に flag_file_name を作成することを前提
         script_path = os.path.join(BASE_PATH, "start_mapping.sh")
         command_list = [
             script_path, 
             "p2o", 
-            base_name,       # 選択したROS Bag名 (拡張子なし)
-            output_map_name  # 新しいマップ名 (PCD名)
+            base_name,       # 1. 選択したROS Bag名
+            output_map_name, # 2. 新しいマップ名 (PCD名)
+            MAP_DIR,         # 3. マップ保存ディレクトリパス
+            flag_file_name_full # 4. 完了フラグファイル名
         ]
+        
+        # 実行ログに出力するフラグパスも修正
+        log_flag_path = os.path.join(MAP_DIR, flag_file_name_full)
         
         # 別スレッドで実行
         Thread(target=run_subprocess, args=(command_list,)).start()
-        result_message = f"P2O マッピングスクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name} (フラグファイル: {output_map_name}.P2O_DONE)"
+        result_message = f"P2O マッピングスクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name} (フラグファイル: {flag_file_name_full} at {MAP_DIR})"
         
         # クライアント側でポーリング/完了待機が必要なため、ここでは成功応答を返す。
         return jsonify({
@@ -459,7 +465,7 @@ def p2o_mapping():
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
 
 # ------------------------------------------------------
-# P2O マッピング完了チェック用 API (PCDダウンロード機能対応)
+# P2O マッピング完了チェック用 API (完了フラグパス修正)
 # ------------------------------------------------------
 @app.route('/check_p2o_status', methods=['POST'])
 def check_p2o_status():
@@ -470,13 +476,13 @@ def check_p2o_status():
     if not output_map_name:
         return jsonify({'status': 'error', 'message': '出力マップ名が指定されていません。'}), 400
 
-    # 完了フラグファイルのパス
+    # 🌟 修正: 完了フラグのパスを MAP_DIR に変更 🌟
     flag_file_name = f'{output_map_name}.P2O_DONE'
-    flag_file_path = os.path.join(DOWNLOAD_FOLDER, flag_file_name) 
+    flag_file_path = os.path.join(MAP_DIR, flag_file_name) # ここを MAP_DIR に変更
     
     # 完了ファイルが存在するかチェック
     if os.path.exists(flag_file_path):
-        # 🌟 修正: PCDファイルが存在するか確認 🌟
+        # PCDファイルが存在するか確認
         pcd_filename = f'{output_map_name}.pcd'
         pcd_file_path = os.path.join(MAP_DIR, pcd_filename)
         
@@ -493,14 +499,14 @@ def check_p2o_status():
         except Exception as e:
             print(f"Warning: Failed to remove flag file {flag_file_path}: {e}")
             
-        # 🌟 修正: ダウンロードURLを生成し、処理終了とともに返却 🌟
+        # ダウンロードURLを生成
         download_url = url_for('download_map', filename=pcd_filename)
         
         return jsonify({
             'status': 'finished', 
             'message': 'P2O SLAM 処理が完了しました。PCDファイルをダウンロードできます。',
             'map_name': output_map_name,
-            'download_url': download_url # 新規追加
+            'download_url': download_url 
         })
     else:
         # 処理続行中を返す
@@ -510,12 +516,10 @@ def check_p2o_status():
         })
 # ------------------------------------------------------
 
-# 既存の /check_sync_status は変更なしで残します
 @app.route('/check_sync_status', methods=['POST'])
 def check_sync_status():
     """
     トピック同期処理の完了ステータスをチェックするAPI。
-    rosbag_record_with_timeout.bash が作成したフラグファイルの有無で判定する。
     """
     data = request.get_json()
     output_filename = data.get('output_filename')
@@ -525,7 +529,8 @@ def check_sync_status():
 
     # 完了フラグファイルのパス
     flag_file_name = f'{output_filename}.SYNC_DONE'
-    flag_file_path = os.path.join(DOWNLOAD_FOLDER, flag_file_name)
+    # DOWNLOAD_FOLDER は ROSBAG_ROOT_DIR と同じ
+    flag_file_path = os.path.join(DOWNLOAD_FOLDER, flag_file_name) 
     
     # 完了ファイルが存在するかチェック
     if os.path.exists(flag_file_path):
@@ -553,7 +558,7 @@ def check_sync_status():
 
 @app.route('/download/<path:filename>')
 def download_file(filename):
-    """フィルタリングされたBagディレクトリをZIP圧縮してダウンロードさせる"""
+    """フィルタリングされたBagディレクトリをZIP圧縮してダウンロードさせる (Filter/Sync用)"""
     bag_dir_path = os.path.join(DOWNLOAD_FOLDER, filename)
     zip_filename = f'{filename}.zip'
     zip_path = os.path.join(DOWNLOAD_FOLDER, zip_filename)
@@ -580,22 +585,21 @@ def download_file(filename):
 
 
 # ------------------------------------------------------
-# 🌟 新規: PCDファイル ダウンロードルート 🌟
+# PCDファイル ダウンロードルート
 # ------------------------------------------------------
 @app.route('/download_map/<filename>')
 def download_map(filename):
     """
-    PCDファイルをダウンロードさせる。
-    filename は "マップ名.pcd" の形式で渡されることを想定。
+    PCDファイルをダウンロードさせる。(P2O完了後にフロントエンドから呼ばれる)
     """
     try:
         directory = MAP_DIR
-        map_filename = filename # 例: map_001.pcd
+        map_filename = filename 
         file_path = os.path.join(directory, map_filename)
 
         if not os.path.exists(file_path):
             flash(f'エラー: 指定されたマップファイル "{map_filename}" が {directory} に見つかりません。', 'error')
-            return redirect(url_for('main_gui')) # index.htmlに戻る
+            return redirect(url_for('main_gui')) 
 
         # send_from_directory を使用してファイルをダウンロードとして送信
         return send_from_directory(
@@ -608,7 +612,7 @@ def download_map(filename):
     except Exception as e:
         flash(f'マップファイルのダウンロード中にエラーが発生しました: {e}', 'error')
         return redirect(url_for('main_gui'))
-
+        
 # ==============================================================================
 # 8. コマンド実行ルート (/gui POST)
 # ==============================================================================
@@ -623,7 +627,6 @@ def trigger_script():
     command = request.form.get("command") or request.get_json().get("command")
 
     if command == "execute_indoor_run":
-        # 修正前コードの省略部分を補完
         map_name = request.form.get("map_name")
         if map_name:
             script_path = os.path.join(BASE_PATH, "expo_in")
@@ -634,7 +637,6 @@ def trigger_script():
             return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
             
     elif command == "execute_outdoor_run":
-        # 修正前コードの省略部分を補完
         map_name = request.form.get("map_name")
         if map_name:
             script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
@@ -660,7 +662,7 @@ def trigger_script():
         flash("ROS Bagフィルタリング機能に遷移します。フィルタ対象のROS Bagを選択してください。", "info")
         return redirect(url_for('browse_rosbag')) 
     
-    # 🌟 P2Oマッピングへの遷移 🌟
+    # P2Oマッピングへの遷移 
     elif command == "execute_mapping_p2o":
         current_mode = "stopped"
         flash("P2O マッピングに使用するROS Bagを選択してください。", "info")

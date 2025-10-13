@@ -78,7 +78,7 @@
              border: 1px solid #aaa;
         }
         
-        /* 🌟 リセットボタン固有のスタイル 🌟 */
+        /* リセットボタン固有のスタイル */
         #reset-camera-button {
             grid-column: 1 / 3; /* 2列全体を使用 */
             background: #ff5757;
@@ -109,7 +109,7 @@
     <script type="module">
         import * as THREE from '{{ url_for("static", filename="js/three/three.module.js") }}'; 
         import { PCDLoader } from '{{ url_for("static", filename="js/three/PCDLoader.js") }}';
-        import { OrbitControls } from '{{ url_for("static", filename="js/three/OrbitControls.js") }}';
+        import { OrbitControls } from '{{ url_for("static", filename="js/three/OrbitControls.js") }}'; 
 
         
         const mapName = '{{ map_name | default("") }}';
@@ -128,11 +128,10 @@
         };
 
         /**
-         * 🌟 新しい関数: カメラのアップベクトルをワールドのY軸にリセットする 🌟
+         * カメラのアップベクトルをワールドのY軸にリセットする (camera.up.set(0, 1, 0) の代替)
          */
         function resetCameraUpVector() {
             if (!camera) return;
-            // camera.up.set(0, 1, 0) の代替処理
             camera.up.x = 0;
             camera.up.y = 1;
             camera.up.z = 0;
@@ -223,7 +222,7 @@
             camera.position.copy(initialCamera.position);
             controls.target.copy(initialCamera.target);
             
-            // 🌟 修正: カメラのアップベクトルをリセットする関数を呼び出し 🌟
+            // カメラのアップベクトルをリセットする関数を呼び出し
             resetCameraUpVector();
             
             // コントロールを更新
@@ -252,7 +251,7 @@
             renderer.setSize(width, height);
             container.appendChild(renderer.domElement);
 
-            // 軸ヘルパー（ギズモ）の初期化
+            // 軸ヘルパー（ギズモ）の初期化 (長さ1)
             axesHelper = new THREE.AxesHelper(1); 
             axesHelper.isAxesHelper = true; 
 
@@ -260,29 +259,23 @@
             loader = new PCDLoader();
             
             // 3. コントロール (マウス操作)
-            controls = new OrbitControls(camera, renderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement); 
             controls.enableDamping = true; 
             controls.dampingFactor = 0.05;
             
-            // Orbital Camera設定: ターゲット中心回転 (Y-up座標系)
-            controls.enablePan = true;
+            // パン操作をワールド座標系（XY平面）に限定
             controls.screenSpacePanning = false; 
+            
             controls.minDistance = 1;
             controls.maxDistance = 500;
             
-            // タッチ操作の最適化
-            controls.touches = {
-                ONE: THREE.TOUCH.ROTATE,       
-                TWO: THREE.TOUCH.DOLLY_PAN     
-            };
-
             // マウスボタンの設定
             controls.mouseButtons = {
                 LEFT: THREE.MOUSE.ROTATE,    
                 MIDDLE: THREE.MOUSE.DOLLY,   
                 RIGHT: THREE.MOUSE.PAN       
             };
-            
+
             // 4. PCDファイルの読み込み
             document.getElementById('loading-message').textContent = `PCDファイル "${filename}" を読み込み中...`;
 
@@ -293,7 +286,7 @@
                     pointsMesh = points; 
                     scene.add(pointsMesh);
                     
-                    // 🌟 AxesHelperを点群オブジェクトの子として追加 🌟
+                    // AxesHelperを点群オブジェクトの子として追加
                     pointsMesh.add(axesHelper);
 
                     document.getElementById('loading-message').style.display = 'none';

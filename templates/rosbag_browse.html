@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>ROS Bag ファイルブラウザ</title>
     <style>
-        /* CSSは変更なし */
         body { font-family: sans-serif; padding: 20px; }
         .container { max-width: 800px; margin: auto; }
         .message { padding: 10px; margin-bottom: 10px; border-radius: 5px; }
@@ -16,29 +15,15 @@
         .selected { background-color: #e9ecef !important; border: 1px solid #007bff; margin: -1px; }
         .folder a, .parent-link a { color: #007bff; text-decoration: none; font-weight: bold; }
         .file a { color: #28a745; text-decoration: none; }
-        
-        /* Syncモード用のスタイル */
-        .sync-input-group { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            margin-top: 10px; 
-        }
-        .sync-input-group input {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            flex-grow: 1;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>ROS Bag ファイルブラウザ 
             {% if sync_mode %}
-            (トピック同期機能)
+            (トピック同期用)
             {% else %}
-            (フィルタ機能)
+            (フィルタリング用)
             {% endif %}
         </h1>
         <p><a href="#" onclick="closeCurrentTabAndReloadOpener(); return false;">← メインGUI (自律走行) に戻る</a></p>
@@ -67,35 +52,24 @@
 
         <p>現在のディレクトリ (ROOT: <code>{{ root_dir }}</code>): <code>/{{ current_path }}</code></p>
 
-        <form action="{% if sync_mode %}{{ url_for('execute_sync_mapping') }}{% else %}{{ url_for('select_rosbag') }}{% endif %}" 
+        <form action="{{ url_for('select_rosbag') }}" 
               method="POST" 
               style="margin-bottom: 20px; padding: 10px; border: 1px solid #007bff;">
             
             <input type="hidden" id="file_path_input" name="file_path">
             
             {% if sync_mode %}
-            <p><strong>選択元:</strong> <span id="selected_file_name" style="font-weight: bold;">(未選択)</span></p>
-            <div class="sync-input-group">
-                <label for="output_filename">新しいROS Bag名:</label>
-                <input type="text" 
-                       id="output_filename_input" 
-                       name="output_filename" 
-                       placeholder="例: sync_bag_001"
-                       required disabled>
-            </div>
-            <button type="submit" id="execute_sync_button" disabled style="margin-top: 10px;">
-                トピック同期を実行
-            </button>
-            {% else %}
+            <input type="hidden" name="mode" value="sync">
+            {% endif %}
+
             <button type="submit" id="select_button" disabled>ROS Bagとして選択</button>
             <span id="selected_file_name" style="margin-left: 20px; font-weight: bold;"></span>
-            {% endif %}
         </form>
 
         <ul id="file-list">
             {% if parent_path is not none %}
                 <li class="parent-link">
-                    <a href="{% if sync_mode %}{{ url_for('browse_sync_rosbag', path=parent_path) }}{% else %}{{ url_for('browse_rosbag', path=parent_path) }}{% endif %}">
+                    <a href="{{ url_for('browse_rosbag', path=parent_path, mode='sync' if sync_mode else None) }}">
                         📁 .. (親ディレクトリへ)
                     </a>
                 </li>
@@ -104,7 +78,7 @@
             {% for dir_name in dirs %}
                 {% set rel_path = current_path + '/' + dir_name if current_path else dir_name %}
                 <li class="folder" onclick="selectItem('{{ rel_path }}', '{{ dir_name }}', true, event)">
-                    <a href="{% if sync_mode %}{{ url_for('browse_sync_rosbag', path=rel_path) }}{% else %}{{ url_for('browse_rosbag', path=rel_path) }}{% endif %}">
+                    <a href="{{ url_for('browse_rosbag', path=rel_path, mode='sync' if sync_mode else None) }}">
                         📁 {{ dir_name }}
                     </a>
                 </li>
@@ -122,90 +96,44 @@
 
     <script>
         const filePathInput = document.getElementById('file_path_input');
+        const selectButton = document.getElementById('select_button');
+        const selectedFileNameSpan = document.getElementById('selected_file_name');
         const fileListItems = document.querySelectorAll('#file-list li');
         const ROS_BAG_EXTENSIONS = ['.db3', '.mcap', '.bag'];
-        
-        // 🌟 新しい要素とJinja2変数を取得 🌟
-        const syncMode = {{ sync_mode | default('false') | lower }};
-        const selectButton = document.getElementById('select_button'); // Filterモード用
-        const executeSyncButton = document.getElementById('execute_sync_button'); // Syncモード用
-        const outputFilenameInput = document.getElementById('output_filename_input'); // Syncモード用
-        const selectedFileNameSpan = document.getElementById('selected_file_name');
 
         function isRosBag(name, isDir) {
             if (isDir) return true; // ディレクトリは常に選択可能
             const lowerName = name.toLowerCase();
             return ROS_BAG_EXTENSIONS.some(ext => lowerName.endsWith(ext));
         }
-        
-        // 🌟 Syncモードの実行ボタンの状態を更新するヘルパー関数 🌟
-        function updateSyncButtonState() {
-            if (!syncMode) return;
-            
-            // ファイルが選択されている AND 出力ファイル名が空でない場合に実行ボタンを有効化
-            const isSelected = filePathInput.value !== '';
-            const isOutputNameValid = outputFilenameInput.value.trim() !== '';
 
-            executeSyncButton.disabled = !(isSelected && isOutputNameValid);
-        }
-
-        // 🌟 selectItem 関数をモードに応じて修正 🌟
         function selectItem(relativePath, name, isDir, event) {
+            // 選択状態の更新
             fileListItems.forEach(item => item.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
 
-            // パスを設定
+            // フォームの hidden フィールドにパスを設定
+            // Flaskのルートは先頭の'/'を自動的に扱うため、ここではパスから先頭の'/'を取り除く
             filePathInput.value = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
 
             const isSelectable = isRosBag(name, isDir);
-            
-            // --- Sync モードのロジック ---
-            if (syncMode) {
-                if (isSelectable) {
-                    selectedFileNameSpan.textContent = isDir ? `${name} (ディレクトリ)` : `${name}`;
-                    outputFilenameInput.disabled = false;
-                    
-                    // 出力ファイル名が変更されたときのイベントリスナーを設定
-                    outputFilenameInput.oninput = updateSyncButtonState;
-                    
-                    // 初回選択時にボタンの状態を更新
-                    updateSyncButtonState(); 
 
-                } else {
-                    // ROS Bag ではないファイルが選択された場合
-                    selectedFileNameSpan.textContent = `${name} (非対応)`;
-                    outputFilenameInput.disabled = true;
-                    executeSyncButton.disabled = true;
-                }
-            } 
-            // --- Filter モードのロジック (既存) ---
-            else { 
-                if (isSelectable) {
-                    selectButton.disabled = false;
-                    selectButton.textContent = `ROS Bagとして選択 (${name})`;
-                    selectedFileNameSpan.textContent = isDir ? `(選択中: ${name} - ディレクトリ)` : `(選択中: ${name})`;
-                } else {
-                    selectButton.disabled = true;
-                    selectButton.textContent = 'ROS Bagとして選択 (非対応)';
-                    selectedFileNameSpan.textContent = `選択ファイル: ${name} (非対応)`;
-                }
+            // ボタンの有効/無効化とテキスト設定
+            if (isSelectable) {
+                selectButton.disabled = false;
+                selectButton.textContent = `ROS Bagとして選択 (${name})`;
+                selectedFileNameSpan.textContent = isDir ? `(選択中: ${name} - ディレクトリ)` : `(選択中: ${name})`;
+            } else {
+                selectButton.disabled = true;
+                selectButton.textContent = 'ROS Bagとして選択 (非対応)';
+                selectedFileNameSpan.textContent = `選択ファイル: ${name} (非対応)`;
             }
 
-            // ディレクトリの場合、Aタグ以外をダブルクリックで遷移
+            // フォルダのダブルクリックによる遷移 (Aタグクリック時を除く)
             if (isDir && event.detail === 2 && event.target.tagName !== 'A') {
                 window.location.href = event.currentTarget.querySelector('a').href;
             }
         }
-        
-        // ページロード時に出力入力フィールドの変更を監視 (ユーザーが手動でリロードした場合などに対応)
-        document.addEventListener('DOMContentLoaded', () => {
-            if (syncMode) {
-                const isSelected = filePathInput.value !== '';
-                outputFilenameInput.disabled = !isSelected;
-                outputFilenameInput.oninput = updateSyncButtonState;
-                updateSyncButtonState();
-            }
-        });
     </script>
 </body>
 </html>

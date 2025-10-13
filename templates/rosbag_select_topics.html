@@ -2,156 +2,325 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ROS Bag フィルタ - トピック選択</title>
+    <title>ROS Bag 処理設定</title>
     <style>
-        /* CSSは変更なし */
         body { font-family: sans-serif; padding: 20px; }
         .container { max-width: 800px; margin: auto; }
+        .message { padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
         .topic-list { 
-            height: 300px; 
-            overflow-y: scroll; 
+            max-height: 300px; 
+            overflow-y: auto; 
             border: 1px solid #ccc; 
             padding: 10px; 
             margin-bottom: 20px;
-            margin-top: 10px;
         }
-        .status-message { margin-top: 15px; font-weight: bold; }
-        .success { color: green; }
-        .error { color: red; }
-        button { padding: 8px 15px; margin-right: 10px; cursor: pointer;}
-        input[type="text"] { width: 300px; padding: 5px; }
-        .back-link { margin-bottom: 20px; display: block; }
+        .topic-list label { display: block; margin-bottom: 5px; cursor: pointer; }
+        
+        /* プログレスバー関連 */
+        #progress-area { 
+            border: 1px solid #007bff; 
+            padding: 20px; 
+            border-radius: 5px; 
+            margin-top: 20px; 
+            display: none; 
+            text-align: center;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 25px;
+            background-color: #007bff;
+            width: 0%;
+            text-align: center;
+            line-height: 25px;
+            color: white;
+            transition: width 0.3s;
+        }
+        .download-link {
+            display: block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ROS Bag フィルタ - トピック選択</h1>
+        <h1>ROS Bag 処理設定</h1>
+        <p><a href="#" onclick="closeCurrentTabAndReloadOpener(); return false;">← メインGUI (自律走行) に戻る</a></p>
+        <script>
+            function closeCurrentTabAndReloadOpener() {
+                if (window.opener && !window.opener.closed) {
+                    try {
+                        window.opener.location.reload(); 
+                    } catch (e) {
+                        console.warn("親ウィンドウのリロードに失敗しました:", e);
+                    }
+                }
+                window.close();
+            }
+        </script>
 
-        <a href="{{ url_for('browse_rosbag') }}" class="back-link">← ファイルブラウザに戻る</a>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul style="list-style: none; padding: 0;">
+            {% for category, message in messages %}
+              <li class="message {{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
 
-        <h2>1. 読み込み済み ROS Bag</h2>
-        <p>ファイルパス: <code>{{ input_bag_path }}</code></p>
-        
-        <h2>2. 変換するトピックの選択</h2>
-        
-        <div id="conversion-section">
-            <input type="hidden" id="input_bag_path" value="{{ input_bag_path }}">
+        <p>
+            選択されたROS Bag: 
+            <code style="font-weight: bold;">{{ input_bag_path }}</code>
+            {% if sync_mode %}
+            （トピック同期モード）
+            {% else %}
+            （フィルタリングモード）
+            {% endif %}
+        </p>
 
-            <button id="all-check-btn">全てチェック</button>
-            <button id="all-uncheck-btn">全てチェック解除</button>
+        <form id="filter-form">
+            <input type="hidden" name="input_bag_path" value="{{ input_bag_path }}">
 
-            <div class="topic-list" id="topic-checkboxes">
+            <div style="margin-bottom: 20px;">
+                <label for="output_filename">
+                    {% if sync_mode %}
+                    新しいROS Bag名 (トピック同期後):
+                    {% else %}
+                    出力ROS Bag名 (フィルタリング後):
+                    {% endif %}
+                </label>
+                <input type="text" 
+                       id="output_filename" 
+                       name="output_filename" 
+                       style="width: 100%; padding: 8px;"
+                       placeholder="ファイル名を入力 (拡張子不要)" 
+                       required>
+            </div>
+
+            {% if not sync_mode %}
+            <h2>処理対象トピックの選択</h2>
+            <div class="topic-list">
+                <p><label><input type="checkbox" id="select-all-topics"> 全て選択/解除</label></p>
                 {% for topic in topic_list %}
-                    <div>
-                        <input type="checkbox" name="topics" value="{{ topic }}" id="topic-{{ loop.index }}" checked>
-                        <label for="topic-{{ loop.index }}">{{ topic }}</label>
-                    </div>
+                    <label>
+                        <input type="checkbox" name="topics" value="{{ topic }}" checked> 
+                        {{ topic }}
+                    </label>
                 {% endfor %}
             </div>
-            
-            <hr>
-            <h2>3. 変換実行</h2>
+            {% endif %}
 
-            <label for="output_filename">出力ファイル名 (rosbagディレクトリ名):</label>
-            <input type="text" id="output_filename" placeholder="e.g., filtered_bag">
-            <small>(拡張子は不要です)</small><br><br>
-
-            <button id="convert-btn">変換実行</button>
+            <button type="submit" id="process-button" class="btn btn-primary" style="padding: 10px 20px; width: 100%;">
+                {% if sync_mode %}
+                トピック同期処理を開始
+                {% else %}
+                フィルタリングを開始
+                {% endif %}
+            </button>
+        </form>
+        
+        <div id="progress-area">
+            <h2>処理実行中...</h2>
+            <p id="progress-message">スクリプトを実行し、処理の完了を待っています。</p>
+            <p id="estimated-time-info">処理時間目安: 計算中...</p>
             
-            <div class="status-message" id="status-message"></div>
-            <div class="status-message" id="download-link"></div>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="progress-bar-fill">0%</div>
+            </div>
+
+            <p id="elapsed-time">経過時間: 00:00</p>
+
+            <a id="download-link" class="download-link" style="display: none;">ダウンロード</a>
+            <button id="reset-button" style="margin-top: 10px; display: none;" onclick="location.reload()">再設定</button>
         </div>
+
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const topicCheckboxes = document.querySelectorAll('#topic-checkboxes input[name="topics"]');
-            const allCheckBtn = document.getElementById('all-check-btn');
-            const allUncheckBtn = document.getElementById('all-uncheck-btn');
-            const convertBtn = document.getElementById('convert-btn');
-            const statusMessage = document.getElementById('status-message');
-            const downloadLinkDiv = document.getElementById('download-link');
+        const form = document.getElementById('filter-form');
+        const processButton = document.getElementById('process-button');
+        const progressArea = document.getElementById('progress-area');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const downloadLink = document.getElementById('download-link');
+        const elapsedTimeElement = document.getElementById('elapsed-time');
+        const estimatedTimeInfo = document.getElementById('estimated-time-info');
+        const outputFilenameInput = document.getElementById('output_filename');
 
-            if (allCheckBtn) {
-                allCheckBtn.addEventListener('click', () => {
-                    topicCheckboxes.forEach(cb => cb.checked = true);
+        // Jinja2から変数を受け取る
+        const topicList = {{ topic_list | tojson }};
+        const inputBagPath = "{{ input_bag_path }}";
+        const syncMode = {{ sync_mode | default('false') | lower }};
+        
+        // 🌟 修正: Pythonから渡された実際の時間をそのまま使用 (1.5倍しない) 🌟
+        const bagDurationSec = {{ bag_duration_sec | default(120) }}; 
+        
+        // 処理時間の目安 (Bagの長さの1.0倍をシミュレーション時間とする)
+        const ESTIMATED_PROCESS_TIME_SEC = bagDurationSec; // 🌟 修正箇所 🌟
+
+        let startTime = 0;
+        let elapsedInterval = null;
+
+        // ROS Bagの長さ（秒）を分:秒形式に変換
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.round(seconds % 60);
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        // 処理時間の推定値を表示
+        estimatedTimeInfo.textContent = `処理時間目安: ${formatDuration(ESTIMATED_PROCESS_TIME_SEC)}程度 (Bag再生時間)`;
+
+        // 経過時間を更新し、プログレスバーを模擬的に動かす関数
+        function updateProgress() {
+            const now = Date.now();
+            const elapsedMs = now - startTime;
+            const elapsedSec = Math.floor(elapsedMs / 1000);
+            
+            elapsedTimeElement.textContent = `経過時間: ${formatDuration(elapsedSec)}`;
+            
+            // 処理時間に対する進捗を計算 
+            // 実際は処理時間は再生時間より長くなるため、シミュレーションが100%を超えてもタイマーは止めない
+            let progress = Math.min(100, (elapsedSec / ESTIMATED_PROCESS_TIME_SEC) * 100);
+            
+            // プログレスバーの表示を更新
+            progressBarFill.style.width = `${progress}%`;
+            progressBarFill.textContent = `${Math.round(progress)}%`;
+
+            // 処理が完了するはずの時間の1.5倍経過してもサーバーからの応答がない場合、警告を出す
+            // (Syncモードの長時間処理対応のため、このシミュレーションを長く保持する)
+            if (elapsedSec >= ESTIMATED_PROCESS_TIME_SEC　&& elapsedInterval && syncMode) { 
+                 // Syncモードはバックグラウンド実行のため、時間がかかってもタイマーは止めない
+                 document.getElementById('progress-message').textContent = '処理に時間がかかっています。スクリプトがバックグラウンドで続行しているか、ログを確認してください。';
+                 progressBarFill.style.backgroundColor = '#ffc107'; // 警告色
+            }
+        }
+        
+        // 処理結果を表示する関数 (成功/エラー)
+        function showDownloadResult(status, filename) {
+            // シミュレーションタイマーがあれば停止
+            if (elapsedInterval) {
+                clearInterval(elapsedInterval);
+                elapsedInterval = null;
+            }
+            
+            progressBarFill.style.width = '100%';
+            progressBarFill.textContent = status === 'success' ? '100% 完了' : 'エラー';
+            
+            if (status === 'success') {
+                document.getElementById('progress-message').textContent = '処理が完了しました。ファイルをダウンロードしてください。';
+                downloadLink.href = `/download/${filename}`; 
+                downloadLink.style.display = 'block';
+                progressBarFill.style.backgroundColor = '#28a745';
+                document.getElementById('reset-button').style.display = 'inline-block';
+            } else {
+                document.getElementById('progress-message').textContent = `処理中にエラーが発生しました。詳細: ${filename}`;
+                progressBarFill.style.backgroundColor = '#dc3545';
+                document.getElementById('reset-button').style.display = 'inline-block';
+            }
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const outputFilename = outputFilenameInput.value.trim();
+            if (outputFilename === '') {
+                alert('新しいROS Bagの名前を入力してください。');
+                return;
+            }
+
+            const formData = new FormData(form);
+            const topics = [];
+            
+            if (!syncMode) {
+                // フィルタリングモードの場合のみトピックを集める
+                document.querySelectorAll('input[name="topics"]:checked').forEach(checkbox => {
+                    topics.push(checkbox.value);
                 });
+                if (topics.length === 0) {
+                    alert('フィルタリングにはトピックを一つ以上選択してください。');
+                    return;
+                }
+            }
+            
+            // フォームとボタンを非表示/無効化
+            form.style.display = 'none';
+            progressArea.style.display = 'block';
+            startTime = Date.now();
+            
+            // プログレスバーのシミュレーションを開始
+            elapsedInterval = setInterval(updateProgress, 1000); 
+
+            try {
+                const postData = {
+                    input_bag_path: inputBagPath,
+                    output_filename: outputFilename,
+                    topics: syncMode ? [] : topics, 
+                    is_sync_mode: syncMode 
+                };
                 
-                allUncheckBtn.addEventListener('click', () => {
-                    topicCheckboxes.forEach(cb => cb.checked = false);
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(postData)
                 });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    if (!syncMode) {
+                        // Filterモード: サーバーで処理が完了
+                        showDownloadResult('success', result.download_path);
+                    } else {
+                         // Syncモード: サーバーでバックグラウンド処理が開始
+                         // 実際にはこの後、サーバーの状態をポーリングするべきだが、
+                         // プログレスバーのシミュレーションと仮定して、タイマーは継続する
+                         document.getElementById('progress-message').textContent = result.message;
+                         // タイマーは継続させ、ダウンロード完了を待つロジック（後続のポーリング）に移行
+                    }
+                } else {
+                    // サーバー側でエラーが発生
+                    showDownloadResult('error', result.message);
+                }
+
+            } catch (error) {
+                // ネットワークエラーなど
+                showDownloadResult('error', '通信エラー');
             }
-
-            if (convertBtn) {
-                convertBtn.addEventListener('click', async () => {
-                    statusMessage.textContent = '⏱️ 変換処理を実行中... しばらくお待ちください。';
-                    statusMessage.style.color = 'orange';
-                    downloadLinkDiv.innerHTML = '';
-                    convertBtn.disabled = true;
-
-                    const selectedTopics = Array.from(topicCheckboxes)
-                        .filter(cb => cb.checked)
-                        .map(cb => cb.value);
-
-                    const inputBagPath = document.getElementById('input_bag_path').value;
-                    const outputFilename = document.getElementById('output_filename').value;
-
-                    if (selectedTopics.length === 0) {
-                        statusMessage.textContent = '❌ エラー: トピックを一つ以上選択してください。';
-                        statusMessage.style.color = 'red';
-                        convertBtn.disabled = false;
-                        return;
-                    }
-
-                    // 🌟 修正されたJavaScriptロジック 🌟
-                    // URLSearchParams に配列を直接渡すとカンマ区切り文字列に結合されるため、
-                    // 配列の要素をループで個別に 'topics' キーに追加し、
-                    // Flask側で request.form.getlist('topics') でリストとして正しく受け取れるようにします。
-                    const formData = new URLSearchParams();
-                    formData.append('input_bag_path', inputBagPath);
-                    formData.append('output_filename', outputFilename);
-                    
-                    selectedTopics.forEach(topic => {
-                        formData.append('topics', topic);
-                    });
-                    // 🌟 修正終わり 🌟
-
-
-                    try {
-                        const response = await fetch('/convert', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: formData // 修正された formData を使用
-                        });
-
-                        const result = await response.json();
-                        
-                        if (result.status === 'success') {
-                            statusMessage.textContent = `✅ 変換が完了しました！ ${result.message}`;
-                            statusMessage.style.color = 'green';
-                            
-                            const downloadLink = document.createElement('a');
-                            downloadLink.href = `/download/${result.download_path}`;
-                            downloadLink.textContent = `🔗 フィルタ済み bagファイル (${result.download_path}.zip) をダウンロード`;
-                            downloadLink.style.fontWeight = 'bold';
-                            downloadLinkDiv.appendChild(downloadLink);
-
-                        } else {
-                            statusMessage.textContent = `❌ 変換エラー: ${result.message}`;
-                            statusMessage.style.color = 'red';
-                        }
-
-                    } catch (error) {
-                        statusMessage.textContent = `❌ ネットワークまたは致命的なエラーが発生しました: ${error}`;
-                        statusMessage.style.color = 'red';
-                        console.error('Conversion failed:', error);
-                    } finally {
-                        convertBtn.disabled = false;
-                    }
+        });
+        
+        // 全選択/解除ボタンの機能
+        if (document.getElementById('select-all-topics')) {
+            document.getElementById('select-all-topics').addEventListener('change', function() {
+                const isChecked = this.checked;
+                document.querySelectorAll('input[name="topics"]').forEach(checkbox => {
+                    checkbox.checked = isChecked;
                 });
-            }
+            });
+        }
+
+        // ページロード時の初期設定
+        document.addEventListener('DOMContentLoaded', () => {
+            // パスからファイル名のみを取得（拡張子なし）
+            const parts = inputBagPath.split('/');
+            const fileNameWithExt = parts[parts.length - 1];
+            const bagName = fileNameWithExt.split('.').shift() || "new_bag"; 
+
+            outputFilenameInput.placeholder = syncMode ? `${bagName}_sync` : `${bagName}_filtered`;
+            outputFilenameInput.value = syncMode ? `${bagName}_sync` : `${bagName}_filtered`;
         });
     </script>
 </body>

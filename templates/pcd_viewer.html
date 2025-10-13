@@ -26,32 +26,160 @@
             padding: 5px 10px;
             border-radius: 3px;
         }
+        /* 既存：カメラ操作ボタン (右下) */
+        #rotation-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: grid; 
+            grid-template-columns: repeat(2, 70px);
+            gap: 10px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        /* 🌟 追加：モデル回転コントロールのCSS (左下に配置) 🌟 */
+        #model-rotation-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px; /* 左側に配置 */
+            display: grid; 
+            grid-template-columns: repeat(2, 70px);
+            gap: 10px;
+            padding: 15px;
+            background: rgba(240, 248, 255, 0.85); /* カメラと区別する色 */
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .rotation-button, .model-rotation-button {
+            width: 70px;
+            height: 70px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 28px;
+            display: flex;
+            flex-direction: column; 
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            user-select: none;
+            line-height: 1; 
+        }
+        .rotation-button:active, .model-rotation-button:active {
+            background: #eee;
+        }
+        .model-rotation-button {
+             background: #f0f0f0; /* モデル回転ボタンの色 */
+             border: 1px solid #aaa;
+        }
+        
+        .axis-label {
+            font-size: 12px;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .axis-z { color: blue; }
+        .axis-y { color: green; }
+        .axis-x { color: red; }
     </style>
     
     <script type="module">
-        // 🌟 修正: FlaskのSTATICルートを使用してローカルファイルを読み込む 🌟
-        
-        // 開発者ツールで強制的に実行を停止させるデバッグコマンド (確認後、削除推奨)
-        // debugger; 
-
-        // 1. Three.js本体のインポート (例: static/js/three/three.module.js)
         import * as THREE from '{{ url_for("static", filename="js/three/three.module.js") }}'; 
-        
-        // 2. ローダーとコントロールのインポート (例: static/js/three/PCDLoader.js)
         import { PCDLoader } from '{{ url_for("static", filename="js/three/PCDLoader.js") }}';
         import { OrbitControls } from '{{ url_for("static", filename="js/three/OrbitControls.js") }}';
 
         
-        // Jinja2テンプレートからマップ名を取得 (シングルクォート修正済み)
         const mapName = '{{ map_name | default("") }}';
         const filename = mapName ? mapName + '.pcd' : '';
-        const pcdUrl = filename ? '/map/' + filename : ''; // PCDファイルへのWebアクセスルート
+        const pcdUrl = filename ? '/map/' + filename : '';
         
         let scene, camera, renderer, loader;
         let controls; 
+        let pointsMesh = null; // 🌟 追加: 点群オブジェクトを保持 🌟
+
+        /**
+         * ターゲットを中心にカメラを回転させる関数 (ヨー/ピッチ/ロール)
+         * @param {string} axis - 'x', 'y', または 'z'
+         * @param {number} sign - 1 (正方向) または -1 (負方向)
+         */
+        function rotateCamera(axis, sign) {
+            if (!controls) return;
+            
+            const angle = sign * (Math.PI / 18); // 10度回転
+            const target = controls.target;
+            const position = camera.position;
+            
+            let rotationAxis = new THREE.Vector3();
+
+            // 回転軸を決定
+            if (axis === 'y') {
+                // Y軸回転 (ヨー: 地面に対して垂直)
+                rotationAxis.set(0, 1, 0);
+            } else if (axis === 'x') {
+                // X軸回転 (ピッチ: 水平軸周りの上下回転)
+                // カメラのワールド回転行列からローカルX軸（右方向）を正確に取得
+                const tempY = new THREE.Vector3();
+                const tempZ = new THREE.Vector3();
+                camera.matrixWorld.extractBasis(rotationAxis, tempY, tempZ);
+                rotationAxis.normalize(); // X軸（右ベクトル）
+            } else if (axis === 'z') {
+                // Z軸回転 (ロール: 視線軸周りの回転)
+                // カメラのローカルZ軸（視線方向）を使用
+                camera.getWorldDirection(rotationAxis).negate(); // 視線方向
+            } else {
+                return;
+            }
+
+            const quaternion = new THREE.Quaternion().setFromAxisAngle(rotationAxis, angle);
+            
+            // ターゲットを中心にカメラの位置を回転
+            const offset = position.clone().sub(target);
+            offset.applyQuaternion(quaternion);
+            camera.position.copy(target).add(offset);
+            
+            // ロール回転の場合、カメラのアップベクトルも回転させる必要がある
+            if (axis === 'z') {
+                camera.up.applyQuaternion(quaternion);
+            }
+            
+            camera.lookAt(target);
+            controls.update();
+        }
+        
+        /**
+         * 点群モデルをワールド座標軸を中心に回転させる関数
+         * @param {string} axis - 'x', 'y', または 'z'
+         * @param {number} sign - 1 (正方向) または -1 (負方向)
+         */
+        function rotateModel(axis, sign) {
+            if (!pointsMesh) return;
+            
+            const angle = sign * (Math.PI / 18); // 10度回転
+            let rotationAxis = new THREE.Vector3();
+
+            // ワールド座標軸を設定
+            if (axis === 'x') {
+                rotationAxis.set(1, 0, 0);
+            } else if (axis === 'y') {
+                rotationAxis.set(0, 1, 0);
+            } else if (axis === 'z') {
+                rotationAxis.set(0, 0, 1);
+            } else {
+                return;
+            }
+
+            // モデルの回転
+            pointsMesh.rotateOnWorldAxis(rotationAxis, angle);
+            
+            // カメラコントロールを更新して再描画を促す
+            controls.update(); 
+        }
 
         function init() {
-            // mapNameが空文字の場合のチェック
             if (!pcdUrl || mapName === '') { 
                 document.getElementById('loading-message').textContent = "エラー: マップ名が指定されていません。";
                 return;
@@ -72,6 +200,11 @@
             renderer.setSize(width, height);
             container.appendChild(renderer.domElement);
 
+            // 軸ヘルパー（ギズモ）の追加
+            const axesHelper = new THREE.AxesHelper(10); 
+            axesHelper.isAxesHelper = true; 
+            scene.add(axesHelper);
+
             // 2. PCDLoaderの設定
             loader = new PCDLoader();
             
@@ -79,9 +212,25 @@
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true; 
             controls.dampingFactor = 0.05;
-            controls.screenSpacePanning = false;
+            
+            // Orbital Camera設定: ターゲット中心回転
+            controls.enablePan = true;
+            controls.screenSpacePanning = false; 
             controls.minDistance = 1;
             controls.maxDistance = 500;
+            
+            // タッチ操作の最適化
+            controls.touches = {
+                ONE: THREE.TOUCH.ROTATE,       // 1本指: 回転
+                TWO: THREE.TOUCH.DOLLY_PAN     // 2本指: ズームとパン
+            };
+
+            // マウスボタンの設定
+            controls.mouseButtons = {
+                LEFT: THREE.MOUSE.ROTATE,    // 左クリックでターゲット中心回転
+                MIDDLE: THREE.MOUSE.DOLLY,   // ズーム
+                RIGHT: THREE.MOUSE.PAN       // 右クリックで平面移動
+            };
             
             // 4. PCDファイルの読み込み
             document.getElementById('loading-message').textContent = `PCDファイル "${filename}" を読み込み中...`;
@@ -91,6 +240,7 @@
                 // 読み込み成功時のコールバック
                 function (points) {
                     scene.add(points);
+                    pointsMesh = points; // 🌟 点群オブジェクトを変数に保持 🌟
                     
                     document.getElementById('loading-message').style.display = 'none';
                     document.getElementById('info').innerHTML = `マップ: <b>${filename}</b><br>点群数: ${points.geometry.attributes.position.count}`;
@@ -99,12 +249,22 @@
                     const boundingBox = new THREE.Box3().setFromObject(points);
                     const center = new THREE.Vector3();
                     boundingBox.getCenter(center);
+                    
+                    // OrbitControlsのtargetを点群の中心に設定
                     controls.target.copy(center);
                     
                     const size = new THREE.Vector3();
                     boundingBox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
                     camera.position.copy(center).add(new THREE.Vector3(maxDim, maxDim, maxDim).multiplyScalar(0.5));
+                    
+                    // 軸ヘルパーのサイズと位置を調整
+                    const existingAxesHelper = scene.children.find(obj => obj.isAxesHelper);
+                    if (existingAxesHelper) {
+                        const helperSize = maxDim * 0.1;
+                        existingAxesHelper.scale.set(helperSize, helperSize, helperSize);
+                        existingAxesHelper.position.copy(center); 
+                    }
                     
                     controls.update();
                     animate();
@@ -118,7 +278,6 @@
                 function (error) {
                     console.error('PCDファイルの読み込み中にエラーが発生しました:', error);
                     document.getElementById('loading-message').textContent = `エラー: PCDファイル "${filename}" の読み込みに失敗しました。`;
-                    // 404エラーの場合はサーバーパスが間違っている可能性
                     if (error.target && error.target.status === 404) {
                          document.getElementById('loading-message').textContent += ' (404 Not Found: ファイルパスを確認してください)';
                     }
@@ -127,6 +286,22 @@
 
             // 5. リサイズハンドラ
             window.addEventListener('resize', onWindowResize, false);
+            
+            // カメラ回転ボタンイベントリスナー
+            document.getElementById('rotate-y-left').addEventListener('click', () => rotateCamera('y', 1));
+            document.getElementById('rotate-y-right').addEventListener('click', () => rotateCamera('y', -1));
+            document.getElementById('rotate-x-up').addEventListener('click', () => rotateCamera('x', 1));
+            document.getElementById('rotate-x-down').addEventListener('click', () => rotateCamera('x', -1));
+            document.getElementById('rotate-z-left').addEventListener('click', () => rotateCamera('z', 1));
+            document.getElementById('rotate-z-right').addEventListener('click', () => rotateCamera('z', -1));
+            
+            // 🌟 モデル回転ボタンイベントリスナー 🌟
+            document.getElementById('model-rotate-x-up').addEventListener('click', () => rotateModel('x', 1));
+            document.getElementById('model-rotate-x-down').addEventListener('click', () => rotateModel('x', -1));
+            document.getElementById('model-rotate-y-left').addEventListener('click', () => rotateModel('y', 1));
+            document.getElementById('model-rotate-y-right').addEventListener('click', () => rotateModel('y', -1));
+            document.getElementById('model-rotate-z-left').addEventListener('click', () => rotateModel('z', 1));
+            document.getElementById('model-rotate-z-right').addEventListener('click', () => rotateModel('z', -1));
         }
 
         function onWindowResize() {
@@ -155,5 +330,70 @@
     <div id="viewer-container"></div>
     <div id="loading-message">ビューアを初期化中...</div>
     <div id="info">マップ名: -</div>
+
+    <div id="model-rotation-controls">
+        <div style="grid-column: 1 / 3; text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
+            モデル回転 (World Axis)
+        </div>
+        
+        <div id="model-rotate-y-left" class="model-rotation-button">
+            ↺
+            <span class="axis-label axis-y">Y</span>
+        </div>
+        <div id="model-rotate-y-right" class="model-rotation-button">
+            ↻
+            <span class="axis-label axis-y">Y</span>
+        </div>
+        
+        <div id="model-rotate-x-up" class="model-rotation-button">
+            ↑
+            <span class="axis-label axis-x">X</span>
+        </div>
+        <div id="model-rotate-x-down" class="model-rotation-button">
+            ↓
+            <span class="axis-label axis-x">X</span>
+        </div>
+
+        <div id="model-rotate-z-left" class="model-rotation-button">
+            ⟲
+            <span class="axis-label axis-z">Z</span>
+        </div>
+        <div id="model-rotate-z-right" class="model-rotation-button">
+            ⟳
+            <span class="axis-label axis-z">Z</span>
+        </div>
+    </div>
+
+    <div id="rotation-controls">
+        <div style="grid-column: 1 / 3; text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
+            カメラ操作 (Target Orbit)
+        </div>
+        <div id="rotate-z-left" class="rotation-button">
+            ⟲
+            <span class="axis-label axis-z">Z (ロール)</span>
+        </div>
+        <div id="rotate-z-right" class="rotation-button">
+            ⟳
+            <span class="axis-label axis-z">Z (ロール)</span>
+        </div>
+        
+        <div id="rotate-y-left" class="rotation-button">
+            ↺
+            <span class="axis-label axis-y">Y (ヨー)</span>
+        </div>
+        <div id="rotate-y-right" class="rotation-button">
+            ↻
+            <span class="axis-label axis-y">Y (ヨー)</span>
+        </div>
+        
+        <div id="rotate-x-up" class="rotation-button">
+            ↑
+            <span class="axis-label axis-x">X (ピッチ)</span>
+        </div>
+        <div id="rotate-x-down" class="rotation-button">
+            ↓
+            <span class="axis-label axis-x">X (ピッチ)</span>
+        </div>
+    </div>
 </body>
 </html>

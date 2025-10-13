@@ -22,6 +22,8 @@
         <h1>ROS Bag ファイルブラウザ 
             {% if sync_mode %}
             (トピック同期用)
+            {% elif p2o_mode %}
+            (P2O マッピング用)
             {% else %}
             (フィルタリング用)
             {% endif %}
@@ -60,6 +62,8 @@
             
             {% if sync_mode %}
             <input type="hidden" name="mode" value="sync">
+            {% elif p2o_mode %}
+            <input type="hidden" name="mode" value="p2o">
             {% endif %}
 
             <button type="submit" id="select_button" disabled>ROS Bagとして選択</button>
@@ -67,9 +71,11 @@
         </form>
 
         <ul id="file-list">
+            {% set current_mode_param = 'sync' if sync_mode else ('p2o' if p2o_mode else None) %}
+
             {% if parent_path is not none %}
                 <li class="parent-link">
-                    <a href="{{ url_for('browse_rosbag', path=parent_path, mode='sync' if sync_mode else None) }}">
+                    <a href="{{ url_for('browse_rosbag', path=parent_path, mode=current_mode_param) }}">
                         📁 .. (親ディレクトリへ)
                     </a>
                 </li>
@@ -78,7 +84,7 @@
             {% for dir_name in dirs %}
                 {% set rel_path = current_path + '/' + dir_name if current_path else dir_name %}
                 <li class="folder" onclick="selectItem('{{ rel_path }}', '{{ dir_name }}', true, event)">
-                    <a href="{{ url_for('browse_rosbag', path=rel_path, mode='sync' if sync_mode else None) }}">
+                    <a href="{{ url_for('browse_rosbag', path=rel_path, mode=current_mode_param) }}">
                         📁 {{ dir_name }}
                     </a>
                 </li>

@@ -87,6 +87,8 @@
             <code style="font-weight: bold;">{{ input_bag_path }}</code>
             {% if sync_mode %}
             （トピック同期モード）
+            {% elif p2o_mode %}
+            （P2O マッピングモード）
             {% else %}
             （フィルタリングモード）
             {% endif %}
@@ -99,6 +101,8 @@
                 <label for="output_filename">
                     {% if sync_mode %}
                     新しいROS Bag名 (トピック同期後):
+                    {% elif p2o_mode %}
+                    出力マップのベース名 (PCD/YAML名):
                     {% else %}
                     出力ROS Bag名 (フィルタリング後):
                     {% endif %}
@@ -111,7 +115,7 @@
                        required>
             </div>
 
-            {% if not sync_mode %}
+            {% if not sync_mode and not p2o_mode %}
             <h2>処理対象トピックの選択</h2>
             <div class="topic-list">
                 <p><label><input type="checkbox" id="select-all-topics"> 全て選択/解除</label></p>
@@ -127,6 +131,8 @@
             <button type="submit" id="process-button" class="btn btn-primary" style="padding: 10px 20px; width: 100%;">
                 {% if sync_mode %}
                 トピック同期処理を開始
+                {% elif p2o_mode %}
+                P2O マッピングを開始
                 {% else %}
                 フィルタリングを開始
                 {% endif %}
@@ -164,8 +170,8 @@
         const topicList = {{ topic_list | tojson }};
         const inputBagPath = "{{ input_bag_path }}";
         const syncMode = {{ sync_mode | default('false') | lower }};
+        const p2oMode = {{ p2o_mode | default('false') | lower }}; 
         
-        // 🌟 修正済み: Pythonから渡された実際の時間をそのまま使用 (1.5倍しない) 🌟
         const bagDurationSec = {{ bag_duration_sec | default(120) }}; 
         
         // 処理時間の目安 (Bagの長さの1.0倍をシミュレーション時間とする)
@@ -194,8 +200,6 @@
             
             elapsedTimeElement.textContent = `経過時間: ${formatDuration(elapsedSec)}`;
             
-            // 処理時間に対する進捗を計算 
-            // 実際は処理時間は再生時間より長くなるため、シミュレーションが100%を超えてもタイマーは止めない
             let progress = Math.min(100, (elapsedSec / ESTIMATED_PROCESS_TIME_SEC) * 100);
             
             // プログレスバーの表示を更新
@@ -205,7 +209,7 @@
             // 推定時間を超えたら警告色に
             if (elapsedSec >= ESTIMATED_PROCESS_TIME_SEC && progress < 100) { 
                  progressBarFill.style.backgroundColor = '#ffc107'; // 警告色
-                 if (syncMode) {
+                 if (syncMode || p2oMode) {
                      document.getElementById('progress-message').textContent = '処理が推定時間を超過しています。完了をポーリングで監視中です...';
                  }
             } else if (progress < 100) {
@@ -214,7 +218,7 @@
         }
         
         // 処理結果を表示する関数 (成功/エラー)
-        function showDownloadResult(status, filename) {
+        function showDownloadResult(status, filenameOrMapName, isP2O = false) { 
             // シミュレーションタイマーがあれば停止
             if (elapsedInterval) {
                 clearInterval(elapsedInterval);
@@ -229,20 +233,56 @@
             progressBarFill.textContent = status === 'success' ? '100% 完了' : 'エラー';
             
             if (status === 'success') {
-                document.getElementById('progress-message').textContent = '処理が完了しました。ファイルをダウンロードしてください。';
-                downloadLink.href = `/download/${filename}`; 
-                downloadLink.style.display = 'block';
                 progressBarFill.style.backgroundColor = '#28a745';
                 document.getElementById('reset-button').style.display = 'inline-block';
+
+                if (isP2O) {
+                    document.getElementById('progress-message').textContent = `P2O マッピングが完了しました。マップ名: ${filenameOrMapName} (PCDファイルがrosbagフォルダに生成されました)。`;
+                    downloadLink.style.display = 'none'; // P2OはZIPダウンロードなし
+                } else {
+                    document.getElementById('progress-message').textContent = '処理が完了しました。ファイルをダウンロードしてください。';
+                    downloadLink.href = `/download/${filenameOrMapName}`; 
+                    downloadLink.style.display = 'block';
+                }
             } else {
-                document.getElementById('progress-message').textContent = `処理中にエラーが発生しました。詳細: ${filename}`;
+                document.getElementById('progress-message').textContent = `処理中にエラーが発生しました。詳細: ${filenameOrMapName}`;
                 progressBarFill.style.backgroundColor = '#dc3545';
                 document.getElementById('reset-button').style.display = 'inline-block';
             }
         }
 
-        // 🌟 新規: サーバーにポーリングして同期処理の完了をチェックする関数 🌟
-        function startPolling(outputFilename) {
+        // サーバーにポーリングしてP2O処理の完了をチェックする関数
+        function startP2OPolling(outputMapName) {
+            if (pollingInterval) clearInterval(pollingInterval); 
+
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/check_p2o_status', { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ output_map_name: outputMapName })
+                    });
+                    const result = await response.json();
+
+                    if (result.status === 'finished') {
+                        clearInterval(pollingInterval); 
+                        showDownloadResult('success', result.map_name, true); 
+                        
+                    } else if (result.status === 'in_progress') {
+                        // 処理続行中
+                    } else if (result.status === 'error') {
+                        clearInterval(pollingInterval);
+                        showDownloadResult('error', `P2O ポーリングエラー: ${result.message}`);
+                    }
+
+                } catch (error) {
+                    console.error('ポーリング中のネットワークエラー:', error);
+                }
+            }, POLLING_INTERVAL_MS);
+        }
+        
+        // サーバーにポーリングして同期処理の完了をチェックする関数 (Sync用)
+        function startSyncPolling(outputFilename) {
             if (pollingInterval) clearInterval(pollingInterval); 
 
             pollingInterval = setInterval(async () => {
@@ -255,22 +295,15 @@
                     const result = await response.json();
 
                     if (result.status === 'finished') {
-                        clearInterval(pollingInterval); // 完了したのでポーリングを停止
+                        clearInterval(pollingInterval); 
                         showDownloadResult('success', result.download_path);
-                        
-                    } else if (result.status === 'in_progress') {
-                        // 処理続行中: UIはシミュレーションを継続
-                        // console.log(result.message);
-                        
-                    } else if (result.status === 'error') {
-                        // サーバーエラー
+                    } 
+                    else if (result.status === 'error') {
                         clearInterval(pollingInterval);
                         showDownloadResult('error', `同期ポーリングエラー: ${result.message}`);
                     }
-
                 } catch (error) {
                     console.error('ポーリング中のネットワークエラー:', error);
-                    // ネットワークエラーが発生しても、サーバーが落ちていなければ再試行
                 }
             }, POLLING_INTERVAL_MS);
         }
@@ -279,16 +312,16 @@
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const outputFilename = outputFilenameInput.value.trim();
-            if (outputFilename === '') {
-                alert('新しいROS Bagの名前を入力してください。');
+            const outputNameInput = outputFilenameInput.value.trim();
+            if (outputNameInput === '') {
+                alert(p2oMode ? '出力マップ名を入力してください。' : '新しいROS Bagの名前を入力してください。');
                 return;
             }
 
             const formData = new FormData(form);
             const topics = [];
             
-            if (!syncMode) {
+            if (!syncMode && !p2oMode) {
                 // フィルタリングモードの場合のみトピックを集める
                 document.querySelectorAll('input[name="topics"]:checked').forEach(checkbox => {
                     topics.push(checkbox.value);
@@ -310,12 +343,16 @@
             try {
                 const postData = {
                     input_bag_path: inputBagPath,
-                    output_filename: outputFilename,
-                    topics: syncMode ? [] : topics, 
-                    is_sync_mode: syncMode 
+                    output_filename: outputNameInput, 
+                    output_map_name: outputNameInput, // P2O用
+                    topics: p2oMode || syncMode ? [] : topics, // Sync/P2Oは空リストを送信
+                    is_sync_mode: syncMode // Filter/Sync用
                 };
                 
-                const response = await fetch('/convert', {
+                // 実行APIのエンドポイントをモードによって切り替え 
+                const apiEndpoint = p2oMode ? '/p2o_mapping' : '/convert';
+
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(postData)
@@ -324,15 +361,17 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    if (!syncMode) {
+                    document.getElementById('progress-message').textContent = result.message;
+
+                    if (!syncMode && !p2oMode) {
                         // Filterモード: サーバーで処理が完了
                         showDownloadResult('success', result.download_path);
-                    } else {
-                         // Syncモード: サーバーでバックグラウンド処理が開始
-                         document.getElementById('progress-message').textContent = result.message;
-                         
-                         // 🚨 完了をポーリングで監視開始 🚨
-                         startPolling(result.download_path);
+                    } else if (syncMode) {
+                         // Syncモード: ポーリング開始
+                         startSyncPolling(result.download_path); 
+                    } else if (p2oMode) { 
+                         // P2Oモード: ポーリング開始 
+                         startP2OPolling(result.map_name); 
                     }
                 } else {
                     // サーバー側でエラーが発生
@@ -345,25 +384,37 @@
             }
         });
         
-        // 全選択/解除ボタンの機能
-        if (document.getElementById('select-all-topics')) {
-            document.getElementById('select-all-topics').addEventListener('change', function() {
-                const isChecked = this.checked;
-                document.querySelectorAll('input[name="topics"]').forEach(checkbox => {
-                    checkbox.checked = isChecked;
+        // 🌟 修正: 全選択/解除ボタンの機能を追加 🌟
+        const selectAllCheckbox = document.getElementById('select-all-topics');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                // input[name="topics"] は「全選択/解除」チェックボックス自身も含むので注意
+                const topicCheckboxes = document.querySelectorAll('input[name="topics"]'); 
+                topicCheckboxes.forEach(checkbox => {
+                    if (checkbox.id !== 'select-all-topics') { 
+                        checkbox.checked = this.checked;
+                    }
                 });
             });
         }
+        // ------------------------------------------
 
         // ページロード時の初期設定
         document.addEventListener('DOMContentLoaded', () => {
-            // パスからファイル名のみを取得（拡張子なし）
             const parts = inputBagPath.split('/');
             const fileNameWithExt = parts[parts.length - 1];
             const bagName = fileNameWithExt.split('.').shift() || "new_bag"; 
 
-            outputFilenameInput.placeholder = syncMode ? `${bagName}_sync` : `${bagName}_filtered`;
-            outputFilenameInput.value = syncMode ? `${bagName}_sync` : `${bagName}_filtered`;
+            let placeholderName;
+            if (syncMode) {
+                placeholderName = `${bagName}_sync`;
+            } else if (p2oMode) {
+                placeholderName = `${bagName}_p2omap`;
+            } else {
+                placeholderName = `${bagName}_filtered`;
+            }
+            outputFilenameInput.placeholder = placeholderName;
+            outputFilenameInput.value = placeholderName;
         });
     </script>
 </body>

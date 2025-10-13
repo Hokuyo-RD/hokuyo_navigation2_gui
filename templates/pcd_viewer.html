@@ -27,26 +27,32 @@
             border-radius: 3px;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
     <script type="module">
-        // 以下のコードブロックはESモジュールとして実行されます
-
-        // 💡 実行環境にPCDLoader.jsがない場合、このパスを修正する必要があります
-        import { PCDLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/PCDLoader.js';
+        // 🌟 修正: FlaskのSTATICルートを使用してローカルファイルを読み込む 🌟
         
-        // Jinja2テンプレートからマップ名を取得
-        const mapName = "{{ map_name | default('') }}";
+        // 開発者ツールで強制的に実行を停止させるデバッグコマンド (確認後、削除推奨)
+        // debugger; 
+
+        // 1. Three.js本体のインポート (例: static/js/three/three.module.js)
+        import * as THREE from '{{ url_for("static", filename="js/three/three.module.js") }}'; 
+        
+        // 2. ローダーとコントロールのインポート (例: static/js/three/PCDLoader.js)
+        import { PCDLoader } from '{{ url_for("static", filename="js/three/PCDLoader.js") }}';
+        import { OrbitControls } from '{{ url_for("static", filename="js/three/OrbitControls.js") }}';
+
+        
+        // Jinja2テンプレートからマップ名を取得 (シングルクォート修正済み)
+        const mapName = '{{ map_name | default("") }}';
         const filename = mapName ? mapName + '.pcd' : '';
-        const pcdUrl = filename ? '/maps/' + filename : '';
+        const pcdUrl = filename ? '/map/' + filename : ''; // PCDファイルへのWebアクセスルート
         
         let scene, camera, renderer, loader;
-        let controls; // Three.jsのOrbitControlsを使用
-        
-        // 外部からOrbitControlsをインポートする
-        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+        let controls; 
 
         function init() {
-            if (!pcdUrl) {
+            // mapNameが空文字の場合のチェック
+            if (!pcdUrl || mapName === '') { 
                 document.getElementById('loading-message').textContent = "エラー: マップ名が指定されていません。";
                 return;
             }
@@ -57,10 +63,10 @@
 
             // 1. シーン、カメラ、レンダラーの設定
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x333333); // 暗い背景
+            scene.background = new THREE.Color(0x333333);
             
             camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-            camera.position.set(5, 5, 5); // 初期カメラ位置
+            camera.position.set(5, 5, 5);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(width, height);
@@ -71,7 +77,7 @@
             
             // 3. コントロール (マウス操作)
             controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true; // 動きを滑らかにする
+            controls.enableDamping = true; 
             controls.dampingFactor = 0.05;
             controls.screenSpacePanning = false;
             controls.minDistance = 1;
@@ -86,7 +92,6 @@
                 function (points) {
                     scene.add(points);
                     
-                    // 読み込み完了
                     document.getElementById('loading-message').style.display = 'none';
                     document.getElementById('info').innerHTML = `マップ: <b>${filename}</b><br>点群数: ${points.geometry.attributes.position.count}`;
 
@@ -102,7 +107,6 @@
                     camera.position.copy(center).add(new THREE.Vector3(maxDim, maxDim, maxDim).multiplyScalar(0.5));
                     
                     controls.update();
-
                     animate();
                 },
                 // 読み込み進捗時のコールバック
@@ -114,6 +118,10 @@
                 function (error) {
                     console.error('PCDファイルの読み込み中にエラーが発生しました:', error);
                     document.getElementById('loading-message').textContent = `エラー: PCDファイル "${filename}" の読み込みに失敗しました。`;
+                    // 404エラーの場合はサーバーパスが間違っている可能性
+                    if (error.target && error.target.status === 404) {
+                         document.getElementById('loading-message').textContent += ' (404 Not Found: ファイルパスを確認してください)';
+                    }
                 }
             );
 
@@ -130,12 +138,12 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            controls.update(); // コントロールの更新
+            controls.update();
             renderer.render(scene, camera);
         }
 
-        // Three.jsとPCDLoaderのインポート後に init() を実行
-        if (pcdUrl) {
+        // init() の呼び出し
+        if (mapName !== '') {
             init();
         } else {
             document.getElementById('loading-message').textContent = "エラー: マップ名が指定されていません。";

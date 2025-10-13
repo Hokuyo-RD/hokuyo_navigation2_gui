@@ -2,436 +2,413 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ROS Bag 処理設定</title>
+    <title>ROS Bag 処理</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
-        .message { padding: 10px; margin-bottom: 10px; border-radius: 5px; }
-        .error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
-        .success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
-        .topic-list { 
-            max-height: 300px; 
-            overflow-y: auto; 
-            border: 1px solid #ccc; 
-            padding: 10px; 
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .header-info {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
             margin-bottom: 20px;
         }
-        .topic-list label { display: block; margin-bottom: 5px; cursor: pointer; }
-        
-        /* プログレスバー関連 */
-        #progress-area { 
-            border: 1px solid #007bff; 
-            padding: 20px; 
-            border-radius: 5px; 
-            margin-top: 20px; 
-            display: none; 
-            text-align: center;
+        .header-info p {
+            margin: 5px 0;
         }
-        .progress-bar {
-            width: 100%;
-            background-color: #f3f3f3;
-            border-radius: 5px;
-            margin: 10px 0;
-            overflow: hidden;
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
         }
-        .progress-bar-fill {
-            height: 25px;
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .topic-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            background-color: #fff;
+        }
+        .topic-item {
+            padding: 5px 0;
+        }
+        button {
             background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #p2o-options {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        #progress-area {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+        #progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        #progress-bar-fill {
+            height: 25px;
             width: 0%;
+            background-color: #28a745;
+            border-radius: 5px;
             text-align: center;
             line-height: 25px;
             color: white;
-            transition: width 0.3s;
+            transition: width 0.5s;
         }
         .download-link {
             display: block;
-            margin-top: 20px;
+            margin: 20px auto 0;
             padding: 10px 20px;
             background-color: #28a745;
             color: white;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 4px;
+            width: fit-content;
+            cursor: pointer;
+        }
+        .viewer-link {
+            background-color: #007bff !important;
+            margin-top: 10px !important;
+        }
+        #message-area {
+            color: red;
+            margin-top: 10px;
             font-weight: bold;
+        }
+        .loading-icon {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 2s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>ROS Bag 処理設定</h1>
-        <p><a href="#" onclick="closeCurrentTabAndReloadOpener(); return false;">← メインGUI (自律走行) に戻る</a></p>
-        <script>
-            function closeCurrentTabAndReloadOpener() {
-                if (window.opener && !window.opener.closed) {
-                    try {
-                        window.opener.location.reload(); 
-                    } catch (e) {
-                        console.warn("親ウィンドウのリロードに失敗しました:", e);
-                    }
-                }
-                window.close();
-            }
-        </script>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <ul style="list-style: none; padding: 0;">
-            {% for category, message in messages %}
-              <li class="message {{ category }}">{{ message }}</li>
-            {% endfor %}
-            </ul>
-          {% endif %}
-        {% endwith %}
+<div class="container">
+    <h2>ROS Bag 処理設定</h2>
 
+    <div class="header-info">
+        <p><strong>入力ファイル:</strong> {{ input_bag_path }}</p>
         <p>
-            選択されたROS Bag: 
-            <code style="font-weight: bold;">{{ input_bag_path }}</code>
+            <strong>モード:</strong> 
             {% if sync_mode %}
-            （トピック同期モード）
+                トピック同期 (Sync)
             {% elif p2o_mode %}
-            （P2O マッピングモード）
+                P2O マッピング
             {% else %}
-            （フィルタリングモード）
+                トピックフィルタリング (Filter)
             {% endif %}
         </p>
-
-        <form id="filter-form">
-            <input type="hidden" name="input_bag_path" value="{{ input_bag_path }}">
-
-            <div style="margin-bottom: 20px;">
-                <label for="output_filename">
-                    {% if sync_mode %}
-                    新しいROS Bag名 (トピック同期後):
-                    {% elif p2o_mode %}
-                    出力マップのベース名 (PCD/YAML名):
-                    {% else %}
-                    出力ROS Bag名 (フィルタリング後):
-                    {% endif %}
-                </label>
-                <input type="text" 
-                       id="output_filename" 
-                       name="output_filename" 
-                       style="width: 100%; padding: 8px;"
-                       placeholder="ファイル名を入力 (拡張子不要)" 
-                       required>
-            </div>
-
-            {% if not sync_mode and not p2o_mode %}
-            <h2>処理対象トピックの選択</h2>
-            <div class="topic-list">
-                <p><label><input type="checkbox" id="select-all-topics"> 全て選択/解除</label></p>
-                {% for topic in topic_list %}
-                    <label>
-                        <input type="checkbox" name="topics" value="{{ topic }}" checked> 
-                        {{ topic }}
-                    </label>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <button type="submit" id="process-button" class="btn btn-primary" style="padding: 10px 20px; width: 100%;">
-                {% if sync_mode %}
-                トピック同期処理を開始
-                {% elif p2o_mode %}
-                P2O マッピングを開始
-                {% else %}
-                フィルタリングを開始
-                {% endif %}
-            </button>
-        </form>
-        
-        <div id="progress-area">
-            <h2>処理実行中...</h2>
-            <p id="progress-message">スクリプトを実行し、処理の完了を待っています。</p>
-            <p id="estimated-time-info">処理時間目安: 計算中...</p>
-            
-            <div class="progress-bar">
-                <div class="progress-bar-fill" id="progress-bar-fill">0%</div>
-            </div>
-
-            <p id="elapsed-time">経過時間: 00:00</p>
-
-            <a id="download-link" class="download-link" style="display: none;">ダウンロード</a>
-            <button id="reset-button" style="margin-top: 10px; display: none;" onclick="location.reload()">再設定</button>
-        </div>
-
     </div>
 
-    <script>
-        const form = document.getElementById('filter-form');
-        const processButton = document.getElementById('process-button');
-        const progressArea = document.getElementById('progress-area');
-        const progressBarFill = document.getElementById('progress-bar-fill');
-        const downloadLink = document.getElementById('download-link');
-        const elapsedTimeElement = document.getElementById('elapsed-time');
-        const estimatedTimeInfo = document.getElementById('estimated-time-info');
-        const outputFilenameInput = document.getElementById('output_filename');
+    <form id="processing-form">
+        <input type="hidden" id="input-bag-path" value="{{ input_bag_path }}">
+        <input type="hidden" id="is-sync-mode" value="{{ sync_mode | tojson }}">
+        <input type="hidden" id="is-p2o-mode" value="{{ p2o_mode | tojson }}">
 
-        // Jinja2から変数を受け取る
-        const topicList = {{ topic_list | tojson }};
-        const inputBagPath = "{{ input_bag_path }}";
-        const syncMode = {{ sync_mode | default('false') | lower }};
-        const p2oMode = {{ p2o_mode | default('false') | lower }}; 
+        <label for="output-filename">出力ファイル/マップ名:</label>
+        {% set default_name = input_bag_path.split('/')[-1].split('.')[:-1]|join('.') %}
+        <input type="text" id="output-filename" placeholder="例: {{ default_name }}_processed" value="{{ default_name }}_processed">
         
-        const bagDurationSec = {{ bag_duration_sec | default(120) }}; 
+        <div id="filter-options" style="{% if sync_mode or p2o_mode %}display: none;{% endif %}">
+            <label>選択するトピック (フィルタリングモードのみ):</label>
+            <div class="topic-list">
+                {% for topic in topic_list %}
+                    <div class="topic-item">
+                        <input type="checkbox" id="topic-{{ loop.index }}" name="topics" value="{{ topic }}" checked>
+                        <label for="topic-{{ loop.index }}" style="display: inline; font-weight: normal;">{{ topic }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="p2o-options" style="{% if not p2o_mode %}display: none;{% endif %}">
+            <h3>P2O マッピング オプション</h3>
+            <p>P2Oモードでは、トピック同期処理後のクリーンなROS Bagを入力として使用することが推奨されます。</p>
+            <p><strong>出力マップ名:</strong> 上記の「出力ファイル/マップ名」がそのまま最終的なPCDファイル名に使用されます。</p>
+        </div>
+
+        <button type="submit" id="start-button">
+            {% if sync_mode %}
+                同期処理を開始
+            {% elif p2o_mode %}
+                P2O マッピングを開始
+            {% else %}
+                フィルタリングを開始
+            {% endif %}
+        </button>
+    </form>
+
+    <div id="progress-area">
+        <p id="progress-message">処理を開始しています...</p>
+        <div id="progress-bar">
+            <div id="progress-bar-fill"></div>
+        </div>
+        <div id="message-area"></div>
         
-        // 処理時間の目安 (Bagの長さの1.0倍をシミュレーション時間とする)
-        const ESTIMATED_PROCESS_TIME_SEC = bagDurationSec; 
-
-        let startTime = 0;
-        let elapsedInterval = null;
-        const POLLING_INTERVAL_MS = 5000;
-        let pollingInterval = null;
-
-        // ROS Bagの長さ（秒）を分:秒形式に変換
-        function formatDuration(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = Math.round(seconds % 60);
-            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
-        }
-
-        // 処理時間の推定値を表示
-        estimatedTimeInfo.textContent = `処理時間目安: ${formatDuration(ESTIMATED_PROCESS_TIME_SEC)}程度 (Bag再生時間)`;
-
-        // 経過時間を更新し、プログレスバーを模擬的に動かす関数
-        function updateProgress() {
-            const now = Date.now();
-            const elapsedMs = now - startTime;
-            const elapsedSec = Math.floor(elapsedMs / 1000);
-            
-            elapsedTimeElement.textContent = `経過時間: ${formatDuration(elapsedSec)}`;
-            
-            let progress = Math.min(100, (elapsedSec / ESTIMATED_PROCESS_TIME_SEC) * 100);
-            
-            // プログレスバーの表示を更新
-            progressBarFill.style.width = `${progress}%`;
-            progressBarFill.textContent = `${Math.round(progress)}%`;
-
-            // 推定時間を超えたら警告色に
-            if (elapsedSec >= ESTIMATED_PROCESS_TIME_SEC && progress < 100) { 
-                 progressBarFill.style.backgroundColor = '#ffc107'; // 警告色
-                 if (syncMode || p2oMode) {
-                     document.getElementById('progress-message').textContent = '処理が推定時間を超過しています。完了をポーリングで監視中です...';
-                 }
-            } else if (progress < 100) {
-                 progressBarFill.style.backgroundColor = '#007bff'; // 通常色
-            }
-        }
+        <a id="download-link" class="download-link" style="display: none;">ダウンロード</a>
         
-        // 処理結果を表示する関数 (成功/エラー)
-        function showDownloadResult(status, filenameOrMapName, isP2O = false, downloadUrl = null) { 
-            // シミュレーションタイマーがあれば停止
-            if (elapsedInterval) {
-                clearInterval(elapsedInterval);
-                elapsedInterval = null;
-            }
-            if (pollingInterval) {
-                clearInterval(pollingInterval); // ポーリングも停止
-                pollingInterval = null;
-            }
-            
-            progressBarFill.style.width = '100%';
-            progressBarFill.textContent = status === 'success' ? '100% 完了' : 'エラー';
-            
-            if (status === 'success') {
-                progressBarFill.style.backgroundColor = '#28a745';
-                document.getElementById('reset-button').style.display = 'inline-block';
-
-                if (isP2O) {
-                    document.getElementById('progress-message').textContent = `P2O マッピングが完了しました。マップ名: ${filenameOrMapName}。PCDファイルをダウンロードしてください。`;
-                    
-                    // 🌟 修正ロジック 🌟
-                    if (downloadUrl) {
-                        downloadLink.href = downloadUrl; 
-                        downloadLink.textContent = `${filenameOrMapName}.pcd をダウンロード`;
-                        downloadLink.style.display = 'block'; 
-                    } else {
-                        document.getElementById('progress-message').textContent += ' (警告: ダウンロードURLがありません)';
-                        downloadLink.style.display = 'none'; 
-                    }
-                    
-                } else {
-                    // Filter/Syncモード
-                    document.getElementById('progress-message').textContent = '処理が完了しました。ファイルをダウンロードしてください。';
-                    downloadLink.href = `/download/${filenameOrMapName}`; 
-                    downloadLink.textContent = `${filenameOrMapName}.zip をダウンロード`;
-                    downloadLink.style.display = 'block';
-                }
-            } else {
-                document.getElementById('progress-message').textContent = `処理中にエラーが発生しました。詳細: ${filenameOrMapName}`;
-                progressBarFill.style.backgroundColor = '#dc3545';
-                document.getElementById('reset-button').style.display = 'inline-block';
-                downloadLink.style.display = 'none'; // エラー時は非表示
-            }
-        }
-
-        // サーバーにポーリングしてP2O処理の完了をチェックする関数
-        function startP2OPolling(outputMapName) {
-            if (pollingInterval) clearInterval(pollingInterval); 
-
-            pollingInterval = setInterval(async () => {
-                try {
-                    const response = await fetch('/check_p2o_status', { 
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ output_map_name: outputMapName })
-                    });
-                    const result = await response.json();
-
-                    if (result.status === 'finished') {
-                        clearInterval(pollingInterval); 
-                        
-                        // 🌟 修正ロジック 🌟
-                        const downloadUrl = result.download_url; 
-                        showDownloadResult('success', result.map_name, true, downloadUrl); 
-                        
-                    } else if (result.status === 'in_progress') {
-                        // 処理続行中
-                    } else if (result.status === 'error') {
-                        clearInterval(pollingInterval);
-                        showDownloadResult('error', `P2O ポーリングエラー: ${result.message}`);
-                    }
-
-                } catch (error) {
-                    console.error('ポーリング中のネットワークエラー:', error);
-                }
-            }, POLLING_INTERVAL_MS);
-        }
+        <a id="viewer-link" class="download-link viewer-link" style="display: none;" target="_blank">3Dビューアで確認</a>
         
-        // サーバーにポーリングして同期処理の完了をチェックする関数 (Sync用)
-        function startSyncPolling(outputFilename) {
-            if (pollingInterval) clearInterval(pollingInterval); 
+        <button id="reset-button" style="margin-top: 10px; display: none;" onclick="location.reload()">再設定</button>
+    </div>
+</div>
 
-            pollingInterval = setInterval(async () => {
-                try {
-                    const response = await fetch('/check_sync_status', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ output_filename: outputFilename })
-                    });
-                    const result = await response.json();
+<script>
+    const form = document.getElementById('processing-form');
+    const startButton = document.getElementById('start-button');
+    const progressArea = document.getElementById('progress-area');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const progressMessage = document.getElementById('progress-message');
+    const messageArea = document.getElementById('message-area');
+    const downloadLink = document.getElementById('download-link');
+    const viewerLink = document.getElementById('viewer-link'); // 🌟 新規追加 🌟
 
-                    if (result.status === 'finished') {
-                        clearInterval(pollingInterval); 
-                        showDownloadResult('success', result.download_path);
-                    } 
-                    else if (result.status === 'error') {
-                        clearInterval(pollingInterval);
-                        showDownloadResult('error', `同期ポーリングエラー: ${result.message}`);
-                    }
-                } catch (error) {
-                    console.error('ポーリング中のネットワークエラー:', error);
-                }
-            }, POLLING_INTERVAL_MS);
+    const inputBagPath = document.getElementById('input-bag-path').value;
+    const isSyncMode = JSON.parse(document.getElementById('is-sync-mode').value);
+    const isP2OMode = JSON.parse(document.getElementById('is-p2o-mode').value);
+    const bagDurationSec = {{ bag_duration_sec | default(120) }}; // ポーリング間隔の基準に使用
+
+    let pollingTimer = null;
+    let progressCounter = 0;
+    let totalPollingTime = 0;
+
+    // 処理結果を表示する関数 (成功/エラー)
+    function showDownloadResult(status, filenameOrMapName, isP2O = false, downloadUrl = null) {
+        if (pollingTimer) {
+            clearInterval(pollingTimer);
+            pollingTimer = null;
         }
-        // ----------------------------------------------------
 
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
+        progressMessage.textContent = status === 'success' || status === 'finished' ? '処理が完了しました。' : '処理が失敗しました。';
+        messageArea.textContent = status === 'success' || status === 'finished' ? '' : 'エラーが発生しました。ログを確認してください。';
+        progressBarFill.style.width = '100%';
+        document.getElementById('reset-button').style.display = 'inline-block';
 
-            const outputNameInput = outputFilenameInput.value.trim();
-            if (outputNameInput === '') {
-                alert(p2oMode ? '出力マップ名を入力してください。' : '新しいROS Bagの名前を入力してください。');
-                return;
-            }
+        downloadLink.style.display = 'none';
+        viewerLink.style.display = 'none'; // 初期化
 
-            const formData = new FormData(form);
-            const topics = [];
+        if (status === 'finished') {
+            progressBarFill.style.backgroundColor = '#28a745';
             
-            if (!syncMode && !p2oMode) {
-                // フィルタリングモードの場合のみトピックを集める
-                document.querySelectorAll('input[name="topics"]:checked').forEach(checkbox => {
-                    topics.push(checkbox.value);
-                });
-                if (topics.length === 0) {
-                    alert('フィルタリングにはトピックを一つ以上選択してください。');
-                    return;
-                }
-            }
-            
-            // フォームとボタンを非表示/無効化
-            form.style.display = 'none';
-            progressArea.style.display = 'block';
-            startTime = Date.now();
-            
-            // プログレスバーのシミュレーションを開始
-            elapsedInterval = setInterval(updateProgress, 1000); 
-
-            try {
-                const postData = {
-                    input_bag_path: inputBagPath,
-                    output_filename: outputNameInput, 
-                    output_map_name: outputNameInput, // P2O用
-                    topics: p2oMode || syncMode ? [] : topics, // Sync/P2Oは空リストを送信
-                    is_sync_mode: syncMode // Filter/Sync用
-                };
+            if (isP2O) {
+                // P2Oモード完了時
+                progressMessage.textContent = `P2O マッピングが完了しました。マップ名: ${filenameOrMapName}。`;
                 
-                // 実行APIのエンドポイントをモードによって切り替え 
-                const apiEndpoint = p2oMode ? '/p2o_mapping' : '/convert';
+                if (downloadUrl) {
+                    // 1. ダウンロードリンク (PCDファイルとしてダウンロード)
+                    downloadLink.href = downloadUrl; 
+                    downloadLink.textContent = `${filenameOrMapName}.pcd をダウンロード`;
+                    downloadLink.style.display = 'block'; 
+                    downloadLink.style.backgroundColor = '#28a745';
+                    downloadLink.target = '_self';
 
-                const response = await fetch(apiEndpoint, {
+                    // 2. ビューアリンク (新しいウィンドウで開く)
+                    viewerLink.href = `/view_map/${filenameOrMapName}`; // 🌟 P2Oビューアルート 🌟
+                    viewerLink.style.display = 'block'; 
+                    viewerLink.style.backgroundColor = '#007bff'; // ビューアボタンの色
+                } else {
+                    progressMessage.textContent += ' (警告: ダウンロードURLがありません)';
+                }
+                
+            } else {
+                // Filter/Syncモード完了時
+                progressMessage.textContent = '処理が完了しました。ファイルをダウンロードしてください。';
+                downloadLink.href = `/download/${filenameOrMapName}`; 
+                downloadLink.textContent = `${filenameOrMapName}.zip をダウンロード`;
+                downloadLink.style.display = 'block';
+                downloadLink.style.backgroundColor = '#28a745';
+                downloadLink.target = '_self'; 
+            }
+        } else if (status === 'error') {
+            progressBarFill.style.backgroundColor = '#dc3545';
+        }
+    }
+
+
+    // 処理状況をポーリングする関数
+    function startPolling(outputFilename, isP2O) {
+        progressArea.style.display = 'block';
+        startButton.style.display = 'none';
+        
+        progressCounter = 0;
+        totalPollingTime = 0;
+
+        // ポーリングの実行ロジック (約1秒間隔)
+        pollingTimer = setInterval(async () => {
+            const endpoint = isP2O ? '/check_p2o_status' : '/check_sync_status';
+            const payload = isP2O ? 
+                { output_map_name: outputFilename } : 
+                { output_filename: outputFilename };
+            
+            try {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(postData)
+                    body: JSON.stringify(payload)
                 });
+                const data = await response.json();
 
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    document.getElementById('progress-message').textContent = result.message;
-
-                    if (!syncMode && !p2oMode) {
-                        // Filterモード: サーバーで処理が完了
-                        showDownloadResult('success', result.download_path);
-                    } else if (syncMode) {
-                         // Syncモード: ポーリング開始
-                         startSyncPolling(result.download_path); 
-                    } else if (p2oMode) { 
-                         // P2Oモード: ポーリング開始 
-                         startP2OPolling(result.map_name); 
-                    }
-                } else {
-                    // サーバー側でエラーが発生
-                    showDownloadResult('error', result.message);
+                if (data.status === 'finished') {
+                    showDownloadResult('finished', outputFilename, isP2O, data.download_url);
+                    return;
+                } else if (data.status === 'error') {
+                    progressMessage.textContent = 'エラー: ' + data.message;
+                    messageArea.textContent = '処理に失敗しました。';
+                    showDownloadResult('error', outputFilename, isP2O);
+                    return;
                 }
 
+                // 進行中のプログレスバー更新
+                totalPollingTime += 1000; // 1秒ごとに増やす
+                const maxExpectedTime = isP2O ? bagDurationSec * 1000 * 2 : bagDurationSec * 1000 * 1.5; // P2Oは長めに設定
+                
+                let progress = Math.min(99, Math.round((totalPollingTime / maxExpectedTime) * 90)); // 99%で停止
+                
+                progressBarFill.style.width = `${progress}%`;
+                progressBarFill.textContent = `${progress}%`;
+
+                // プログレスメッセージの更新
+                progressMessage.innerHTML = `<span class="loading-icon"></span> 処理を続行中です... (経過時間: ${Math.round(totalPollingTime / 1000)}秒)`;
+
             } catch (error) {
-                // ネットワークエラーなど
-                showDownloadResult('error', '通信エラー');
+                console.error('Polling error:', error);
+                progressMessage.textContent = 'サーバーとの通信中にエラーが発生しました。';
+                messageArea.textContent = '処理に失敗しました。';
+                showDownloadResult('error', outputFilename, isP2O);
             }
-        });
-        
-        // 🌟 修正: 全選択/解除ボタンの機能を追加 🌟
-        const selectAllCheckbox = document.getElementById('select-all-topics');
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function() {
-                // input[name="topics"] は「全選択/解除」チェックボックス自身も含むので注意
-                const topicCheckboxes = document.querySelectorAll('input[name="topics"]'); 
-                topicCheckboxes.forEach(checkbox => {
-                    if (checkbox.id !== 'select-all-topics') { 
-                        checkbox.checked = this.checked;
-                    }
-                });
-            });
+        }, 1000); // 1秒間隔でポーリング
+    }
+
+
+    // フォームの送信処理 (処理開始)
+    form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const outputFilename = document.getElementById('output-filename').value.trim();
+        if (!outputFilename) {
+            messageArea.textContent = '出力ファイル/マップ名を入力してください。';
+            return;
         }
-        // ------------------------------------------
 
-        // ページロード時の初期設定
-        document.addEventListener('DOMContentLoaded', () => {
-            const parts = inputBagPath.split('/');
-            const fileNameWithExt = parts[parts.length - 1];
-            const bagName = fileNameWithExt.split('.').shift() || "new_bag"; 
+        // トピック選択の収集 (Filterモードのみ)
+        let selectedTopics = [];
+        if (!isSyncMode && !isP2OMode) {
+            const checkboxes = document.querySelectorAll('#filter-options input[name="topics"]:checked');
+            selectedTopics = Array.from(checkboxes).map(cb => cb.value);
 
-            let placeholderName;
-            if (syncMode) {
-                placeholderName = `${bagName}_sync`;
-            } else if (p2oMode) {
-                placeholderName = `${bagName}_p2omap`;
-            } else {
-                placeholderName = `${bagName}_filtered`;
+            if (selectedTopics.length === 0) {
+                messageArea.textContent = 'トピックを一つ以上選択してください。';
+                return;
             }
-            outputFilenameInput.placeholder = placeholderName;
-            outputFilenameInput.value = placeholderName;
-        });
-    </script>
+        }
+        
+        messageArea.textContent = '';
+        progressArea.style.display = 'block';
+        startButton.style.display = 'none';
+        progressMessage.innerHTML = '<span class="loading-icon"></span> 処理を開始しています...';
+        progressBarFill.style.width = '1%';
+        progressBarFill.style.backgroundColor = '#007bff'; // 初期色は青
+
+        let apiUrl = isP2OMode ? '/p2o_mapping' : '/convert';
+        
+        let payload = {
+            input_bag_path: inputBagPath,
+            output_filename: outputFilename,
+            is_sync_mode: isSyncMode,
+        };
+        
+        if (isP2OMode) {
+            payload = {
+                input_bag_path: inputBagPath,
+                output_map_name: outputFilename, // P2Oは output_map_name を使用
+            };
+        } else if (!isSyncMode) {
+            payload.topics = selectedTopics;
+        }
+
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // 処理スクリプトは開始されたが、完了はしていない。ポーリングを開始する。
+                startPolling(outputFilename, isP2OMode);
+                progressMessage.textContent = data.message;
+            } else {
+                progressMessage.textContent = 'エラー: ' + data.message;
+                messageArea.textContent = '処理の開始に失敗しました。';
+                showDownloadResult('error', outputFilename, isP2OMode);
+            }
+
+        } catch (error) {
+            progressMessage.textContent = 'サーバー通信中にエラーが発生しました。';
+            messageArea.textContent = '処理の開始に失敗しました。';
+            showDownloadResult('error', outputFilename, isP2OMode);
+        }
+    });
+
+</script>
+
 </body>
 </html>

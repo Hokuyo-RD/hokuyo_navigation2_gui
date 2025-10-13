@@ -406,7 +406,7 @@ def convert():
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
 
 # ------------------------------------------------------
-# P2O マッピング実行用 API (完了フラグパス修正)
+# P2O マッピング実行用 API (完了フラグパス修正済み)
 # ------------------------------------------------------
 @app.route('/p2o_mapping', methods=['POST'])
 def p2o_mapping():
@@ -465,7 +465,7 @@ def p2o_mapping():
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
 
 # ------------------------------------------------------
-# P2O マッピング完了チェック用 API (完了フラグパス修正)
+# P2O マッピング完了チェック用 API (完了フラグパス修正済み)
 # ------------------------------------------------------
 @app.route('/check_p2o_status', methods=['POST'])
 def check_p2o_status():
@@ -478,7 +478,7 @@ def check_p2o_status():
 
     # 🌟 修正: 完了フラグのパスを MAP_DIR に変更 🌟
     flag_file_name = f'{output_map_name}.P2O_DONE'
-    flag_file_path = os.path.join(MAP_DIR, flag_file_name) # ここを MAP_DIR に変更
+    flag_file_path = os.path.join(MAP_DIR, flag_file_name) 
     
     # 完了ファイルが存在するかチェック
     if os.path.exists(flag_file_path):
@@ -612,6 +612,46 @@ def download_map(filename):
     except Exception as e:
         flash(f'マップファイルのダウンロード中にエラーが発生しました: {e}', 'error')
         return redirect(url_for('main_gui'))
+
+# ------------------------------------------------------
+# 🌟 PCDビューアルート (追加) 🌟
+# ------------------------------------------------------
+@app.route('/view_map/<map_name>')
+def view_map(map_name):
+    """
+    PCDビューアのHTMLページをレンダリングする。
+    """
+    if not map_name:
+        flash("エラー: 表示するマップ名が指定されていません。", "error")
+        return redirect(url_for('main_gui'))
+
+    pcd_filename = f'{map_name}.pcd'
+    pcd_file_path = os.path.join(MAP_DIR, pcd_filename)
+    
+    if not os.path.exists(pcd_file_path):
+        flash(f'エラー: マップファイル "{pcd_filename}" がサーバーに見つかりません。', 'error')
+        return redirect(url_for('main_gui'))
+        
+    # pcd_viewer.htmlにマップ名を渡してレンダリング
+    return render_template('pcd_viewer.html', map_name=map_name)
+
+
+@app.route('/map/<filename>')
+def serve_map_file(filename):
+    """
+    pcd_viewer.htmlからリクエストされたPCDファイルをブラウザに提供する。
+    """
+    try:
+        # PCDファイルは MAP_DIR に保存されていることを前提とする
+        return send_from_directory(
+            MAP_DIR, 
+            filename, 
+            as_attachment=False, # ダウンロードではなく、インライン表示（ビューアで利用）
+            mimetype='application/octet-stream'
+        )
+    except Exception as e:
+        print(f"ERROR: PCDファイルの提供に失敗しました: {e}")
+        return jsonify({'error': 'ファイルが見つからないか、アクセスできません'}), 404
         
 # ==============================================================================
 # 8. コマンド実行ルート (/gui POST)

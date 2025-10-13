@@ -119,13 +119,25 @@
         let scene, camera, renderer, loader;
         let controls; 
         let pointsMesh = null;
+        let axesHelper = null; 
 
-        // 🌟 カメラの初期設定を保存するグローバル変数 🌟
+        // カメラの初期設定を保存するグローバル変数
         const initialCamera = {
             position: new THREE.Vector3(),
             target: new THREE.Vector3()
         };
 
+        /**
+         * 🌟 新しい関数: カメラのアップベクトルをワールドのY軸にリセットする 🌟
+         */
+        function resetCameraUpVector() {
+            if (!camera) return;
+            // camera.up.set(0, 1, 0) の代替処理
+            camera.up.x = 0;
+            camera.up.y = 1;
+            camera.up.z = 0;
+        }
+        
         /**
          * ターゲットを中心にカメラを回転させる関数 (ヨー/ピッチ/ロール)
          * @param {string} axis - 'x', 'y', または 'z'
@@ -202,7 +214,7 @@
         }
 
         /**
-         * 🌟 カメラの位置を初期設定にリセットする関数 🌟
+         * カメラの位置を初期設定にリセットする関数
          */
         function resetCamera() {
             if (!controls || !initialCamera.position.lengthSq()) return;
@@ -211,8 +223,8 @@
             camera.position.copy(initialCamera.position);
             controls.target.copy(initialCamera.target);
             
-            // カメラのアップベクトルをY軸 (0, 1, 0) にリセット
-            camera.up.set(0, 1, 0); 
+            // 🌟 修正: カメラのアップベクトルをリセットする関数を呼び出し 🌟
+            resetCameraUpVector();
             
             // コントロールを更新
             controls.update();
@@ -234,18 +246,15 @@
             scene.background = new THREE.Color(0x333333);
             
             camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-            // 初期位置は(5, 5, 5)からスタート (PCDロード後に調整される)
             camera.position.set(5, 5, 5); 
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(width, height);
             container.appendChild(renderer.domElement);
 
-            // 軸ヘルパー（ギズモ）の追加
-            // 🌟 修正: 軸の長さを 10 -> 1 に変更 🌟
-            const axesHelper = new THREE.AxesHelper(1); 
+            // 軸ヘルパー（ギズモ）の初期化
+            axesHelper = new THREE.AxesHelper(1); 
             axesHelper.isAxesHelper = true; 
-            scene.add(axesHelper);
 
             // 2. PCDLoaderの設定
             loader = new PCDLoader();
@@ -281,9 +290,12 @@
                 pcdUrl,
                 // 読み込み成功時のコールバック
                 function (points) {
-                    scene.add(points);
                     pointsMesh = points; 
+                    scene.add(pointsMesh);
                     
+                    // 🌟 AxesHelperを点群オブジェクトの子として追加 🌟
+                    pointsMesh.add(axesHelper);
+
                     document.getElementById('loading-message').style.display = 'none';
                     document.getElementById('info').innerHTML = `マップ: <b>${filename}</b><br>点群数: ${points.geometry.attributes.position.count}`;
 
@@ -292,27 +304,31 @@
                     const center = new THREE.Vector3();
                     boundingBox.getCenter(center);
                     
-                    // OrbitControlsのtargetを点群の中心に設定
-                    controls.target.copy(center);
-                    
+                    // 点群モデルをシーンの中心に移動 (AxesHelperも一緒に移動)
+                    pointsMesh.position.sub(center); 
+
+                    // OrbitControlsのtargetを点群の中心のワールド座標に設定
+                    controls.target.set(0, 0, 0); // 点群モデルがシーンの中心にあるため
+
                     const size = new THREE.Vector3();
                     boundingBox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
                     
-                    // カメラの位置を再設定（点群の中心から対角線上に離れた位置）
-                    const initialPos = center.clone().add(new THREE.Vector3(maxDim, maxDim, maxDim).multiplyScalar(0.5));
+                    // カメラの位置を再設定（シーンの原点から対角線上に離れた位置）
+                    const cameraDistance = maxDim * 1.5;
+                    const initialPos = new THREE.Vector3(cameraDistance, cameraDistance, cameraDistance);
                     camera.position.copy(initialPos);
                     
-                    // 🌟 初期カメラ設定をグローバル変数に保存 🌟
+                    // 初期カメラ設定をグローバル変数に保存
                     initialCamera.position.copy(initialPos);
-                    initialCamera.target.copy(center);
+                    initialCamera.target.copy(controls.target);
 
                     // 軸ヘルパーのサイズと位置を調整
-                    const existingAxesHelper = scene.children.find(obj => obj.isAxesHelper);
-                    if (existingAxesHelper) {
+                    if (axesHelper) {
                         const helperSize = maxDim * 0.1;
-                        existingAxesHelper.scale.set(helperSize, helperSize, helperSize);
-                        existingAxesHelper.position.copy(center); 
+                        axesHelper.scale.set(helperSize, helperSize, helperSize);
+                        // 親である点群の中心に相対的に配置
+                        axesHelper.position.set(0, 0, 0); 
                     }
                     
                     controls.update();
@@ -352,7 +368,7 @@
             document.getElementById('model-rotate-z-left').addEventListener('click', () => rotateModel('z', 1));
             document.getElementById('model-rotate-z-right').addEventListener('click', () => rotateModel('z', -1));
 
-            // 🌟 カメラリセットボタンイベントリスナー 🌟
+            // カメラリセットボタンイベントリスナー
             document.getElementById('reset-camera-button').addEventListener('click', resetCamera);
         }
 

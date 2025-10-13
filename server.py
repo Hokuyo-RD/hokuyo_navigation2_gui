@@ -39,13 +39,20 @@ except ImportError as e:
 # 環境変数 DOCKER_CONTAINER の有無でパスを分岐
 if 'DOCKER_CONTAINER' in os.environ:
     BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
+    # 🌟 追加: PCDファイルディレクトリのパス (DOCKER環境) 🌟
+    HOKUYO_NAV2_PKG_PATH = "/home/colcon_ws/src/hokuyo_navigation2" 
 else:
     BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/"
+    # 🌟 追加: PCDファイルディレクトリのパス (非DOCKER環境) 🌟
+    HOKUYO_NAV2_PKG_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2"
 
 # ROS Bag フィルタのルートディレクトリと設定
-ROSBAG_ROOT_DIR = '/home/hokuyo/colcon_ws/src/hokuyo_navigation2/rosbag'
+ROSBAG_ROOT_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'rosbag')
 DOWNLOAD_FOLDER = ROSBAG_ROOT_DIR 
 ALLOWED_EXTENSIONS = {'bag', 'db3', 'mcap'}
+
+# 🌟 追加: PCDファイルの保存ディレクトリ 🌟
+MAP_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'map')
 
 # WebSocket 設定
 ROSBRIDGE_URI = "ws://localhost:9090"
@@ -67,6 +74,8 @@ current_mode = "stopped"
 # フォルダが存在しない場合は作成
 os.makedirs(ROSBAG_ROOT_DIR, exist_ok=True)
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+# 🌟 追加: MAP_DIRが存在しない場合は作成 🌟
+os.makedirs(MAP_DIR, exist_ok=True)
 
 
 # ==============================================================================
@@ -266,8 +275,7 @@ def select_rosbag():
             # ROS Bagの再生時間を取得するロジック (ros2 bag info 優先) 
             bag_duration_sec = 0
             
-            # 1. ros2 bag info コマンドで秒数を取得 (省略)
-            # ...
+            # 1. ros2 bag info コマンドで秒数を取得
             command_list = ["ros2", "bag", "info", full_path]
             try:
                 result = subprocess.run(
@@ -292,7 +300,7 @@ def select_rosbag():
             except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
                 print(f"Warning: ros2 bag info failed or not found: {e}. Falling back to metadata.yaml.")
 
-            # 2. metadata.yaml にフォールバック (省略)
+            # 2. metadata.yaml にフォールバック
             if bag_duration_sec == 0 and os.path.isdir(full_path):
                 metadata_path = pathlib.Path(full_path) / 'metadata.yaml'
                 if metadata_path.exists():
@@ -349,7 +357,7 @@ def convert():
     output_filename_base = data.get('output_filename')
     is_sync_mode = data.get('is_sync_mode', False)
 
-    # 入力チェック (省略)
+    # 入力チェック 
     if not input_bag_path or not os.path.exists(input_bag_path):
         return jsonify({'status': 'error', 'message': '入力ファイルが見つかりません。パスを確認してください。'}), 400
     if not output_filename_base:
@@ -400,7 +408,7 @@ def convert():
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
 
 # ------------------------------------------------------
-# 🌟 新規: P2O マッピング実行用 API 🌟
+# P2O マッピング実行用 API
 # ------------------------------------------------------
 @app.route('/p2o_mapping', methods=['POST'])
 def p2o_mapping():
@@ -451,11 +459,11 @@ def p2o_mapping():
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
 
 # ------------------------------------------------------
-# 🌟 新規: P2O マッピング完了チェック用 API 🌟
+# P2O マッピング完了チェック用 API (PCDダウンロード機能対応)
 # ------------------------------------------------------
 @app.route('/check_p2o_status', methods=['POST'])
 def check_p2o_status():
-    """P2O SLAM 処理の完了ステータスをチェックするAPI。"""
+    """P2O SLAM 処理の完了ステータスをチェックするAPI。完了時にPCDダウンロードURLを返す。"""
     data = request.get_json()
     output_map_name = data.get('output_map_name')
 
@@ -464,11 +472,20 @@ def check_p2o_status():
 
     # 完了フラグファイルのパス
     flag_file_name = f'{output_map_name}.P2O_DONE'
-    # DOWNLOAD_FOLDER は ROSBAG_ROOT_DIR と同じ
     flag_file_path = os.path.join(DOWNLOAD_FOLDER, flag_file_name) 
     
     # 完了ファイルが存在するかチェック
     if os.path.exists(flag_file_path):
+        # 🌟 修正: PCDファイルが存在するか確認 🌟
+        pcd_filename = f'{output_map_name}.pcd'
+        pcd_file_path = os.path.join(MAP_DIR, pcd_filename)
+        
+        if not os.path.exists(pcd_file_path):
+            return jsonify({
+                'status': 'error', 
+                'message': f'完了フラグは存在しますが、PCDファイル "{pcd_filename}" が {MAP_DIR} に見つかりません。'
+            })
+            
         # 完了ファイルを削除して、次の実行に備える（クリーンアップ）
         try:
             os.remove(flag_file_path)
@@ -476,11 +493,14 @@ def check_p2o_status():
         except Exception as e:
             print(f"Warning: Failed to remove flag file {flag_file_path}: {e}")
             
-        # 処理終了を返す
+        # 🌟 修正: ダウンロードURLを生成し、処理終了とともに返却 🌟
+        download_url = url_for('download_map', filename=pcd_filename)
+        
         return jsonify({
             'status': 'finished', 
-            'message': 'P2O SLAM 処理が完了しました。',
-            'map_name': output_map_name
+            'message': 'P2O SLAM 処理が完了しました。PCDファイルをダウンロードできます。',
+            'map_name': output_map_name,
+            'download_url': download_url # 新規追加
         })
     else:
         # 処理続行中を返す
@@ -515,10 +535,14 @@ def check_sync_status():
         except Exception as e:
             print(f"Warning: Failed to remove flag file {flag_file_path}: {e}")
             
+        # フィルタ/SyncモードのダウンロードURLを生成
+        download_url = url_for('download_file', filename=output_filename)
+            
         return jsonify({
             'status': 'finished', 
             'message': 'トピック同期処理が完了しました。',
-            'download_path': output_filename
+            'download_path': output_filename,
+            'download_url': download_url 
         })
     else:
         return jsonify({
@@ -555,6 +579,36 @@ def download_file(filename):
             os.remove(zip_path)
 
 
+# ------------------------------------------------------
+# 🌟 新規: PCDファイル ダウンロードルート 🌟
+# ------------------------------------------------------
+@app.route('/download_map/<filename>')
+def download_map(filename):
+    """
+    PCDファイルをダウンロードさせる。
+    filename は "マップ名.pcd" の形式で渡されることを想定。
+    """
+    try:
+        directory = MAP_DIR
+        map_filename = filename # 例: map_001.pcd
+        file_path = os.path.join(directory, map_filename)
+
+        if not os.path.exists(file_path):
+            flash(f'エラー: 指定されたマップファイル "{map_filename}" が {directory} に見つかりません。', 'error')
+            return redirect(url_for('main_gui')) # index.htmlに戻る
+
+        # send_from_directory を使用してファイルをダウンロードとして送信
+        return send_from_directory(
+            directory, 
+            map_filename, 
+            as_attachment=True, 
+            mimetype='application/octet-stream' # PCDファイルはバイナリデータ
+        )
+
+    except Exception as e:
+        flash(f'マップファイルのダウンロード中にエラーが発生しました: {e}', 'error')
+        return redirect(url_for('main_gui'))
+
 # ==============================================================================
 # 8. コマンド実行ルート (/gui POST)
 # ==============================================================================
@@ -569,28 +623,30 @@ def trigger_script():
     command = request.form.get("command") or request.get_json().get("command")
 
     if command == "execute_indoor_run":
-        # ... (コードは省略) ...
-        # ... (成功時) ...
-        script_path = os.path.join(BASE_PATH, "expo_in")
-        Thread(target=run_subprocess, args=([script_path],)).start()
-        current_mode = "running"
-        return redirect('/program_executed')
-        # ... (エラー時) ...
-        return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
+        # 修正前コードの省略部分を補完
+        map_name = request.form.get("map_name")
+        if map_name:
+            script_path = os.path.join(BASE_PATH, "expo_in")
+            Thread(target=run_subprocess, args=([script_path],)).start()
+            current_mode = "running"
+            return redirect('/program_executed')
+        else:
+            return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
             
     elif command == "execute_outdoor_run":
-        # ... (コードは省略) ...
-        # ... (成功時) ...
-        script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
-        command_list = [script_path]
-        arguments = request.form.get("arguments", "").strip() 
-        if arguments:
-            command_list.extend(arguments.split())
-        Thread(target=run_subprocess, args=(command_list,)).start()
-        current_mode = "running"
-        return redirect('/program_executed')
-        # ... (エラー時) ...
-        return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
+        # 修正前コードの省略部分を補完
+        map_name = request.form.get("map_name")
+        if map_name:
+            script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
+            command_list = [script_path]
+            arguments = request.form.get("arguments", "").strip() 
+            if arguments:
+                command_list.extend(arguments.split())
+            Thread(target=run_subprocess, args=(command_list,)).start()
+            current_mode = "running"
+            return redirect('/program_executed')
+        else:
+            return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
     
     # トピック同期機能への遷移 
     elif command == "execute_mapping_sync":

@@ -218,7 +218,7 @@
         }
         
         // 処理結果を表示する関数 (成功/エラー)
-        function showDownloadResult(status, filenameOrMapName, isP2O = false) { 
+        function showDownloadResult(status, filenameOrMapName, isP2O = false, downloadUrl = null) { 
             // シミュレーションタイマーがあれば停止
             if (elapsedInterval) {
                 clearInterval(elapsedInterval);
@@ -237,17 +237,30 @@
                 document.getElementById('reset-button').style.display = 'inline-block';
 
                 if (isP2O) {
-                    document.getElementById('progress-message').textContent = `P2O マッピングが完了しました。マップ名: ${filenameOrMapName} (PCDファイルがrosbagフォルダに生成されました)。`;
-                    downloadLink.style.display = 'none'; // P2OはZIPダウンロードなし
+                    document.getElementById('progress-message').textContent = `P2O マッピングが完了しました。マップ名: ${filenameOrMapName}。PCDファイルをダウンロードしてください。`;
+                    
+                    // 🌟 修正ロジック 🌟
+                    if (downloadUrl) {
+                        downloadLink.href = downloadUrl; 
+                        downloadLink.textContent = `${filenameOrMapName}.pcd をダウンロード`;
+                        downloadLink.style.display = 'block'; 
+                    } else {
+                        document.getElementById('progress-message').textContent += ' (警告: ダウンロードURLがありません)';
+                        downloadLink.style.display = 'none'; 
+                    }
+                    
                 } else {
+                    // Filter/Syncモード
                     document.getElementById('progress-message').textContent = '処理が完了しました。ファイルをダウンロードしてください。';
                     downloadLink.href = `/download/${filenameOrMapName}`; 
+                    downloadLink.textContent = `${filenameOrMapName}.zip をダウンロード`;
                     downloadLink.style.display = 'block';
                 }
             } else {
                 document.getElementById('progress-message').textContent = `処理中にエラーが発生しました。詳細: ${filenameOrMapName}`;
                 progressBarFill.style.backgroundColor = '#dc3545';
                 document.getElementById('reset-button').style.display = 'inline-block';
+                downloadLink.style.display = 'none'; // エラー時は非表示
             }
         }
 
@@ -266,7 +279,10 @@
 
                     if (result.status === 'finished') {
                         clearInterval(pollingInterval); 
-                        showDownloadResult('success', result.map_name, true); 
+                        
+                        // 🌟 修正ロジック 🌟
+                        const downloadUrl = result.download_url; 
+                        showDownloadResult('success', result.map_name, true, downloadUrl); 
                         
                     } else if (result.status === 'in_progress') {
                         // 処理続行中

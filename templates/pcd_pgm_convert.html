@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <title>PGMマップ設定 - PCD to PGM 変換</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>PCD to PGM 変換: 設定</h2>
+
+        <p>変換元PCDファイル: <strong>{{ input_pcd_filename }}</strong></p>
+
+        <label for="output_map_name">出力PGMマップベース名:</label>
+        <input type="text" id="output_map_name" value="{{ default_output_name }}" required>
+        <p class="note">（例: `{{ default_output_name }}` → `{{ default_output_name }}.pgm` と `{{ default_output_name }}.yaml` が作成されます）</p>
+
+        <button id="start_convert_button" class="button primary">変換開始</button>
+        <button id="cancel_button" class="button secondary" onclick="window.location.href='{{ url_for('browse_pcd') }}'">キャンセル</button>
+
+        <div id="status_message" style="margin-top: 20px;"></div>
+        <div id="loading_spinner" style="display:none; margin-top: 10px;">処理中...</div>
+
+        <script>
+            $(document).ready(function() {
+                var pollingInterval;
+                var mapName;
+
+                $('#start_convert_button').click(function() {
+                    mapName = $('#output_map_name').val().trim();
+                    if (!mapName) {
+                        alert("出力マップ名を入力してください。");
+                        return;
+                    }
+
+                    // ステータス初期化とローディング表示
+                    $('#status_message').html('');
+                    $('#loading_spinner').show();
+                    $('#start_convert_button').prop('disabled', true);
+
+                    // 1. 変換開始APIを呼び出す
+                    $.ajax({
+                        url: '{{ url_for('pcd2pgm_convert') }}',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            input_pcd_filename: '{{ input_pcd_filename }}',
+                            output_map_name: mapName
+                        }),
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                $('#status_message').html('<p style="color: green;">' + response.message + '</p>');
+                                // 2. ポーリングを開始
+                                pollingInterval = setInterval(checkStatus, 5000);
+                            } else {
+                                $('#status_message').html('<p style="color: red;">エラー: ' + response.message + '</p>');
+                                cleanup();
+                            }
+                        },
+                        error: function(xhr) {
+                            $('#status_message').html('<p style="color: red;">API呼び出しエラー: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.statusText) + '</p>');
+                            cleanup();
+                        }
+                    });
+                });
+
+                function checkStatus() {
+                    $.ajax({
+                        url: '{{ url_for('check_pcd2pgm_status') }}',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            output_map_name: mapName
+                        }),
+                        success: function(response) {
+                            $('#status_message').html('<p>' + response.message + '</p>');
+                            if (response.status === 'finished') {
+                                clearInterval(pollingInterval);
+                                $('#loading_spinner').hide();
+                                
+                                var downloadLink = '<a href="' + response.download_url + '" class="button primary" style="margin-top: 10px;">PGM/YAMLマップをダウンロード</a>';
+                                var backLink = '<a href="{{ url_for('main_gui') }}" class="button secondary" style="margin-left: 10px;">完了</a>';
+                                $('#status_message').append('<p style="color: green; font-weight: bold;">変換完了！</p>' + downloadLink + backLink);
+                                
+                            } else if (response.status === 'error') {
+                                clearInterval(pollingInterval);
+                                $('#loading_spinner').hide();
+                                $('#status_message').append('<p style="color: red; font-weight: bold;">処理中にエラーが発生しました。</p>');
+                                cleanup();
+                            }
+                        },
+                        error: function(xhr) {
+                            clearInterval(pollingInterval);
+                            $('#loading_spinner').hide();
+                            $('#status_message').html('<p style="color: red;">ステータスチェックエラー: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.statusText) + '</p>');
+                            cleanup();
+                        }
+                    });
+                }
+
+                function cleanup() {
+                    $('#start_convert_button').prop('disabled', false);
+                    $('#loading_spinner').hide();
+                }
+            });
+        </script>
+    </div>
+</body>
+</html>

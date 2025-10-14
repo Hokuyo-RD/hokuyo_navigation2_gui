@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <title>PCDファイル選択 - PCD to PGM 変換</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>PCD to PGM 変換: PCDファイル選択</h2>
+        <p>変換元のPCDファイル（`{{ map_dir }}` ディレクトリ内）を選択してください。</p>
+
+        <form method="POST" action="{{ url_for('pcd2pgm_select') }}">
+            <table>
+                <thead>
+                    <tr>
+                        <th>選択</th>
+                        <th>ファイル名</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in pcd_files %}
+                    <tr>
+                        <td>
+                            <input type="radio" name="pcd_filename" value="{{ file }}" required>
+                        </td>
+                        <td>{{ file }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="2">PCDファイルが見つかりません。マッピングを実行してPCDを作成してください。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            {% if pcd_files %}
+            <button type="submit" class="button primary">選択して次へ</button>
+            {% else %}
+            <button type="submit" class="button primary" disabled>選択して次へ</button>
+            {% endif %}
+
+            <a href="{{ url_for('main_gui') }}" class="button secondary">戻る</a>
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>

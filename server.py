@@ -203,7 +203,7 @@ def program_executed():
 
 
 # ==============================================================================
-# 7. ROS Bag フィルタ/同期/P2O機能ルート
+# 7. ROS Bag フィルタ/同期/P2O/LIO-RAW/PCD2PGM 機能ルート
 # ==============================================================================
 
 @app.route('/browse_rosbag', defaults={'path': ''}) 
@@ -546,7 +546,7 @@ def check_p2o_status():
     return _check_mapping_status('p2o', request)
 
 # ------------------------------------------------------
-# 🌟 LIO-RAW マッピング完了チェック用 API (新規追加) 🌟
+# 🌟 LIO-RAW マッピング完了チェック用 API (既存) 🌟
 # ------------------------------------------------------
 @app.route('/check_lio_raw_status', methods=['POST'])
 def check_lio_raw_status():
@@ -653,7 +653,7 @@ def download_map(filename):
         return redirect(url_for('main_gui'))
 
 # ------------------------------------------------------
-# 🌟 PCDビューアルート (追加) 🌟
+# 🌟 PCDビューアルート (既存) 🌟
 # ------------------------------------------------------
 @app.route('/view_map/<map_name>')
 def view_map(map_name):
@@ -691,6 +691,206 @@ def serve_map_file(filename):
     except Exception as e:
         print(f"ERROR: PCDファイルの提供に失敗しました: {e}")
         return jsonify({'error': 'ファイルが見つからないか、アクセスできません'}), 404
+        
+# ------------------------------------------------------
+# 🌟 [PCD2PGM] 1. PCDファイルブラウザルート (新規追加) 🌟
+# ------------------------------------------------------
+@app.route('/browse_pcd')
+def browse_pcd():
+    """PCD2PGM変換用のPCDファイルブラウザ。MAP_DIRから.pcdファイルを取得。"""
+    try:
+        if not _is_safe_path(MAP_DIR, HOKUYO_NAV2_PKG_PATH):
+             flash("セキュリティ上の理由により、このディレクトリにはアクセスできません。", "error")
+             return redirect(url_for('main_gui'))
+
+        items = os.listdir(MAP_DIR)
+        # .pcd 拡張子を持つファイルのみを抽出
+        pcd_files = sorted([item for item in items if item.lower().endswith('.pcd')])
+        
+        # テンプレートは別途 pcd_browse.html を作成するか、既存のテンプレートを流用
+        return render_template('pcd_browse.html', 
+                               pcd_files=pcd_files,
+                               map_dir=MAP_DIR) 
+
+    except (FileNotFoundError, PermissionError) as e:
+        flash(f"マップディレクトリの操作中にエラーが発生しました: {e}", "error")
+        return redirect(url_for('main_gui'))
+
+
+# ------------------------------------------------------
+# 🌟 [PCD2PGM] 2. 選択されたPCDの処理ルート (新規追加) 🌟
+# ------------------------------------------------------
+@app.route('/pcd2pgm_select', methods=['POST'])
+def pcd2pgm_select():
+    """選択されたPCDファイル名を受け取り、変換設定画面へ遷移する"""
+    pcd_filename = request.form.get('pcd_filename') 
+    
+    if not pcd_filename:
+        flash("PCDファイルが選択されていません。", "error")
+        return redirect(url_for('browse_pcd'))
+    
+    full_path = os.path.join(MAP_DIR, pcd_filename)
+    if not _is_safe_path(full_path, MAP_DIR):
+        flash("許可されていないパスへのアクセスが試行されました。", "error")
+        return redirect(url_for('browse_pcd'))
+    if not os.path.exists(full_path):
+        flash(f"PCDファイルが見つかりません: {pcd_filename}", "error")
+        return redirect(url_for('browse_pcd'))
+
+    # 拡張子を除いたベース名を出力名として提案
+    base_map_name = os.path.splitext(pcd_filename)[0]
+
+    # pcd_pgm_convert.html のような設定画面に遷移
+    return render_template('pcd_pgm_convert.html', 
+                           input_pcd_filename=pcd_filename,
+                           default_output_name=f'{base_map_name}_pgm')
+
+
+# ------------------------------------------------------
+# 🌟 [PCD2PGM] 3. 変換開始 API (新規追加) 🌟
+# ------------------------------------------------------
+@app.route('/pcd2pgm_convert', methods=['POST'])
+def pcd2pgm_convert():
+    """PCD to PGM 変換処理を開始し、完了までポーリングするAPI"""
+    try:
+        data = request.get_json()
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'リクエストJSONのパースエラー: {e}'}), 400
+
+    input_pcd_filename = data.get('input_pcd_filename')
+    output_map_name = data.get('output_map_name') # PGMファイルのベース名
+
+    if not input_pcd_filename:
+        return jsonify({'status': 'error', 'message': '入力PCDファイル名が指定されていません。'}), 400
+    if not os.path.exists(os.path.join(MAP_DIR, input_pcd_filename)):
+        return jsonify({'status': 'error', 'message': f'入力PCDファイルが見つかりません: {input_pcd_filename}'}), 400
+    if not output_map_name:
+        return jsonify({'status': 'error', 'message': '出力マップ名を入力してください。'}), 400
+    
+    # 完了フラグのファイル名を設定
+    FLAG_MODE = 'PCD2PGM'
+    flag_file_name_full = f'{output_map_name}.{FLAG_MODE}_DONE'
+    
+    try:
+        # start_mapping.sh pcd2pgm <input_pcd_filename> <output_map_name> <map_dir> <flag_file_name>
+        script_path = os.path.join(BASE_PATH, "start_mapping.sh")
+        # start_mapping.sh は pcd2pgm.bash を gnome-terminal で実行する
+        command_list = [
+            script_path, 
+            "pcd2pgm",                   # 0. モード
+            input_pcd_filename,          # 1. 入力PCDファイル名 (例: my_map.pcd)
+            output_map_name,             # 2. 出力PGMベース名 (例: my_map_pgm)
+            MAP_DIR,                     # 3. マップ保存ディレクトリパス
+            flag_file_name_full          # 4. 完了フラグファイル名
+        ]
+        
+        # 別スレッドで実行
+        Thread(target=run_subprocess, args=(command_list,)).start()
+        result_message = f"PCD to PGM 変換スクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name}"
+        
+        return jsonify({
+            'status': 'success',
+            'message': result_message,
+            'map_name': output_map_name 
+        })
+        
+    except Exception as e:
+        print(f"ERROR: PCD2PGM Mapping failed with exception: {e}")
+        return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
+
+
+# ------------------------------------------------------
+# 🌟 [PCD2PGM] 4. 完了チェック API (新規追加) 🌟
+# ------------------------------------------------------
+@app.route('/check_pcd2pgm_status', methods=['POST'])
+def check_pcd2pgm_status():
+    """PCD to PGM 変換処理の完了ステータスをチェックするAPI。"""
+    data = request.get_json()
+    output_map_name = data.get('output_map_name')
+
+    if not output_map_name:
+        return jsonify({'status': 'error', 'message': '出力マップ名が指定されていません。'}), 400
+
+    # 完了フラグのパス
+    flag_file_name = f'{output_map_name}.PCD2PGM_DONE'
+    flag_file_path = os.path.join(MAP_DIR, flag_file_name) 
+    
+    if os.path.exists(flag_file_path):
+        # 完了フラグが存在する場合、PGMファイルとYAMLファイルを確認
+        pgm_filename = f'{output_map_name}.pgm'
+        yaml_filename = f'{output_map_name}.yaml'
+        pgm_file_path = os.path.join(MAP_DIR, pgm_filename)
+        yaml_file_path = os.path.join(MAP_DIR, yaml_filename)
+        
+        # 完了フラグを削除
+        try:
+            os.remove(flag_file_path)
+            print(f"PCD2PGM completion flag removed: {flag_file_path}")
+        except Exception as e:
+            print(f"Warning: Failed to remove flag file {flag_file_path}: {e}")
+            
+        if not os.path.exists(pgm_file_path) or not os.path.exists(yaml_file_path):
+            return jsonify({
+                'status': 'error', 
+                'message': f'PGMまたはYAMLファイルが見つかりません。フラグは存在しましたが、"{pgm_filename}"または"{yaml_filename}"が{MAP_DIR}に見つかりません。'
+            })
+            
+        return jsonify({
+            'status': 'finished', 
+            'message': 'PCD to PGM 変換処理が完了しました。マップファイルをダウンロードできます。',
+            'map_name': output_map_name,
+            # PGMマップダウンロード用URL
+            'download_url': url_for('download_pgm_map', basename=output_map_name) 
+        })
+    else:
+        return jsonify({
+            'status': 'in_progress', 
+            'message': 'PCD to PGM 変換処理を続行中です...'
+        })
+
+
+# ------------------------------------------------------
+# 🌟 [PCD2PGM] 5. PGMマップ ダウンロードルート (新規追加) 🌟
+# ------------------------------------------------------
+@app.route('/download_pgm_map/<basename>')
+def download_pgm_map(basename):
+    """PGMとYAMLファイルをZIP圧縮してダウンロードさせる"""
+    # 一時的な作業ディレクトリを作成
+    temp_dir = os.path.join(DOWNLOAD_FOLDER, f'temp_pgm_{basename}')
+    zip_base = os.path.join(DOWNLOAD_FOLDER, basename + '_pgm_map')
+    zip_path = zip_base + '.zip'
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    pgm_filename = f'{basename}.pgm'
+    yaml_filename = f'{basename}.yaml'
+    
+    try:
+        # PGMファイルとYAMLファイルを一時ディレクトリにコピー
+        shutil.copy2(os.path.join(MAP_DIR, pgm_filename), temp_dir)
+        shutil.copy2(os.path.join(MAP_DIR, yaml_filename), temp_dir)
+        
+        # 一時ディレクトリをZIP圧縮
+        shutil.make_archive(zip_base, 'zip', temp_dir)
+        
+        zip_filename_only = os.path.basename(zip_path)
+
+        return send_from_directory(
+            DOWNLOAD_FOLDER, 
+            zip_filename_only, 
+            as_attachment=True
+        )
+    except FileNotFoundError:
+        flash('ダウンロード用のマップファイルが見つかりません。', 'error')
+        return redirect(url_for('main_gui'))
+    except Exception as e:
+        flash(f'ファイルのZIP化中にエラーが発生しました: {e}', 'error')
+        return redirect(url_for('main_gui'))
+    finally:
+        # クリーンアップ
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
         
 # ==============================================================================
 # 8. コマンド実行ルート (/gui POST)
@@ -747,11 +947,20 @@ def trigger_script():
         flash("P2O マッピングに使用するROS Bagを選択してください。", "info")
         return redirect(url_for('browse_rosbag', mode='p2o'))
     
-    # 🌟 LIO-RAW マッピングへの遷移 (新規追加) 🌟
+    # 🌟 LIO-RAW マッピングへの遷移 (既存) 🌟
     elif command == "execute_mapping_lio_raw":
         current_mode = "stopped"
         flash("LIO-RAW マッピングに使用するROS Bagを選択してください。", "info")
         return redirect(url_for('browse_rosbag', mode='lio_raw'))
+    
+    # ------------------------------------------------------
+    # 🌟 [PCD2PGM] 変換機能への遷移 (新規追加) 🌟
+    # ------------------------------------------------------
+    elif command == "execute_mapping_pcd2pgm":
+        current_mode = "stopped"
+        flash("PGMマップに変換するPCDファイルを選択してください。", "info")
+        return redirect(url_for('browse_pcd'))
+    # ------------------------------------------------------
     
     # マッピング処理全般（pcd2pgmなど、ROS Bag選択を伴わない旧来のモード）
     elif command.startswith("execute_mapping_"):

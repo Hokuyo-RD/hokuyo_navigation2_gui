@@ -2,9 +2,133 @@
 <html lang="ja">
 <head>
     <title>PGMマップ設定 - PCD to PGM 変換</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <style>
+        /* 基本スタイル */
+        body { 
+            font-family: sans-serif; 
+            padding: 20px; 
+            background-color: #f4f7f9; 
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #007bff; /* メインカラー */
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+        }
+
+        /* フォーム要素 */
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 96%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        p strong {
+            color: #28a745; /* 強調表示 */
+            font-size: 1.1em;
+        }
+        .note {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        /* ボタン共通スタイル */
+        .button {
+            padding: 10px 20px;
+            margin-right: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.2s, opacity 0.2s;
+            display: inline-block;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        /* Primaryボタン (変換開始/ダウンロード) */
+        .primary {
+            background-color: #28a745; /* PCD/PGMの緑系 */
+            color: white;
+        }
+        .primary:hover:not(:disabled) {
+            background-color: #1e7e34;
+        }
+        .primary:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Secondaryボタン (キャンセル/戻る/完了) */
+        .secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .secondary:hover {
+            background-color: #5a6268;
+        }
+
+        /* ステータスとローディング */
+        #status_message {
+            padding: 10px;
+            border-left: 5px solid #007bff;
+            background-color: #e6f0ff;
+            border-radius: 5px;
+        }
+        #status_message p {
+            margin: 0;
+            line-height: 1.4;
+        }
+        #loading_spinner {
+            font-style: italic;
+            color: #ff9800; /* 処理中の色 */
+        }
+    </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
+
+    <script>
+        function closeCurrentTabAndReloadOpener() {
+            try {
+                // window.openerが存在する場合、親ウィンドウをリロードしてから閉じる
+                if (window.opener && !window.opener.closed) {
+                    // 親ウィンドウ（メインGUI）のステータス更新を想定してリロード
+                    window.opener.location.reload(); 
+                }
+            } catch (e) {
+                console.warn("親ウィンドウのリロードに失敗しました:", e);
+            }
+            // 現在のタブ/ウィンドウを閉じる
+            window.close();
+        }
+    </script>
+    </head>
 <body>
     <div class="container">
         <h2>PCD to PGM 変換: 設定</h2>
@@ -16,7 +140,7 @@
         <p class="note">（例: `{{ default_output_name }}` → `{{ default_output_name }}.pgm` と `{{ default_output_name }}.yaml` が作成されます）</p>
 
         <button id="start_convert_button" class="button primary">変換開始</button>
-        <button id="cancel_button" class="button secondary" onclick="window.location.href='{{ url_for('browse_pcd') }}'">キャンセル</button>
+        <button id="cancel_button" class="button secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
 
         <div id="status_message" style="margin-top: 20px;"></div>
         <div id="loading_spinner" style="display:none; margin-top: 10px;">処理中...</div>
@@ -37,6 +161,7 @@
                     $('#status_message').html('');
                     $('#loading_spinner').show();
                     $('#start_convert_button').prop('disabled', true);
+                    $('#cancel_button').prop('disabled', true); // 変換中はキャンセルも無効に
 
                     // 1. 変換開始APIを呼び出す
                     $.ajax({
@@ -58,7 +183,8 @@
                             }
                         },
                         error: function(xhr) {
-                            $('#status_message').html('<p style="color: red;">API呼び出しエラー: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.statusText) + '</p>');
+                            var errorMsg = xhr.responseJSON ? xhr.responseJSON.message : (xhr.status + ': ' + xhr.statusText);
+                            $('#status_message').html('<p style="color: red;">API呼び出しエラー: ' + errorMsg + '</p>');
                             cleanup();
                         }
                     });
@@ -79,20 +205,30 @@
                                 $('#loading_spinner').hide();
                                 
                                 var downloadLink = '<a href="' + response.download_url + '" class="button primary" style="margin-top: 10px;">PGM/YAMLマップをダウンロード</a>';
-                                var backLink = '<a href="{{ url_for('main_gui') }}" class="button secondary" style="margin-left: 10px;">完了</a>';
-                                $('#status_message').append('<p style="color: green; font-weight: bold;">変換完了！</p>' + downloadLink + backLink);
+                                
+                                // 🌟 修正: 完了後のリンクを closeCurrentTabAndReloadOpener に変更 🌟
+                                var backLink = '<a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">他のPCDを選択</a>';
+                                var mainGuiLink = '<a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">メインGUIに戻る</a>';
+
+                                $('#status_message').append(
+                                    '<p style="color: green; font-weight: bold; margin-top: 10px;">✅ 変換完了！</p>' + 
+                                    downloadLink + 
+                                    backLink +
+                                    mainGuiLink
+                                );
                                 
                             } else if (response.status === 'error') {
                                 clearInterval(pollingInterval);
                                 $('#loading_spinner').hide();
-                                $('#status_message').append('<p style="color: red; font-weight: bold;">処理中にエラーが発生しました。</p>');
+                                $('#status_message').append('<p style="color: red; font-weight: bold;">❌ 処理中にエラーが発生しました。</p>');
                                 cleanup();
                             }
                         },
                         error: function(xhr) {
                             clearInterval(pollingInterval);
                             $('#loading_spinner').hide();
-                            $('#status_message').html('<p style="color: red;">ステータスチェックエラー: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.statusText) + '</p>');
+                            var errorMsg = xhr.responseJSON ? xhr.responseJSON.message : (xhr.status + ': ' + xhr.statusText);
+                            $('#status_message').html('<p style="color: red;">ステータスチェックエラー: ' + errorMsg + '</p>');
                             cleanup();
                         }
                     });
@@ -100,6 +236,7 @@
 
                 function cleanup() {
                     $('#start_convert_button').prop('disabled', false);
+                    $('#cancel_button').prop('disabled', false); // エラー発生時はキャンセル可能に
                     $('#loading_spinner').hide();
                 }
             });

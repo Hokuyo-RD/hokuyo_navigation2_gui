@@ -2,8 +2,150 @@
 <html lang="ja">
 <head>
     <title>PCDファイル選択 - PCD to PGM 変換</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+    <meta charset="UTF-8">
+    <style>
+        /* 基本スタイル */
+        body { 
+            font-family: sans-serif; 
+            padding: 20px; 
+            background-color: #f4f7f9; 
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #007bff; /* メインカラー */
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        p {
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        /* テーブルスタイル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            background-color: #fff;
+            border-radius: 6px;
+            overflow: hidden; /* 角丸を適用するため */
+        }
+        thead {
+            background-color: #e9f7ef; /* PCD/PGMの緑系を意識 */
+            color: #1a7431;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            font-weight: bold;
+        }
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* ラジオボタン */
+        td:first-child {
+            width: 10%;
+            text-align: center;
+        }
+
+        /* ボタン共通スタイル */
+        .button {
+            padding: 10px 20px;
+            margin-right: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.2s, opacity 0.2s;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        /* Primaryボタン (選択して次へ) */
+        .primary {
+            background-color: #28a745; /* PCD/PGMのメインカラー */
+            color: white;
+        }
+        .primary:hover:not(:disabled) {
+            background-color: #1e7e34;
+        }
+        .primary:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Secondaryボタン (戻る) */
+        .secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .secondary:hover {
+            background-color: #5a6268;
+        }
+
+        /* メッセージ/フラッシュ */
+        .flashes {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        .flashes li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            border: 1px solid;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-color: #ffeeba;
+        }
+    </style>
+
+    <script>
+        function closeCurrentTabAndReloadOpener() {
+            try {
+                // window.openerが存在する場合、親ウィンドウをリロードしてから閉じる
+                if (window.opener && !window.opener.closed) {
+                    // 親ウィンドウ（メインGUI）のステータス更新を想定してリロード
+                    window.opener.location.reload(); 
+                }
+            } catch (e) {
+                console.warn("親ウィンドウのリロードに失敗しました:", e);
+            }
+            // 現在のタブ/ウィンドウを閉じる
+            window.close();
+        }
+    </script>
+    </head>
 <body>
     <div class="container">
         <h2>PCD to PGM 変換: PCDファイル選択</h2>
@@ -39,7 +181,7 @@
             <button type="submit" class="button primary" disabled>選択して次へ</button>
             {% endif %}
 
-            <a href="{{ url_for('main_gui') }}" class="button secondary">戻る</a>
+            <a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary">戻る</a>
         </form>
 
         {% with messages = get_flashed_messages(with_categories=true) %}

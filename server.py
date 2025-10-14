@@ -916,19 +916,24 @@ def trigger_script():
             return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
             
     elif command == "execute_outdoor_run":
-        map_name = request.form.get("map_name")
-        if map_name:
+        # ⚠️ 注意: ここで "map_name" の代わりに、フォームに存在する任意のフィールドをチェックします。
+        # 例: フォームに 'confirm_check' という名前のチェックボックスがあると仮定
+        confirmation_field = request.form.get("confirm_check") 
+        # または、単にPOSTリクエストが来たことだけをチェックしたい場合
+        
+        # 外部実行にはマップ名は不要だが、ユーザーが実行を意図したことを確認
+        if confirmation_field or request.form: # フォームデータが存在するか、特定の確認フィールドがあるか
             script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
+            
+            # nav_single_map.sh は引数なしで実行
             command_list = [script_path]
-            arguments = request.form.get("arguments", "").strip() 
-            if arguments:
-                command_list.extend(arguments.split())
+
             Thread(target=run_subprocess, args=(command_list,)).start()
             current_mode = "running"
             return redirect('/program_executed')
         else:
-            return render_template('outdoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
-    
+            # フォーム送信が空の場合や、特定の確認フィールドがチェックされていない場合
+            return render_template('outdoor_run_popup.html', error="開始を確認してください。")  
     # トピック同期機能への遷移 
     elif command == "execute_mapping_sync":
         current_mode = "stopped"

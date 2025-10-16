@@ -37,7 +37,7 @@ except ImportError as e:
 
 # --- パス設定 ---
 # 環境変数 DOCKER_CONTAINER の有無でパスを分岐
-if 'DOCKER_CONTAINER' in os.environ:
+if 'DOCKER_ENV' in os.environ:
     BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
     # 🌟 PCDファイルディレクトリのパス (DOCKER環境) 🌟
     HOKUYO_NAV2_PKG_PATH = "/home/colcon_ws/src/hokuyo_navigation2" 

@@ -2,477 +2,268 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>PCD 3Dビューア</title>
+    <title>PCD / PGM Map Viewer</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #f0f0f0; }
-        #viewer-container { width: 100vw; height: 100vh; }
+        body { margin: 0; overflow: hidden; background-color: #222; font-family: sans-serif; }
+        #viewer-container { width: 100vw; height: 100vh; position: relative; }
         #loading-message {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 1.5em;
             background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 15px 30px;
+            padding: 10px 20px;
             border-radius: 5px;
-            font-size: 1.2em;
+            z-index: 100;
         }
         #info {
             position: absolute;
             top: 10px;
             left: 10px;
-            color: #333;
-            background: rgba(255, 255, 255, 0.8);
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
             padding: 5px 10px;
             border-radius: 3px;
-        }
-        
-        /* === カメラ操作 (OrbitControls) - 右下 === */
-        #rotation-controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.85);
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            align-items: center; /* テキストを中央揃えにするため追加 */
-            text-align: center;  /* テキストを中央揃えにするため追加 */
-        }
-
-        .control-title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-        
-        /* .zoom-button は削除されるため、関連スタイルも不要になりますが、
-           今後のためにコメントアウトして残しておきます */
-        /*
-        .zoom-button {
-            width: 100%;
-            height: 40px;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-            user-select: none;
-            font-weight: bold;
-        }
-        .zoom-button:active {
-            background: #eee;
-        }
-        */
-
-        /* カメラリセットボタンを幅に合わせて中央揃え */
-        #reset-camera-button,
-        #rotate-z-180-button { /* 新しいボタンにもスタイルを適用 */
-            width: 100%;
-            box-sizing: border-box;
-            background: #ff5757;
-            color: white;
-            height: 40px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            text-align: center;
-        }
-        #reset-camera-button:active,
-        #rotate-z-180-button:active { /* 新しいボタンにもスタイルを適用 */
-            background: #e04a4a;
-        }
-        
-        /* === オブジェクト操作 (ジョイスティック) - 左下 === */
-        #object-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            display: grid;
-            grid-template-columns: 170px 170px; 
-            gap: 15px;
-            padding: 15px;
-            background: rgba(240, 248, 255, 0.85);
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-        
-        .object-control-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* 円形ジョイスティックコンテナのスタイル */
-        .joystick-container {
-            width: 150px;
-            height: 150px;
-            background: rgba(0, 0, 0, 0.05);
-            border: 2px solid #ccc;
-            border-radius: 50%;
-            position: relative;
-            cursor: grab;
-            margin-bottom: 10px;
-            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* 水平スライダージョイスティックのスタイル */
-        #roll-z-joystick-container {
-            grid-column: 1 / 3; /* 2列全体を使用 */
-            width: 335px; /* 170*2 + 15 - 5 程度の幅 */
-            height: 50px;
-            background: rgba(0, 0, 0, 0.05);
-            border: 2px solid #ccc;
-            border-radius: 25px;
-            position: relative;
-            cursor: grab;
-            margin-top: 15px;
-            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* ジョイスティックのつまみ (ノブ) のスタイル */
-        .joystick-knob {
-            width: 50px;
-            height: 50px;
-            background: #118c6d; 
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            left: 50%; /* left: 50% を基準にtranslateで調整 */
-            transform: translate(-50%, -50%); /* デフォルトは円形ジョイスティックのセンタリング */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            pointer-events: none;
-            transition: background 0.1s;
-        }
-        .joystick-container.dragging .joystick-knob,
-        #roll-z-joystick-container.dragging .joystick-knob {
-            background: #0d735a;
-        }
-
-        /* 水平ジョイスティック内のノブ位置調整 */
-        #roll-z-joystick-container .joystick-knob {
-             top: 50%;
-        }
-
-        .axis-z { color: blue; }
-        .axis-y { color: green; }
-        .axis-x { color: red; }
-
-        .control-legend {
-             font-size: 10px;
-             color: #555;
-             margin-top: -5px;
-             margin-bottom: 5px;
+            font-size: 0.9em;
+            z-index: 10;
         }
     </style>
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+          }
+        }
+    </script>
     
-    <script type="module">
-        import * as THREE from '{{ url_for("static", filename="js/three/three.module.js") }}'; 
-        import { PCDLoader } from '{{ url_for("static", filename="js/three/PCDLoader.js") }}';
-        import { OrbitControls } from '{{ url_for("static", filename="js/three/OrbitControls.js") }}'; 
+    <script src="{{ url_for('static', filename='js/yaml/yaml.min.js') }}"></script>
+</head>
+<body>
+    <div id="viewer-container"></div>
+    <div id="loading-message">PCDファイルをロード中...</div>
+    <div id="info"></div>
 
+    <script type="module">
+        // 外部ライブラリのインポート (CDNのインポートマップを利用)
+        import * as THREE from 'three';
+        import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'; 
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
         
+        // Flaskから渡される変数 (Jinja2テンプレート構文)
         const mapName = '{{ map_name | default("") }}';
         const filename = mapName ? mapName + '.pcd' : '';
         const pcdUrl = filename ? '/map/' + filename : '';
         
+        // Flaskから渡される YAML データ文字列
+        const yamlDataString = `{{ yaml_data | default("") }}`; 
+        
+        // PGMマップ用のグローバル変数
+        let mapData = null; 
+        let pgmUrl = ''; 
+        let planeMesh = null; 
+        
+        // Three.jsの標準変数
         let scene, camera, renderer, loader;
-        let controls; 
-        let pointsMesh = null;
-        let axesHelper = null; 
+        let controls;
+        let pointsMesh;
+        const initialModel = { position: new THREE.Vector3(), rotation: new THREE.Euler() };
 
-        // カメラの初期設定を保存するグローバル変数
-        const initialCamera = {
-            position: new THREE.Vector3(),
-            target: new THREE.Vector3()
-        };
-        // モデルの初期設定を保存するグローバル変数
-        const initialModel = {
-            position: new THREE.Vector3(),
-            rotation: new THREE.Euler()
-        };
-
-        const JOYSTICK_RADIUS = 75; 
-        const ROLL_JOYSTICK_HALF_WIDTH = 140; // スライダージョイスティックの移動可能な最大幅 (コンテナ幅の約半分)
-        const MAX_ROTATION_SPEED = Math.PI / 90; // 1秒あたり2度
-        const MAX_PAN_SPEED = 1.0; // 1秒あたり移動量
-        
-        let activeJoystick = null; // 現在ドラッグ中のジョイスティックのIDを保持 ('pan', 'rotation', 'rollZ')
-        let panVector = new THREE.Vector2(0, 0); // X, Y (モデル移動)
-        let rotationVector = new THREE.Vector2(0, 0); // X: Y軸回転 (ヨー), Y: X軸回転 (ピッチ)
-        let rollZVector = new THREE.Vector2(0, 0); // X: Z軸回転 (ロール)
-        
-        let animationFrameId = null;
-
-
-        /**
-         * カメラのアップベクトルを標準のY軸正方向(0, 1, 0)にリセットする関数
-         */
-        function resetCameraUpVector() {
-            if (!camera) return;
-            camera.up.set(0, 1, 0); 
-        }
-        
-        /**
-         * カメラとモデルの位置・回転を初期設定にリセットする関数
-         */
-        function resetCamera() {
-            if (!controls) return;
-
-            // 1. カメラの位置とターゲットを初期値に戻す
-            if (initialCamera.position.lengthSq() > 0) {
-                camera.position.copy(initialCamera.position);
-                controls.target.copy(initialCamera.target);
-            } else {
-                // 初期設定がない場合、安全なデフォルト位置に戻す
-                camera.position.set(5, -5, 5); 
-                controls.target.set(0, 0, 0);
+        // ----------------------------------------------------
+        // PGMファイルのヘッダーを読み取り、ピクセルデータとして返すカスタムパーサー関数
+        // ----------------------------------------------------
+        async function parsePGM(url, mapData) { 
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch PGM file: ${response.statusText}`);
             }
+            const buffer = await response.arrayBuffer();
             
-            // 2. カメラのアップベクトルをリセット
-            resetCameraUpVector();
+            const decoder = new TextDecoder('ascii');
             
-            // 3. モデルの位置と回転を初期値に戻す
-            if (pointsMesh && initialModel.position.lengthSq() > 0) {
-                pointsMesh.position.copy(initialModel.position);
-                pointsMesh.rotation.copy(initialModel.rotation);
+            let offset = 0;
+            
+            // 1. マジックナンバー (P5)
+            let magicNumber = decoder.decode(new Uint8Array(buffer, offset, 2));
+            if (magicNumber !== 'P5') {
+                throw new Error(`Unsupported PGM format: ${magicNumber}. Only P5 (binary) is supported.`);
             }
+            offset += 2;
             
-            // 4. コントロールを更新
-            controls.update();
-            camera.lookAt(controls.target);
-        }
+            // 2. 幅、高さ、最大値を取得するためのヘッダー解析
+            let headerText = '';
+            let headerEndIndex = -1;
+            
+            for (let i = offset; i < buffer.byteLength; i++) {
+                const charCode = new Uint8Array(buffer, i, 1)[0];
+                const char = String.fromCharCode(charCode);
 
-        /**
-         * モデルをZ軸周りに180度回転させる関数
-         */
-        function rotateModelZ180() {
-            if (pointsMesh) {
-                pointsMesh.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), Math.PI); // Math.PI は180度
-                controls.update(); // 変更を反映
-            }
-        }
-        
-        // --- ジョイスティック制御ロジック ---
-
-        function onJoystickStart(event) {
-            event.preventDefault();
-            const joystickId = event.currentTarget.id;
-            
-            if (joystickId === 'object-pan-joystick') {
-                activeJoystick = 'pan';
-            } else if (joystickId === 'object-rotation-joystick') {
-                activeJoystick = 'rotation';
-            } else if (joystickId === 'roll-z-joystick-container') {
-                activeJoystick = 'rollZ';
-            }
-            
-            event.currentTarget.classList.add('dragging');
-            
-            const touch = event.touches ? event.touches[0] : event;
-            
-            const container = event.currentTarget;
-            const containerRect = container.getBoundingClientRect();
-            
-            let centerX, centerY;
-            let radius;
-
-            if (activeJoystick === 'rollZ') {
-                centerX = containerRect.left + containerRect.width / 2;
-                centerY = containerRect.top + containerRect.height / 2;
-                radius = ROLL_JOYSTICK_HALF_WIDTH;
-            } else {
-                centerX = containerRect.left + JOYSTICK_RADIUS;
-                centerY = containerRect.top + JOYSTICK_RADIUS;
-                radius = JOYSTICK_RADIUS;
-            }
-            
-            updateJoystick(touch.clientX, touch.clientY, centerX, centerY, activeJoystick, containerRect, radius);
-
-            window.addEventListener('mousemove', onJoystickMove);
-            window.addEventListener('mouseup', onJoystickEnd);
-            window.addEventListener('touchmove', onJoystickMove, { passive: false });
-            window.addEventListener('touchend', onJoystickEnd);
-        }
-
-        function onJoystickMove(event) {
-            if (!activeJoystick) return;
-            event.preventDefault(); 
-            
-            const touch = event.touches ? event.touches[0] : event;
-            
-            let joystickId;
-            let container;
-            let radius;
-            
-            if (activeJoystick === 'pan') {
-                joystickId = 'object-pan-joystick';
-                radius = JOYSTICK_RADIUS;
-            } else if (activeJoystick === 'rotation') {
-                joystickId = 'object-rotation-joystick';
-                radius = JOYSTICK_RADIUS;
-            } else if (activeJoystick === 'rollZ') {
-                joystickId = 'roll-z-joystick-container';
-                radius = ROLL_JOYSTICK_HALF_WIDTH;
-            }
-            
-            container = document.getElementById(joystickId);
-            if (!container) return;
-
-            const containerRect = container.getBoundingClientRect();
-            let centerX, centerY;
-            
-            if (activeJoystick === 'rollZ') {
-                centerX = containerRect.left + containerRect.width / 2;
-                centerY = containerRect.top + containerRect.height / 2;
-            } else {
-                centerX = containerRect.left + JOYSTICK_RADIUS;
-                centerY = containerRect.top + JOYSTICK_RADIUS;
-            }
-
-            updateJoystick(touch.clientX, touch.clientY, centerX, centerY, activeJoystick, containerRect, radius);
-        }
-
-        function updateJoystick(clientX, clientY, centerX, centerY, controlType, containerRect, radius) {
-            let dx = clientX - centerX;
-            let dy = clientY - centerY; 
-
-            // ノブをジョイスティックの境界内に制限
-            if (controlType === 'rollZ') {
-                // 水平移動のみ
-                const distanceX = Math.abs(dx);
-                if (distanceX > radius) {
-                    dx = Math.sign(dx) * radius;
+                if (char === '\n') {
+                    const lines = headerText.split('\n').filter(line => !line.startsWith('#') && line.trim() !== '');
+                    if (lines.length >= 2) {
+                        headerEndIndex = i;
+                        break;
+                    }
                 }
-                dy = 0; // 垂直移動は無視
-                
-                // ノブの位置を更新 (水平方向のみ)
-                const knob = document.getElementById('roll-z-joystick-container').querySelector('.joystick-knob');
-                // ノブの基準位置 left: 50% から、移動量 dx に加えて、ノブ自体の幅の半分を戻すための -50% (ノブのX方向中央揃え) を常に適用
-                knob.style.transform = `translate(calc(-50% + ${dx}px), -50%)`; 
-
-                // ベクトルを正規化して保存
-                rollZVector.set(dx / radius, 0);
+                headerText += char;
+            }
             
-            } else {
-                // 円形ジョイスティック
-                const distance = Math.sqrt(dx * dx + dy * dy);
+            if (headerEndIndex === -1) {
+                throw new Error("PGM header analysis failed.");
+            }
+            
+            // 幅、高さ、最大値の抽出
+            const lines = headerText.split('\n').filter(line => !line.startsWith('#') && line.trim() !== '');
+            const dimensions = lines[0].trim().split(/\s+/).map(Number);
+            const width = dimensions[0];
+            const height = dimensions[1];
+            const maxValue = 255; 
+            
+            if (!width || !height) {
+                 throw new Error("PGM header data (width, height) is invalid.");
+            }
+            
+            // 3. ピクセルデータ
+            const pixelDataStart = headerEndIndex + 1;
+            const pixelDataSize = width * height;
+            const grayData = new Uint8Array(buffer, pixelDataStart, pixelDataSize);
 
-                if (distance > radius) {
-                    const angle = Math.atan2(dy, dx);
-                    dx = Math.cos(angle) * radius;
-                    dy = Math.sin(angle) * radius;
-                }
-                
-                // ノブの位置を更新
-                const joystickId = controlType === 'pan' ? 'object-pan-joystick' : 'object-rotation-joystick';
-                const knob = document.getElementById(joystickId).querySelector('.joystick-knob');
-                // 円形ジョイスティックは left: 50%, top: 50% からノブ自体の幅/高さの半分 (-50%, -50%) を戻した位置が中央。そこから dx, dy を相対的に動かす
-                knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                
-                // ベクトルを正規化して保存
-                const vector = new THREE.Vector2(dx / radius, dy / radius);
+            // 4. Three.jsテクスチャ用のRGBAデータに変換と色付け (視認性改善ロジック)
+            const data = new Uint8Array(pixelDataSize * 4);
+            
+            const occupiedThresh = mapData.occupied_thresh || 0.65;
+            const freeThresh = mapData.free_thresh || 0.196;
+            
+            // しきい値を 0-255 のグレースケール値に変換
+            const occupiedGray = Math.round(occupiedThresh * maxValue);
+            const freeGray = Math.round(freeThresh * maxValue);
+            
+            for (let i = 0; i < pixelDataSize; i++) {
+                const gray = grayData[i];
+                const offset = i * 4;
 
-                if (controlType === 'pan') {
-                    // X成分: X移動, Y成分: Y移動 (Three.jsのY軸と画面のY軸は反転)
-                    panVector.set(vector.x, -vector.y); 
-                } else if (controlType === 'rotation') {
-                    // X成分: Y軸回転 (ヨー), Y成分: X軸回転 (ピッチ) (Three.jsのY軸と画面のY軸は反転)
-                    rotationVector.set(vector.x, -vector.y); 
+                if (gray <= occupiedGray) {
+                    // 占有セル (障害物): 赤色で強調し、半不透明
+                    data[offset] = 255;     // R
+                    data[offset + 1] = 50;  // G
+                    data[offset + 2] = 50;  // B
+                    data[offset + 3] = 200; // A: 80% 不透明
+                } else if (gray >= freeGray) {
+                    // 自由セル (空き地): 薄い緑色で、半透明
+                    data[offset] = 150;     // R
+                    data[offset + 1] = 255; // G
+                    data[offset + 2] = 150; // B
+                    data[offset + 3] = 100; // A: 40% 不透明
+                } else {
+                    // 未知の領域 (中間色): 完全に透明
+                    data[offset] = 0;
+                    data[offset + 1] = 0;
+                    data[offset + 2] = 0;
+                    data[offset + 3] = 0; // A: 完全に透明
                 }
             }
+
+            return { data, width, height, maxValue };
         }
 
-        function onJoystickEnd(event) {
-            if (!activeJoystick) return;
-            
-            let joystickId;
-            let knob;
-            
-            if (activeJoystick === 'pan') {
-                joystickId = 'object-pan-joystick';
-                knob = document.getElementById(joystickId)?.querySelector('.joystick-knob');
-                // 中央に戻す (X=-50%, Y=-50%)
-                if (knob) knob.style.transform = 'translate(-50%, -50%)'; 
-                panVector.set(0, 0);
-            } else if (activeJoystick === 'rotation') {
-                joystickId = 'object-rotation-joystick';
-                knob = document.getElementById(joystickId)?.querySelector('.joystick-knob');
-                // 中央に戻す (X=-50%, Y=-50%)
-                if (knob) knob.style.transform = 'translate(-50%, -50%)'; 
-                rotationVector.set(0, 0);
-            } else if (activeJoystick === 'rollZ') {
-                joystickId = 'roll-z-joystick-container';
-                knob = document.getElementById(joystickId)?.querySelector('.joystick-knob');
-                // 水平ジョイスティックのノブを中央に戻す (X=-50%, Y=-50%)
-                if (knob) knob.style.transform = 'translate(-50%, -50%)'; 
-                rollZVector.set(0, 0);
+        // ----------------------------------------------------
+        // PGMマップのロードと配置関数
+        // ----------------------------------------------------
+
+        /**
+         * PGMファイルをロードし、2Dマップとしてシーンに追加する関数
+         */
+        async function loadPGMMap() { 
+            if (!pgmUrl || !mapData) {
+                document.getElementById('loading-message').style.display = 'none';
+                return;
             }
             
-            document.getElementById(joystickId)?.classList.remove('dragging');
+            // 🌟 Z軸方向の固定オフセット (PCDとの重なり防止用) 🌟
+            const PGM_Y_OFFSET = 0.0; 
             
-            activeJoystick = null;
+            const origin = mapData.origin; 
+            const resolution = mapData.resolution; 
+            const pgmImageName = mapData.image; 
+            
+            try {
+                // カスタムパーサーと色付けロジックを使用してデータを取得
+                const pgmResult = await parsePGM(pgmUrl, mapData); 
+                
+                const imgWidth = pgmResult.width;
+                const imgHeight = pgmResult.height;
+                
+                // 1. ワールド座標系でのマップのサイズを計算 (配置の原点計算には使用しませんが、ジオメトリサイズに必要)
+                const mapWidth = imgWidth * resolution;
+                const mapHeight = imgHeight * resolution;
+                
+                // データテクスチャの作成... (中略)
+                const texture = new THREE.DataTexture(
+                    pgmResult.data, 
+                    imgWidth, 
+                    imgHeight, 
+                    THREE.RGBAFormat 
+                );
+                
+                // 垂直方向の反転を無効にする (裏表修正 - 縦方向)
+                texture.flipY = false; 
+                
+                // 水平方向の反転 (左右反転)
+                texture.wrapS = THREE.ClampToEdgeWrapping; // 繰り返し設定をエッジに固定
+                texture.repeat.set(-1, 1);                  // U座標 (水平方向) のスケールを -1 で反転
+                texture.offset.set(1, 0);                   // 反転によるズレをオフセット 1 で修正
 
-            window.removeEventListener('mousemove', onJoystickMove);
-            window.removeEventListener('mouseup', onJoystickEnd);
-            window.removeEventListener('touchmove', onJoystickMove);
-            window.removeEventListener('touchend', onJoystickEnd);
+                texture.needsUpdate = true;
+                
+                // 3. マテリアルとジオメトリを作成
+                const material = new THREE.MeshBasicMaterial({ 
+                    map: texture, 
+                    side: THREE.FrontSide, 
+                    transparent: true,
+                    opacity: 1.0, 
+                });
+
+                // 幅: mapWidth, 高さ: mapHeight の平面ジオメトリを作成
+                const geometry = new THREE.PlaneGeometry(mapWidth, mapHeight);
+                
+                planeMesh = new THREE.Mesh(geometry, material);
+                
+                // 4. 平面の位置と回転の設定
+                // 元の回転設定 (X=0, Y=0, Z=-PI)
+                planeMesh.rotation.x = 0; 
+                planeMesh.rotation.y = 0; 
+                planeMesh.rotation.z = -Math.PI; 
+
+                // グローバル座標系でのマップの中心位置を計算します。
+                // Three.jsのPlaneGeometryの中心は (0, 0) なので、その中心をグローバル座標系の中心に合わせる。
+                const centerX = origin[0] + mapWidth / 2;  // origin_x + (W * R / 2)
+                const centerY = origin[1] + mapHeight / 2; // origin_y + (H * R / 2) - PGMのY軸はThree.jsのZ軸に対応
+
+                // 🌟 修正点 🌟: 位置を Three.js シーンの原点 (0, 0, 0) に固定します。
+                planeMesh.position.set(
+                    centerX,                          // X軸: 0 に固定
+                    centerY,           // Y (ROS Z) 軸: PGM_Y_OFFSET のみ適用
+                    0                           // Z (ROS Y) 軸: 0 に固定
+                ); 
+
+                // 5. シーンに追加
+                scene.add(planeMesh);
+                
+                console.log(`PGMマップの配置位置を強制的に (0, ${PGM_Y_OFFSET.toFixed(2)}, 0) に固定しました。`);
+                document.getElementById('loading-message').style.display = 'none';
+
+            } catch (error) {
+                console.error('PGMファイルのロード/パース中にエラーが発生しました:', pgmUrl, error);
+                document.getElementById('info').innerHTML += `<br><span style="color: red;">PGMパースエラー: ${pgmImageName}</span>`;
+                document.getElementById('loading-message').style.display = 'none';
+            }
         }
         
-        // --- アニメーションループでジョイスティック入力を処理 ---
-        function applyJoystickControl() {
-            if (!pointsMesh) return;
-            let requiresUpdate = false;
-
-            // 1. オブジェクト移動 (パン) 制御
-            if (panVector.lengthSq() > 0) {
-                // X移動
-                pointsMesh.position.x += panVector.x * MAX_PAN_SPEED; 
-                // Y移動
-                pointsMesh.position.y += panVector.y * MAX_PAN_SPEED; 
-                requiresUpdate = true;
-            }
-            
-            // 2. オブジェクト回転 (X軸/Y軸) 制御
-            if (rotationVector.lengthSq() > 0) {
-                // X成分: Y軸回転 (ヨー)
-                const yawAngle = -rotationVector.x * MAX_ROTATION_SPEED; 
-                pointsMesh.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), yawAngle);
-
-                // Y成分: X軸回転 (ピッチ)
-                const pitchAngle = rotationVector.y * MAX_ROTATION_SPEED;
-                pointsMesh.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), pitchAngle);
-                
-                requiresUpdate = true;
-            }
-
-            // 3. オブジェクト回転 (Z軸/ロール) 制御 (水平ジョイスティック)
-            if (rollZVector.x !== 0) {
-                // X成分: Z軸回転 (ロール)
-                // rollZVector.x はジョイスティックの左右移動量 (-1.0 to 1.0)
-                const rollAngle = -rollZVector.x * MAX_ROTATION_SPEED; 
-                pointsMesh.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), rollAngle);
-                
-                requiresUpdate = true;
-            }
-
-            if (requiresUpdate) {
-                controls.update();
-            }
-        }
-        
-        // --- 初期化 ---
+        // ----------------------------------------------------
+        // 初期化処理
+        // ----------------------------------------------------
 
         function init() {
             if (!pcdUrl || mapName === '') { 
@@ -480,140 +271,115 @@
                 return;
             }
             
-            const container = document.getElementById('viewer-container');
-            const width = container.clientWidth;
-            const height = container.clientHeight;
+            // YAMLデータ解析 
+            try {
+                if (yamlDataString) {
+                    if (typeof jsyaml === 'undefined' || typeof jsyaml.load !== 'function') {
+                        throw new Error("js-yamlライブラリ (jsyaml.load) が見つかりません。");
+                    }
+                    mapData = jsyaml.load(yamlDataString); 
+                
+                    if (!mapData || !mapData.image) {
+                         document.getElementById('info').textContent = "警告: YAMLデータに'image'キーがありません。PGMマップはロードされません。";
+                    } else {
+                        pgmUrl = '/map/' + mapData.image; 
+                        document.getElementById('info').textContent = `PCD: ${filename} / PGM: ${mapData.image} をロード中...`;
+                    }
+                } else {
+                    document.getElementById('info').textContent = `PCD: ${filename} をロード中... (PGMデータなし)`;
+                }
+                
+            } catch (e) {
+                 console.error("YAML解析エラー:", e);
+                 document.getElementById('loading-message').textContent = `エラー: YAMLデータの解析に失敗しました。詳細: ${e.message}`;
+                 return;
+            }
+            // ------------------------------------
 
-            // 1. シーン、カメラ、レンダラーの設定
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x333333);
+            const container = document.getElementById('viewer-container');
             
-            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            // シーンの作成
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x333333); 
+
+            // カメラの作成
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
             camera.position.set(5, 5, 5); 
 
+            // レンダラーの作成
             renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(width, height);
+            renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(renderer.domElement);
 
-            // 軸ヘルパー（ギズモ）の初期化 (長さ1)
-            axesHelper = new THREE.AxesHelper(1); 
-            axesHelper.isAxesHelper = true; 
+            // コントロールの作成
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.minDistance = 0.5;
+            controls.maxDistance = 100;
 
-            // 2. PCDLoaderの設定
+            // ローダーの作成
             loader = new PCDLoader();
-            
-            // 3. コントロール (マウス操作) - 標準の OrbitControls に戻す
-            controls = new OrbitControls(camera, renderer.domElement); 
-            controls.enableDamping = true; 
-            controls.dampingFactor = 0.05;
-            
-            // 標準の回転とパンを有効化
-            controls.enableRotate = true; 
-            controls.enablePan = true;    
-            
-            controls.screenSpacePanning = false; 
-            controls.minDistance = 1;
-            controls.maxDistance = 500;
-            
-            // マウスボタンの設定: 左:回転, 中:ドリー, 右:パン (標準)
-            controls.mouseButtons = {
-                LEFT: THREE.MOUSE.ROTATE,    
-                MIDDLE: THREE.MOUSE.DOLLY,   
-                RIGHT: THREE.MOUSE.PAN       
-            };
 
-
-            // 4. PCDファイルの読み込み
-            document.getElementById('loading-message').textContent = `PCDファイル "${filename}" を読み込み中...`;
-
+            // PCDファイルのロード
             loader.load(
                 pcdUrl,
-                // 読み込み成功時のコールバック
+                // ロード成功時のコールバック
                 function (points) {
-                    pointsMesh = points; 
+                    pointsMesh = points;
+                    
+                    // PCD は既にグローバル座標系にあるとみなし、位置補正を適用しない
+                    pointsMesh.position.set(0, 0, 0); 
+                    
+                    // 視認性改善: 点群のサイズを大きくします
+                    if (pointsMesh.material.size) {
+                        pointsMesh.material.size = 0.05; // 調整可能
+                    }
+                    
                     scene.add(pointsMesh);
-                    
-                    pointsMesh.add(axesHelper);
 
-                    document.getElementById('loading-message').style.display = 'none';
-                    document.getElementById('info').innerHTML = `マップ: <b>${filename}</b><br>点群数: ${points.geometry.attributes.position.count}`;
+                    const pointCount = pointsMesh.geometry.attributes.position.count;
+                    document.getElementById('info').innerHTML = `PCD: ${filename} (${pointCount} points)`;
+                    if(mapData && mapData.image) {
+                        document.getElementById('info').innerHTML += `<br>PGM: ${mapData.image}`;
+                    }
 
-                    const boundingBox = new THREE.Box3().setFromObject(points);
-                    const center = new THREE.Vector3();
-                    boundingBox.getCenter(center);
+                    // カメラをモデルの中心に合わせる
+                    pointsMesh.geometry.computeBoundingSphere();
+                    const center = pointsMesh.geometry.boundingSphere.center;
+                    camera.position.set(center.x + 5, center.y + 5, center.z + 5);
+                    controls.target.copy(center); 
                     
-                    pointsMesh.position.sub(center); 
-
-                    controls.target.set(0, 0, 0); 
-                    
-                    // モデルの初期状態を保存
                     initialModel.position.copy(pointsMesh.position);
                     initialModel.rotation.copy(pointsMesh.rotation);
 
-
-                    const size = new THREE.Vector3();
-                    boundingBox.getSize(size);
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    
-                    const cameraDistance = maxDim * 0.5;
-                    
-                    // 初期カメラ位置をY軸の真下から見上げる状態に設定 
-                    const initialY = -cameraDistance; 
-                    const initialPos = new THREE.Vector3(0, initialY, 0); // X=0, Z=0で真下
-                    camera.position.copy(initialPos);
-                    
-                    resetCameraUpVector(); 
-                    
-                    // 初期カメラ設定をグローバル変数に保存
-                    initialCamera.position.copy(initialPos);
-                    initialCamera.target.copy(controls.target);
-
-                    // 軸ヘルパーのサイズと位置を調整
-                    if (axesHelper) {
-                        const helperSize = maxDim * 0.1;
-                        axesHelper.scale.set(helperSize, helperSize, helperSize);
-                        axesHelper.position.set(0, 0, 0); 
+                    // PGMマップのロードと配置ロジックを開始 (非同期)
+                    if (pgmUrl && mapData) {
+                        loadPGMMap();
+                    } else {
+                        document.getElementById('loading-message').style.display = 'none';
                     }
                     
                     controls.update();
                     animate();
                 },
-                // 読み込み進捗時のコールバック
+                // ロード進捗時のコールバック
                 function (xhr) {
-                    const percent = Math.round((xhr.loaded / xhr.total) * 100);
-                    document.getElementById('loading-message').textContent = `PCDファイル "${filename}" を読み込み中... ${percent}%`;
+                    const percent = (xhr.loaded / xhr.total) * 100;
+                    document.getElementById('loading-message').textContent = `PCDファイルをロード中... ${Math.round(percent)}%`;
                 },
-                // 読み込みエラー時のコールバック
+                // ロードエラー時のコールバック
                 function (error) {
-                    console.error('PCDファイルの読み込み中にエラーが発生しました:', error);
-                    document.getElementById('loading-message').textContent = `エラー: PCDファイル "${filename}" の読み込みに失敗しました。`;
-                    if (error.target && error.target.status === 404) {
-                         document.getElementById('loading-message').textContent += ' (404 Not Found: ファイルパスを確認してください)';
-                    }
+                    console.error('PCDファイルのロード中にエラーが発生しました:', error);
+                    document.getElementById('loading-message').textContent = `エラー: PCDファイルのロードに失敗しました。(${filename})`;
                 }
             );
 
-            // 5. イベントリスナーの設定
+            // リサイズイベントリスナー
             window.addEventListener('resize', onWindowResize, false);
-            
-            // --- オブジェクトコントロール (ジョイスティック) ---
-            document.getElementById('object-pan-joystick').addEventListener('mousedown', onJoystickStart);
-            document.getElementById('object-pan-joystick').addEventListener('touchstart', onJoystickStart, { passive: false });
-            
-            document.getElementById('object-rotation-joystick').addEventListener('mousedown', onJoystickStart);
-            document.getElementById('object-rotation-joystick').addEventListener('touchstart', onJoystickStart, { passive: false });
-            
-            // Z軸ロール（水平ジョイスティック）イベントリスナーを追加
-            document.getElementById('roll-z-joystick-container').addEventListener('mousedown', onJoystickStart);
-            document.getElementById('roll-z-joystick-container').addEventListener('touchstart', onJoystickStart, { passive: false });
-
-
-            // カメラ/モデルリセットボタン
-            document.getElementById('reset-camera-button').addEventListener('click', resetCamera);
-
-            // 🌟 Z軸180度回転ボタンのイベントリスナーを追加 🌟
-            document.getElementById('rotate-z-180-button').addEventListener('click', rotateModelZ180);
         }
+
+        // ----------------------------------------------------
+        // アニメーション/ユーティリティ関数
+        // ----------------------------------------------------
 
         function onWindowResize() {
             const container = document.getElementById('viewer-container');
@@ -623,80 +389,12 @@
         }
 
         function animate() {
-            animationFrameId = requestAnimationFrame(animate);
-            
-            // ジョイスティックからの入力を毎フレーム処理
-            applyJoystickControl(); 
-            
-            controls.update(); 
+            requestAnimationFrame(animate);
+            controls.update();
             renderer.render(scene, camera);
         }
 
-        // init() の呼び出し
-        if (mapName !== '') {
-            init();
-        } else {
-            document.getElementById('loading-message').textContent = "エラー: マップ名が指定されていません。";
-        }
+        init();
     </script>
-</head>
-<body>
-    <div id="viewer-container"></div>
-    <div id="loading-message">ビューアを初期化中...</div>
-    <div id="info">マップ名: -</div>
-
-    <div id="object-controls">
-        
-        <div class="object-control-group">
-            <div class="control-title">
-                モデル移動 (パン)
-            </div>
-            <div id="object-pan-joystick" class="joystick-container">
-                <div id="pan-knob" class="joystick-knob"></div>
-            </div>
-            <div class="control-legend">
-                横軸: <span class="axis-x">X</span> / 縦軸: <span class="axis-y">Y</span>
-            </div>
-        </div>
-        
-        <div class="object-control-group">
-            <div class="control-title">
-                モデル回転 (ヨー・ピッチ)
-            </div>
-            <div id="object-rotation-joystick" class="joystick-container">
-                <div id="rotation-knob" class="joystick-knob"></div>
-            </div>
-            <div class="control-legend">
-                 横軸: <span class="axis-y">Y (ヨー)</span> / 縦軸: <span class="axis-x">X (ピッチ)</span>
-            </div>
-        </div>
-
-        <div id="roll-z-joystick-group" style="grid-column: 1 / 3; display: flex; flex-direction: column; align-items: center; margin-top: 10px;">
-            <div class="control-title">
-                モデル回転 <span class="axis-z">Z (ロール)</span>
-            </div>
-            <div id="roll-z-joystick-container">
-                <div id="roll-z-knob" class="joystick-knob" style="transform: translate(-50%, -50%);"></div>
-            </div>
-            <div class="control-legend" style="margin-top: 5px;">
-                 左/右: ロール回転
-            </div>
-        </div>
-        
-    </div>
-
-
-    <div id="rotation-controls">
-        <div class="control-title">
-            カメラ操作
-        </div>
-        
-        <div>回転 (左クリック / 1本指)</div>
-        <div>パン (右クリック / 2本指)</div>
-        <div>ズーム (ホイール / ピンチ)</div>
-        
-        <button id="reset-camera-button" style="margin-top: 10px;">カメラ/モデル リセット</button>
-        <button id="rotate-z-180-button">モデル Z軸 180°回転</button>
-    </div>
 </body>
 </html>

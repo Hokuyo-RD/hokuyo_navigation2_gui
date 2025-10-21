@@ -22,13 +22,6 @@ try:
 except ImportError as e:
     print(f"Error: Core logic file (rosbag2_filter_core.py) or ROS 2 libraries not found/sourced: {e}")
 
-
-# ==============================================================================
-# 2. 設定と定数
-# ==============================================================================
-
-# --- パス設定 ---
-# 環境変数 DOCKER_CONTAINER の有無でパスを分岐
 if 'DOCKER_ENV' in os.environ:
     BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
     HOKUYO_NAV2_PKG_PATH = "/home/colcon_ws/src/hokuyo_navigation2" 
@@ -559,6 +552,7 @@ def download_map(filename):
 def view_map(map_name):
     """
     PCDビューアのHTMLページをレンダリングする。
+    対応するPGMマップ用のYAMLファイルがあれば、その内容も読み込みテンプレートに渡す。
     """
     if not map_name:
         flash("エラー: 表示するマップ名が指定されていません。", "error")
@@ -570,8 +564,27 @@ def view_map(map_name):
     if not os.path.exists(pcd_file_path):
         flash(f'エラー: マップファイル "{pcd_filename}" がサーバーに見つかりません。', 'error')
         return redirect(url_for('main_gui'))
-        
-    return render_template('pcd_viewer.html', map_name=map_name)
+    
+    # 🌟 YAMLファイルの内容を読み込む 🌟
+    yaml_filename = f'{map_name}.yaml'
+    yaml_file_path = os.path.join(MAP_DIR, yaml_filename)
+    yaml_data_string = ""
+    
+    if os.path.exists(yaml_file_path):
+        try:
+            # YAMLファイルをテキストとして読み込む
+            with open(yaml_file_path, 'r') as f:
+                yaml_data_string = f.read()
+            print(f"INFO: YAML file '{yaml_filename}' loaded for viewer.")
+        except Exception as e:
+            # 読み込み失敗時、エラーログを出力し、空のまま続行
+            print(f"ERROR: Failed to read YAML file '{yaml_file_path}': {e}")
+            flash(f'警告: YAMLファイル "{yaml_filename}" の読み込みに失敗しました。', 'warning')
+
+    # テンプレートに map_name と yaml_data_string を渡す
+    return render_template('pcd_viewer.html', 
+                           map_name=map_name,
+                           yaml_data=yaml_data_string) # 🌟 修正点 🌟
 
 
 @app.route('/map/<filename>')

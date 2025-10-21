@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>PCD / PGM Map Viewer</title>
+    <title>PCD / PGM Map / Waypoint Viewer</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #222; font-family: sans-serif; }
         #viewer-container { width: 100vw; height: 100vh; position: relative; }
@@ -29,7 +29,6 @@
             font-size: 0.9em;
             z-index: 10;
         }
-        /* 🌟 追加: コントロールパネルのスタイル 🌟 */
         #controls {
             position: absolute;
             top: 10px;
@@ -75,6 +74,10 @@
             <input type="checkbox" id="toggle-pgm"> 
             PGM (マップ) を表示
         </label>
+        <label>
+            <input type="checkbox" id="toggle-waypoints" checked> 
+            Waypoints を表示
+        </label>
     </div>
 
     <script type="module">
@@ -91,10 +94,16 @@
         // Flaskから渡される YAML データ文字列
         const yamlDataString = `{{ yaml_data | default("") }}`; 
         
+        // 🌟 修正済み: tojson | safe フィルターを適用し、JavaScriptの文字列リテラルとして安全に展開 🌟
+        const waypointsDataString = `{{ waypoints_data | default("[]") | safe }}`;
         // PGMマップ用のグローバル変数
         let mapData = null; 
         let pgmUrl = ''; 
         let planeMesh = null; 
+        
+        // Waypoint 可視化用のグローバル変数
+        let waypointsGroup = new THREE.Group(); // ウェイポイント全体をまとめるグループ
+        let waypoints = []; // 解析されたウェイポイントデータ
         
         // Three.jsの標準変数
         let scene, camera, renderer, loader;
@@ -202,37 +211,27 @@
         // ----------------------------------------------------
         // PGMマップのロードと配置関数
         // ----------------------------------------------------
-
-        /**
-         * PGMファイルをロードし、2Dマップとしてシーンに追加する関数
-         */
         async function loadPGMMap() { 
             if (!pgmUrl || !mapData) {
-                // PGMデータがない場合はコントロールを非表示に
                 document.getElementById('toggle-pgm').closest('label').style.display = 'none';
-                document.getElementById('loading-message').style.display = 'none';
                 return;
             }
             
-            // 🌟 Z軸方向の固定オフセット (PCDとの重なり防止用) 🌟
-            const PGM_Y_OFFSET = 0.0; // PGMをPCDよりわずかに下に配置
+            // PGM_Z_OFFSET は 0.0 に設定 (PCDと同じ平面)
+            const PGM_Z_OFFSET = 0.0; 
             
             const origin = mapData.origin; 
             const resolution = mapData.resolution; 
             const pgmImageName = mapData.image; 
             
             try {
-                // カスタムパーサーと色付けロジックを使用してデータを取得
                 const pgmResult = await parsePGM(pgmUrl, mapData); 
                 
                 const imgWidth = pgmResult.width;
                 const imgHeight = pgmResult.height;
-                
-                // 1. ワールド座標系でのマップのサイズを計算 
                 const mapWidth = imgWidth * resolution;
                 const mapHeight = imgHeight * resolution;
                 
-                // データテクスチャの作成... (中略)
                 const texture = new THREE.DataTexture(
                     pgmResult.data, 
                     imgWidth, 
@@ -240,17 +239,12 @@
                     THREE.RGBAFormat 
                 );
                 
-                // 垂直方向の反転を無効にする (裏表修正 - 縦方向)
                 texture.flipY = false; 
-                
-                // 水平方向の反転 (左右反転)
-                texture.wrapS = THREE.ClampToEdgeWrapping; // 繰り返し設定をエッジに固定
-                texture.repeat.set(-1, 1);                  // U座標 (水平方向) のスケールを -1 で反転
-                texture.offset.set(1, 0);                   // 反転によるズレをオフセット 1 で修正
-
+                texture.wrapS = THREE.ClampToEdgeWrapping; 
+                texture.repeat.set(-1, 1);                  
+                texture.offset.set(1, 0);                   
                 texture.needsUpdate = true;
                 
-                // 3. マテリアルとジオメトリを作成
                 const material = new THREE.MeshBasicMaterial({ 
                     map: texture, 
                     side: THREE.FrontSide, 
@@ -258,53 +252,128 @@
                     opacity: 1.0, 
                 });
 
-                // 幅: mapWidth, 高さ: mapHeight の平面ジオメトリを作成
                 const geometry = new THREE.PlaneGeometry(mapWidth, mapHeight);
                 
                 planeMesh = new THREE.Mesh(geometry, material);
                 
-                // 4. 平面の位置と回転の設定
                 planeMesh.rotation.x = 0; 
                 planeMesh.rotation.y = 0; 
                 planeMesh.rotation.z = -Math.PI; 
 
-                // グローバル座標系でのマップの中心位置を計算し、Three.js の位置に設定
                 const centerX = origin[0] + mapWidth / 2;  
                 const centerY = origin[1] + mapHeight / 2; 
 
                 planeMesh.position.set(
                     centerX,                          // X軸中心
-                    centerY,                           // Z軸中心 (Three.js Z軸にマッピング)
-                    PGM_Y_OFFSET                     // Y軸: PGM_Y_OFFSET を適用 (PCDとの重なり防止)
+                    centerY,                          // Y軸中心
+                    PGM_Z_OFFSET                      // Z軸: 0.0
                 ); 
                 
-                // 🌟 追加: PGMをデフォルトで非表示に 🌟
-                planeMesh.visible = false;
+                planeMesh.visible = false; // 初期状態では非表示
 
-                // 5. シーンに追加
                 scene.add(planeMesh);
                 
-                console.log(`PGMマップを配置しました: 中心 (${centerX.toFixed(2)}, ${PGM_Y_OFFSET.toFixed(2)}, ${centerY.toFixed(2)})`);
-                document.getElementById('loading-message').style.display = 'none';
-
-                // コントロールを設定
-                setupControls();
+                console.log(`PGMマップを配置しました: 中心 (${centerX.toFixed(2)}, ${centerY.toFixed(2)}, ${PGM_Z_OFFSET.toFixed(2)})`);
 
             } catch (error) {
                 console.error('PGMファイルのロード/パース中にエラーが発生しました:', pgmUrl, error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">PGMパースエラー: ${pgmImageName}</span>`;
-                // エラー時もコントロールを非表示に
                 document.getElementById('toggle-pgm').closest('label').style.display = 'none';
-                document.getElementById('loading-message').style.display = 'none';
             }
         }
         
         // ----------------------------------------------------
-        // 表示コントロールのセットアップ関数 (🌟 追加 🌟)
+        // Waypointのロードと配置関数
+        // ----------------------------------------------------
+        
+        /**
+         * ROS形式のクォータニオンからYaw角 (ラジアン) を計算するヘルパー関数
+         */
+        function quaternionToYaw(qx, qy, qz, qw) {
+            // Z軸周りの回転 (Yaw) を抽出
+            const siny_cosp = 2 * (qw * qz + qx * qy);
+            const cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
+            return Math.atan2(siny_cosp, cosy_cosp);
+        }
+
+        /**
+         * ウェイポイントファイルを解析し、シーンに可視化する関数
+         */
+        function loadWaypoints() {
+            if (!waypointsDataString || waypointsDataString === '[]') {
+                document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
+                return;
+            }
+
+            try {
+                // JSONデータを解析
+                const rawWaypoints = JSON.parse(waypointsDataString);
+                
+                if (rawWaypoints.length === 0) {
+                    document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
+                    return;
+                }
+
+                waypoints = rawWaypoints;
+                
+                // Waypoint Z オフセットは 0.0 (PCD/PGMと同じ平面)
+                const WAYPOINT_Z_OFFSET = 0.0; 
+                
+                waypoints.forEach((wp, index) => {
+                    if (wp.length < 2) return; 
+
+                    const position = wp[0]; // [x, y, z]
+                    const orientation = wp[1]; // [qx, qy, qz, qw]
+                    
+                    const x = position[0];
+                    const y = position[1];
+                    const z = WAYPOINT_Z_OFFSET; 
+                    
+                    // クォータニオンからヨー角を抽出
+                    const yaw = quaternionToYaw(orientation[0], orientation[1], orientation[2], orientation[3]);
+                    
+                    // 1. 位置を表す小さな球体 (Sphere)
+                    const SPHERE_RADIUS = 0.3; // 半径0.3m
+                    const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16); 
+                    const material = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // シアン
+                    const sphere = new THREE.Mesh(geometry, material);
+                    
+                    sphere.position.set(x, y, z);
+                    waypointsGroup.add(sphere);
+
+                    // 2. 向きを表す矢印 (ArrowHelper)
+                    const dir = new THREE.Vector3(1, 0, 0); 
+                    dir.applyAxisAngle(new THREE.Vector3(0, 0, 1), yaw); // Z軸周りにYaw角だけ回転
+                    
+                    const origin = new THREE.Vector3(x, y, z);
+                    const length = 1.0; // 矢印の長さ1.0m
+                    const color = 0xffff00; // 黄色
+                    
+                    const arrowHelper = new THREE.ArrowHelper(dir, origin, length, color, 0.2, 0.15);
+
+                    waypointsGroup.add(arrowHelper);
+                });
+
+                // ウェイポイントグループをシーンに追加
+                scene.add(waypointsGroup);
+                waypointsGroup.visible = true; // デフォルトで表示
+
+                console.log(`ウェイポイントを ${waypoints.length} 個配置しました。`);
+
+            } catch (error) {
+                console.error('ウェイポイントファイルの解析中にエラーが発生しました:', error);
+                document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointパースエラー</span>`;
+                document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
+            }
+        }
+
+        // ----------------------------------------------------
+        // 表示コントロールのセットアップ関数
         // ----------------------------------------------------
         function setupControls() {
             const togglePCD = document.getElementById('toggle-pcd');
             const togglePGM = document.getElementById('toggle-pgm');
+            const toggleWaypoints = document.getElementById('toggle-waypoints');
             
             // PCD
             togglePCD.addEventListener('change', () => {
@@ -315,14 +384,27 @@
 
             // PGM
             if (planeMesh) {
-                // PGMマップがロードされた後でのみイベントリスナーを設定
+                // HTMLでcheckedになっていない場合は、ここで初期状態を反映
+                if (!togglePGM.checked) {
+                    planeMesh.visible = false;
+                }
                 togglePGM.addEventListener('change', () => {
                     planeMesh.visible = togglePGM.checked;
                 });
             } else {
-                // PGMがロードされなかった場合、チェックボックスを無効化
                 togglePGM.disabled = true;
                 togglePGM.closest('label').style.opacity = 0.5;
+            }
+
+            // Waypoints
+            if (waypointsGroup && waypoints.length > 0) {
+                // デフォルトは HTML で checked = true
+                toggleWaypoints.addEventListener('change', () => {
+                    waypointsGroup.visible = toggleWaypoints.checked;
+                });
+            } else {
+                toggleWaypoints.disabled = true;
+                toggleWaypoints.closest('label').style.display = 'none';
             }
         }
 
@@ -363,41 +445,32 @@
 
             const container = document.getElementById('viewer-container');
             
-            // シーンの作成
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x333333); 
 
-            // カメラの作成
             camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
             
-            // レンダラーの作成
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(renderer.domElement);
 
-            // コントロールの作成
             controls = new OrbitControls(camera, renderer.domElement);
             controls.minDistance = 0.5;
             controls.maxDistance = 100;
 
-            // ローダーの作成
             loader = new PCDLoader();
 
             // PCDファイルのロード
             loader.load(
                 pcdUrl,
-                // ロード成功時のコールバック
                 function (points) {
                     pointsMesh = points;
                     
                     pointsMesh.position.set(0, 0, 0); 
-                    
-                    // 🌟 追加: PCDをデフォルトで表示 (チェックボックスの状態と同期) 🌟
                     pointsMesh.visible = true; 
 
-                    // 視認性改善: 点群のサイズを大きくします
                     if (pointsMesh.material.size) {
-                        pointsMesh.material.size = 0.05; // 調整可能
+                        pointsMesh.material.size = 0.05; 
                     }
                     
                     scene.add(pointsMesh);
@@ -408,7 +481,6 @@
                         document.getElementById('info').innerHTML += `<br>PGM: ${mapData.image}`;
                     }
 
-                    // カメラをモデルの中心に合わせる
                     pointsMesh.geometry.computeBoundingSphere();
                     const center = pointsMesh.geometry.boundingSphere.center;
                     camera.position.set(center.x + 5, center.y + 5, center.z + 5);
@@ -417,32 +489,29 @@
                     initialModel.position.copy(pointsMesh.position);
                     initialModel.rotation.copy(pointsMesh.rotation);
 
-                    // PGMマップのロードと配置ロジックを開始 (非同期)
+                    // PGMマップのロードと配置
                     if (pgmUrl && mapData) {
                         loadPGMMap();
-                    } else {
-                        // PGMデータがない場合
-                        document.getElementById('toggle-pgm').closest('label').style.display = 'none';
-                        document.getElementById('loading-message').style.display = 'none';
-                        setupControls(); // PCDのみのコントロールを設定
                     }
                     
+                    // ウェイポイントのロードと配置
+                    loadWaypoints();
+                    
+                    document.getElementById('loading-message').style.display = 'none';
+                    setupControls();
                     controls.update();
                     animate();
                 },
-                // ロード進捗時のコールバック
                 function (xhr) {
                     const percent = (xhr.loaded / xhr.total) * 100;
                     document.getElementById('loading-message').textContent = `PCDファイルをロード中... ${Math.round(percent)}%`;
                 },
-                // ロードエラー時のコールバック
                 function (error) {
                     console.error('PCDファイルのロード中にエラーが発生しました:', error);
                     document.getElementById('loading-message').textContent = `エラー: PCDファイルのロードに失敗しました。(${filename})`;
                 }
             );
 
-            // リサイズイベントリスナー
             window.addEventListener('resize', onWindowResize, false);
         }
 

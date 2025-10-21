@@ -552,7 +552,7 @@ def download_map(filename):
 def view_map(map_name):
     """
     PCDビューアのHTMLページをレンダリングする。
-    対応するPGMマップ用のYAMLファイルがあれば、その内容も読み込みテンプレートに渡す。
+    対応するPGMマップ用のYAMLファイル、ウェイポイントファイルがあれば、その内容も読み込みテンプレートに渡す。
     """
     if not map_name:
         flash("エラー: 表示するマップ名が指定されていません。", "error")
@@ -581,26 +581,64 @@ def view_map(map_name):
             print(f"ERROR: Failed to read YAML file '{yaml_file_path}': {e}")
             flash(f'警告: YAMLファイル "{yaml_filename}" の読み込みに失敗しました。', 'warning')
 
-    # テンプレートに map_name と yaml_data_string を渡す
+    # 🌟 Waypointファイルの内容を読み込む (新規追加) 🌟
+    # ウェイポイントファイルはWP_DIRにあると仮定
+    wp_filename = f'{map_name}.json'
+    wp_file_path = os.path.join(WP_DIR, wp_filename)
+    waypoints_data_string = "[]" # デフォルトは空のJSON配列
+    
+    if os.path.exists(wp_file_path):
+        try:
+            # JSONファイルをテキストとして読み込む
+            with open(wp_file_path, 'r') as f:
+                waypoints_data_string = f.read()
+            print(f"INFO: Waypoint file '{wp_filename}' loaded for viewer.")
+        except Exception as e:
+            # 読み込み失敗時、エラーログを出力し、空のまま続行
+            print(f"ERROR: Failed to read Waypoint file '{wp_file_path}': {e}")
+            flash(f'警告: Waypointファイル "{wp_filename}" の読み込みに失敗しました。', 'warning')
+
+
+    # テンプレートに map_name, yaml_data_string, waypoints_data_string を渡す
     return render_template('pcd_viewer.html', 
                            map_name=map_name,
-                           yaml_data=yaml_data_string) # 🌟 修正点 🌟
+                           yaml_data=yaml_data_string,
+                           waypoints_data=waypoints_data_string) # 🌟 修正点 🌟
 
 
 @app.route('/map/<filename>')
 def serve_map_file(filename):
     """
-    pcd_viewer.htmlからリクエストされたPCDファイルをブラウザに提供する。
+    pcd_viewer.htmlからリクエストされたPCDファイル、PGMファイル、
+    およびウェイポイントファイルをブラウザに提供する。
     """
+    # ファイルの拡張子を取得
+    ext = os.path.splitext(filename)[1].lower()
+    
+    if ext == '.pcd' or ext == '.yaml' or ext == '.pgm':
+        # PCD, YAML, PGM ファイルは MAP_DIR から提供
+        target_dir = MAP_DIR
+    elif ext == '.json':
+        # JSON ファイル (ウェイポイント) は WP_DIR から提供
+        target_dir = WP_DIR
+    else:
+        return jsonify({'error': 'サポートされていないファイル形式です'}), 400
+
     try:
+        # パストラバーサル対策: 安全なパスチェック
+        full_path = os.path.join(target_dir, filename)
+        # HOKUYO_NAV2_PKG_PATH は共通のルートディレクトリ
+        if not _is_safe_path(full_path, HOKUYO_NAV2_PKG_PATH): 
+            return jsonify({'error': '許可されていないパスへのアクセスです'}), 403
+
         return send_from_directory(
-            MAP_DIR, 
+            target_dir, 
             filename, 
             as_attachment=False, # ダウンロードではなく、インライン表示（ビューアで利用）
             mimetype='application/octet-stream'
         )
     except Exception as e:
-        print(f"ERROR: PCDファイルの提供に失敗しました: {e}")
+        print(f"ERROR: ファイルの提供に失敗しました ({filename}): {e}")
         return jsonify({'error': 'ファイルが見つからないか、アクセスできません'}), 404
         
 @app.route('/browse_pcd')

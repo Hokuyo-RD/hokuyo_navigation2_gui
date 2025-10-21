@@ -94,16 +94,17 @@
         // Flaskから渡される YAML データ文字列
         const yamlDataString = `{{ yaml_data | default("") }}`; 
         
-        // 🌟 修正済み: tojson | safe フィルターを適用し、JavaScriptの文字列リテラルとして安全に展開 🌟
+        // Waypointデータ: バッククォートを使用し、JSONパースエラーとSyntaxErrorを回避
         const waypointsDataString = `{{ waypoints_data | default("[]") | safe }}`;
+        
         // PGMマップ用のグローバル変数
         let mapData = null; 
         let pgmUrl = ''; 
         let planeMesh = null; 
         
         // Waypoint 可視化用のグローバル変数
-        let waypointsGroup = new THREE.Group(); // ウェイポイント全体をまとめるグループ
-        let waypoints = []; // 解析されたウェイポイントデータ
+        let waypointsGroup = new THREE.Group(); 
+        let waypoints = []; 
         
         // Three.jsの標準変数
         let scene, camera, renderer, loader;
@@ -212,8 +213,11 @@
         // PGMマップのロードと配置関数
         // ----------------------------------------------------
         async function loadPGMMap() { 
+            const togglePGM = document.getElementById('toggle-pgm');
+            const togglePGMLabel = togglePGM.closest('label');
+
             if (!pgmUrl || !mapData) {
-                document.getElementById('toggle-pgm').closest('label').style.display = 'none';
+                togglePGMLabel.style.display = 'none';
                 return;
             }
             
@@ -275,10 +279,22 @@
                 
                 console.log(`PGMマップを配置しました: 中心 (${centerX.toFixed(2)}, ${centerY.toFixed(2)}, ${PGM_Z_OFFSET.toFixed(2)})`);
 
+                // 🌟 修正ポイント: PGMが正常にロードされた直後にコントロールを設定 🌟
+                togglePGM.disabled = false; // 無効化を解除
+                togglePGMLabel.style.opacity = 1.0; // 不透明度を戻す
+                
+                // イベントリスナーを設定 (PCDロード完了後に setupControls() からの移動)
+                togglePGM.addEventListener('change', () => {
+                    if (planeMesh) { 
+                        planeMesh.visible = togglePGM.checked;
+                    }
+                });
+                // -----------------------------------------------------------------
+
             } catch (error) {
                 console.error('PGMファイルのロード/パース中にエラーが発生しました:', pgmUrl, error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">PGMパースエラー: ${pgmImageName}</span>`;
-                document.getElementById('toggle-pgm').closest('label').style.display = 'none';
+                togglePGMLabel.style.display = 'none'; // エラー時は非表示
             }
         }
         
@@ -300,8 +316,12 @@
          * ウェイポイントファイルを解析し、シーンに可視化する関数
          */
         function loadWaypoints() {
-            if (!waypointsDataString || waypointsDataString === '[]') {
-                document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
+            const toggleWaypoints = document.getElementById('toggle-waypoints');
+            const toggleWaypointsLabel = toggleWaypoints.closest('label');
+
+            if (!waypointsDataString || waypointsDataString.trim() === '[]') {
+                // データがない場合はコントロールを非表示
+                toggleWaypointsLabel.style.display = 'none';
                 return;
             }
 
@@ -310,7 +330,8 @@
                 const rawWaypoints = JSON.parse(waypointsDataString);
                 
                 if (rawWaypoints.length === 0) {
-                    document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
+                    // データが空の場合はコントロールを非表示
+                    toggleWaypointsLabel.style.display = 'none';
                     return;
                 }
 
@@ -359,11 +380,17 @@
                 waypointsGroup.visible = true; // デフォルトで表示
 
                 console.log(`ウェイポイントを ${waypoints.length} 個配置しました。`);
+                
+                // ロード成功時、イベントリスナーを設定
+                toggleWaypoints.addEventListener('change', () => {
+                    waypointsGroup.visible = toggleWaypoints.checked;
+                });
 
             } catch (error) {
                 console.error('ウェイポイントファイルの解析中にエラーが発生しました:', error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointパースエラー</span>`;
-                document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
+                // エラー時はコントロールを非表示
+                toggleWaypointsLabel.style.display = 'none';
             }
         }
 
@@ -373,7 +400,6 @@
         function setupControls() {
             const togglePCD = document.getElementById('toggle-pcd');
             const togglePGM = document.getElementById('toggle-pgm');
-            const toggleWaypoints = document.getElementById('toggle-waypoints');
             
             // PCD
             togglePCD.addEventListener('change', () => {
@@ -382,30 +408,17 @@
                 }
             });
 
-            // PGM
-            if (planeMesh) {
-                // HTMLでcheckedになっていない場合は、ここで初期状態を反映
-                if (!togglePGM.checked) {
-                    planeMesh.visible = false;
-                }
-                togglePGM.addEventListener('change', () => {
-                    planeMesh.visible = togglePGM.checked;
-                });
-            } else {
+            // PGM (loadPGMMap内で処理するため、ここでは初期状態を設定するロジックのみ残す)
+            if (pgmUrl && mapData) {
+                // PGMがロードされるまで無効化しておく
                 togglePGM.disabled = true;
                 togglePGM.closest('label').style.opacity = 0.5;
+            } else {
+                // PGMデータがない場合は非表示
+                togglePGM.closest('label').style.display = 'none';
             }
 
-            // Waypoints
-            if (waypointsGroup && waypoints.length > 0) {
-                // デフォルトは HTML で checked = true
-                toggleWaypoints.addEventListener('change', () => {
-                    waypointsGroup.visible = toggleWaypoints.checked;
-                });
-            } else {
-                toggleWaypoints.disabled = true;
-                toggleWaypoints.closest('label').style.display = 'none';
-            }
+            // Waypoints (loadWaypoints内で処理するため、ここでは何もしない)
         }
 
         // ----------------------------------------------------
@@ -430,7 +443,7 @@
                          document.getElementById('info').textContent = "警告: YAMLデータに'image'キーがありません。PCDのみロードされます。";
                     } else {
                         pgmUrl = '/map/' + mapData.image; 
-                        document.getElementById('info').textContent = `PCD: ${filename} / PGM: ${mapData.image} をロード中...`;
+                        document.getElementById('info').innerHTML = `PCD: ${filename} <br> PGM: ${mapData.image} をロード中...`;
                     }
                 } else {
                     document.getElementById('info').textContent = `PCD: ${filename} をロード中... (PGMデータなし)`;
@@ -460,10 +473,13 @@
 
             loader = new PCDLoader();
 
+            // PGMロード前にコントロールの初期状態を設定
+            setupControls();
+
             // PCDファイルのロード
             loader.load(
                 pcdUrl,
-                function (points) {
+                async function (points) { // PGMロードを待つために async に
                     pointsMesh = points;
                     
                     pointsMesh.position.set(0, 0, 0); 
@@ -489,16 +505,16 @@
                     initialModel.position.copy(pointsMesh.position);
                     initialModel.rotation.copy(pointsMesh.rotation);
 
-                    // PGMマップのロードと配置
+                    // PGMマップのロードと配置 (await で完了を待つ)
                     if (pgmUrl && mapData) {
-                        loadPGMMap();
+                        await loadPGMMap(); // 🌟 ロード完了を待つ 🌟
                     }
                     
                     // ウェイポイントのロードと配置
                     loadWaypoints();
                     
                     document.getElementById('loading-message').style.display = 'none';
-                    setupControls();
+                    // setupControls(); // PGMとWaypointのリスナーは個別のロード関数内で設定済み
                     controls.update();
                     animate();
                 },

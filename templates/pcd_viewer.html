@@ -48,6 +48,19 @@
             align-items: center;
             cursor: pointer;
         }
+        /* ロードコントロールのスタイル調整 */
+        #load-controls {
+             display: flex; 
+             flex-direction: column; 
+             gap: 5px;
+             margin-top: 5px;
+        }
+        #load-controls h4 {
+            margin: 0;
+            font-weight: normal;
+            font-size: 0.9em;
+            color: #ccc;
+        }
     </style>
     <script type="importmap">
         {
@@ -69,7 +82,23 @@
         <div style="display: flex; flex-direction: column; gap: 5px;">
             <label for="map-name-input">マップ名 (例: my_map):</label>
             <input type="text" id="map-name-input" value="{{ map_name | default("") }}" style="padding: 5px;">
-            <button id="load-map-button" style="padding: 5px;">ロード</button>
+            <div id="load-controls">
+                <h4>対象の選択:</h4>
+                <label>
+                    <input type="checkbox" id="select-pcd" checked> 
+                    PCD
+                </label>
+                <label>
+                    <input type="checkbox" id="select-pgm" checked> 
+                    PGM/YAML
+                </label>
+                <label>
+                    <input type="checkbox" id="select-waypoints" checked> 
+                    Waypoints
+                </label>
+            </div>
+            <button id="load-map-button" style="padding: 5px; margin-top: 5px;">ロード開始</button>
+            <button onclick="startUnloadProcess()" style="padding: 5px;">アンロード実行</button>
         </div>
         
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
@@ -79,7 +108,7 @@
             PCD (点群) を表示
         </label>
         <label>
-            <input type="checkbox" id="toggle-pgm"> 
+            <input type="checkbox" id="toggle-pgm" checked> 
             PGM (マップ) を表示
         </label>
         <label>
@@ -89,9 +118,6 @@
         
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
 
-        <button onclick="unloadMap('pcd')" style="padding: 5px;">PCD アンロード</button>
-        <button onclick="unloadMap('pgm')" style="padding: 5px;">PGM/YAML アンロード</button>
-        <button onclick="unloadMap('waypoints')" style="padding: 5px;">Waypoint アンロード</button>
 
     </div>
 
@@ -233,11 +259,12 @@
             const togglePGM = document.getElementById('toggle-pgm');
             const togglePGMLabel = togglePGM.closest('label');
             
-            unloadMap('pgm'); // ロード前に必ずアンロード
+            // ロード前に必ずアンロード（自己クリーンアップ）
+            // この関数が呼ばれる前に unloadMap('pgm') が呼ばれることを想定していますが、
+            // 冗長性を考慮し、ここでは PGM の描画要素をクリアする処理は loadYAML に任せます。
 
             if (!mapData || !mapData.image) {
                 console.warn("YAMLデータが存在しないか、'image'キーがありません。PGMロードをスキップします。");
-                togglePGMLabel.style.display = 'none';
                 return;
             }
             
@@ -293,7 +320,9 @@
                     PGM_Z_OFFSET                      // Z軸: 0.0
                 ); 
                 
-                planeMesh.visible = togglePGM.checked; // ロード時のチェックボックスの状態を反映
+                // ロード成功時、表示トグルをチェック、コントロールを表示
+                togglePGM.checked = true;
+                planeMesh.visible = togglePGM.checked; 
 
                 scene.add(planeMesh);
                 
@@ -301,15 +330,12 @@
                 console.log(`PGMマップを配置しました: 中心 (${centerX.toFixed(2)}, ${centerY.toFixed(2)}, ${PGM_Z_OFFSET.toFixed(2)})`);
 
                 // コントロールを有効化
-                togglePGMLabel.style.display = 'flex'; // 表示に戻す
-                togglePGM.disabled = false;
-                togglePGMLabel.style.opacity = 1.0; 
-
-                // NOTE: PGMトグルのリスナー設定は init() で一度だけ行われているため、ここでは不要
+                togglePGMLabel.style.display = 'flex'; 
 
             } catch (error) {
                 console.error('PGMファイルのロード/パース中にエラーが発生しました:', pgmUrl, error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">PGMロードエラー: ${error.message}</span>`;
+                // ロード失敗時は、表示トグルも非表示のまま
                 togglePGMLabel.style.display = 'none'; 
             }
         }
@@ -320,9 +346,13 @@
         async function loadPCD(mapName) {
             const pcdUrl = `/map/${mapName}.pcd`;
             
-            unloadMap('pcd'); // ロード前に必ずアンロード
+            // ロード前に必ずアンロード（自己クリーンアップ）
+            unloadMap('pcd'); 
             document.getElementById('loading-message').textContent = `PCDファイル (${mapName}.pcd) をロード中...`;
             document.getElementById('loading-message').style.display = 'block';
+
+            const togglePCD = document.getElementById('toggle-pcd');
+            const togglePCDLabel = togglePCD.closest('label');
 
             try {
                 const response = await fetch(pcdUrl);
@@ -338,7 +368,10 @@
                 
                 pointsMesh = points;
                 pointsMesh.position.set(0, 0, 0); 
-                pointsMesh.visible = document.getElementById('toggle-pcd').checked;
+                
+                // ロード成功時、表示トグルをチェック、コントロールを表示
+                togglePCD.checked = true;
+                pointsMesh.visible = togglePCD.checked;
 
                 if (pointsMesh.material.size) {
                     pointsMesh.material.size = 0.05; 
@@ -358,13 +391,13 @@
                 document.getElementById('loading-message').style.display = 'none';
 
                 // ロード成功時に PCD トグルを再表示
-                const togglePCDLabel = document.getElementById('toggle-pcd').closest('label');
                 togglePCDLabel.style.display = 'flex';
 
             } catch (error) {
                 console.error('PCDファイルのロード中にエラーが発生しました:', error);
                 document.getElementById('loading-message').textContent = `エラー: PCDロード失敗 (${mapName}.pcd): ${error.message}`;
                 document.getElementById('info').innerHTML = `PCDロード失敗: ${error.message}`;
+                togglePCDLabel.style.display = 'none';
             }
         }
 
@@ -374,7 +407,8 @@
         async function loadYAML(mapName) {
             const yamlUrl = `/map/${mapName}.yaml`;
             
-            unloadMap('pgm'); // ロード前に必ずアンロード
+            // ロード前に必ずアンロード（自己クリーンアップ）
+            unloadMap('pgm'); 
             
             try {
                 const response = await fetch(yamlUrl);
@@ -403,10 +437,11 @@
             // パスは `/map/` または `/waypoints/` をサーバー設定に合わせてください
             const jsonUrl = `/map/${mapName}.json`; 
             
-            unloadMap('waypoints'); // ロード前に必ずアンロード
+            // ロード前に必ずアンロード（自己クリーンアップ）
+            unloadMap('waypoints'); 
             const toggleWaypoints = document.getElementById('toggle-waypoints');
             const toggleWaypointsLabel = toggleWaypoints.closest('label');
-            toggleWaypointsLabel.style.display = 'flex'; // ロードに成功する可能性があるので再表示
+            
 
             try {
                 const response = await fetch(jsonUrl);
@@ -458,14 +493,15 @@
                 });
 
                 scene.add(waypointsGroup);
+                
+                // ロード成功時、表示トグルをチェック、コントロールを表示
+                toggleWaypoints.checked = true;
                 waypointsGroup.visible = toggleWaypoints.checked;
 
                 document.getElementById('info').innerHTML += `<br>Waypointを ${waypoints.length} 個配置完了`;
                 
                 // コントロールを有効化
                 toggleWaypointsLabel.style.display = 'flex';
-                
-                // NOTE: Waypointトグルのリスナー設定は init() で一度だけ行われているため、ここでは不要
                 
             } catch (error) {
                 console.error('Waypointファイルのロード中にエラーが発生しました:', error);
@@ -474,67 +510,130 @@
             }
         }
 
-// ----------------------------------------------------
-        // アンロード関数 (グローバルスコープ)
+        // ----------------------------------------------------
+        // アンロード関数 (個別)
         // ----------------------------------------------------
         window.unloadMap = function(type) {
+            let infoMessage = "";
+            let elementExists = false;
+
             switch(type) {
                 case 'pcd':
-                    // PCD トグル要素とそのラベルを取得
                     const togglePCD = document.getElementById('toggle-pcd');
-                    const togglePCDLabel = togglePCD.closest('label'); // <label> 要素を取得
+                    const togglePCDLabel = togglePCD.closest('label'); 
+                    const selectPCD = document.getElementById('select-pcd');
 
                     if (pointsMesh) {
                         scene.remove(pointsMesh);
                         pointsMesh.geometry.dispose();
                         pointsMesh.material.dispose();
-                        pointsMesh = null; // PCD メッシュをクリア
+                        pointsMesh = null; 
                         
-                        document.getElementById('info').innerHTML = "PCD アンロード完了";
-                        
-                        // PGM と Waypoint の連鎖的なアンロードは行わない (前の指示通り)
+                        infoMessage = "PCD アンロード完了";
+                        elementExists = true;
                     }
                     
-                    // ★★★ 修正箇所 ★★★
-                    // PCDをアンロードしたらチェックボックスを非表示にする
+                    // 表示トグルを非表示にし、チェックをリセット
                     togglePCDLabel.style.display = 'none';
-                    
-                    // PGMとWaypointが残っている可能性があるため、
-                    // これらのトグルが表示状態であれば、チェックを外す (任意だが推奨)
-                    document.getElementById('toggle-pgm').checked = false;
-                    document.getElementById('toggle-waypoints').checked = false;
+                    togglePCD.checked = true;
+                    selectPCD.checked = true; // ロード選択を true に戻す
                     
                     break;
                 case 'pgm':
-                    const togglePGMLabel = document.getElementById('toggle-pgm').closest('label');
+                    const togglePGM = document.getElementById('toggle-pgm');
+                    const togglePGMLabel = togglePGM.closest('label');
+                    const selectPGM = document.getElementById('select-pgm');
+
                     if (planeMesh) {
                         scene.remove(planeMesh);
                         planeMesh.geometry.dispose();
                         if (planeMesh.material.map) planeMesh.material.map.dispose();
                         planeMesh.material.dispose();
-                        planeMesh = null; // PGMをアンロードしたら null に設定
-                        mapData = null; // YAMLデータもクリア
-                        document.getElementById('info').innerHTML += "<br>PGM/YAML アンロード完了";
+                        planeMesh = null; 
+                        mapData = null; 
+                        infoMessage = "PGM/YAML アンロード完了";
+                        elementExists = true;
                     }
                     togglePGMLabel.style.display = 'none';
+                    togglePGM.checked = true;
+                    selectPGM.checked = true; // ロード選択を true に戻す
                     break;
                 case 'waypoints':
+                    const toggleWaypoints = document.getElementById('toggle-waypoints');
                     const toggleWaypointsLabel = document.getElementById('toggle-waypoints').closest('label');
-                    if (waypointsGroup) {
+                    const selectWaypoints = document.getElementById('select-waypoints');
+
+                    if (waypointsGroup.children.length > 0) {
                         scene.remove(waypointsGroup);
                         waypointsGroup.children.forEach(child => {
                             if (child.geometry) child.geometry.dispose();
                             if (child.material) child.material.dispose();
                         });
-                        waypointsGroup = new THREE.Group(); // Waypointsをアンロードしたら新しいGroupに設定
+                        waypointsGroup = new THREE.Group(); 
                         waypoints = [];
-                        document.getElementById('info').innerHTML += "<br>Waypoint アンロード完了";
+                        infoMessage = "Waypoint アンロード完了";
+                        elementExists = true;
                     }
                     toggleWaypointsLabel.style.display = 'none';
+                    toggleWaypoints.checked = true;
+                    selectWaypoints.checked = true; // ロード選択を true に戻す
                     break;
             }
+
+            // アンロードメッセージの表示
+            if (infoMessage) {
+                const infoDiv = document.getElementById('info');
+                if (infoDiv.innerHTML.includes("ロード開始")) {
+                    infoDiv.innerHTML += `<br>${infoMessage}`;
+                } else {
+                    infoDiv.innerHTML = infoMessage;
+                }
+            }
+            return elementExists; // アンロード対象が存在したか否かを返す
         }
         
+        // ----------------------------------------------------
+        // アンロード開始関数 (新規: ロード選択チェックボックスを参照)
+        // ----------------------------------------------------
+        window.startUnloadProcess = function() {
+            // ロードフラグを新しい選択用チェックボックスから取得
+            const unloadPCDFlag = document.getElementById('select-pcd').checked;
+            const unloadPGMFlag = document.getElementById('select-pgm').checked;
+            const unloadWaypointsFlag = document.getElementById('select-waypoints').checked;
+
+            let unloadedCount = 0;
+            let infoMessage = "アンロード実行: ";
+
+            // 1. PGM/YAMLをアンロード
+            if (unloadPGMFlag) {
+                if (unloadMap('pgm')) unloadedCount++;
+            } 
+
+            // 2. Waypointをアンロード
+            if (unloadWaypointsFlag) {
+                if (unloadMap('waypoints')) unloadedCount++;
+            } 
+            
+            // 3. PCDをアンロード
+            if (unloadPCDFlag) {
+                if (unloadMap('pcd')) unloadedCount++;
+            } 
+            
+            if (unloadedCount === 0) {
+                 infoMessage = `アンロード対象なし。現在のチェック: PCD=${unloadPCDFlag}, PGM=${unloadPGMFlag}, WP=${unloadWaypointsFlag}`;
+            } else {
+                 infoMessage += `${unloadedCount} 要素をアンロードしました。`;
+            }
+
+            // マップ名入力フィールドと内部変数をクリア
+            currentMapName = '';
+            document.getElementById('map-name-input').value = '';
+            
+            document.getElementById('info').innerHTML = infoMessage;
+            document.getElementById('loading-message').textContent = "マップ名を指定してロードしてください。";
+        }
+
+
         // ----------------------------------------------------
         // ロード開始関数
         // ----------------------------------------------------
@@ -553,18 +652,35 @@
             document.getElementById('loading-message').style.display = 'block';
             document.getElementById('info').innerHTML = `ロード開始: ${mapName}`;
             
-            // 既存の要素をすべてアンロード
-            unloadMap('pcd');
-            
-            // 1. PCDをロード
-            await loadPCD(mapName);
+            // ロードフラグを新しい選択用チェックボックスから取得
+            const loadPCDFlag = document.getElementById('select-pcd').checked;
+            const loadPGMFlag = document.getElementById('select-pgm').checked;
+            const loadWaypointsFlag = document.getElementById('select-waypoints').checked;
+
+            let loadCount = 0;
+
+            // 1. PCDをロード (ロード関数の内部で個別にアンロードを実行)
+            if (loadPCDFlag) {
+                await loadPCD(mapName);
+                loadCount++;
+            } 
 
             // 2. YAML (PGMメタデータ) をロードし、PGM画像もロード
-            await loadYAML(mapName);
+            if (loadPGMFlag) {
+                await loadYAML(mapName); 
+                loadCount++;
+            } 
             
             // 3. Waypoint (JSON) をロード
-            await loadWaypoints(mapName);
+            if (loadWaypointsFlag) {
+                await loadWaypoints(mapName);
+                loadCount++;
+            } 
             
+            if (loadCount === 0) {
+                 document.getElementById('info').innerHTML += `<br><span style="color: yellow;">警告: ロード対象が選択されていません。</span>`;
+            }
+
             document.getElementById('loading-message').style.display = 'none';
         }
 
@@ -598,11 +714,9 @@
             document.getElementById('load-map-button').addEventListener('click', startLoadProcess);
             
             // 🌟 PGM/Waypoint/PCD トグルイベントリスナーを init で一度だけ設定 🌟
-            // このブロックはロード/アンロードサイクル全体で永続的に動作します。
             
             const togglePCD = document.getElementById('toggle-pcd');
             togglePCD.addEventListener('change', () => {
-                // pointsMesh が存在する場合にのみ可視性を切り替える
                 if (pointsMesh) { 
                     pointsMesh.visible = togglePCD.checked;
                 }
@@ -622,13 +736,15 @@
                 }
             });
             
-            // 初期状態でPGMとWaypointのトグルを非表示に（ロード成功後に表示する）
-            document.getElementById('toggle-pcd').closest('label').style.display = 'none'; // PCDを追加
+            // 初期状態で表示トグルは非表示に（ロード成功後に表示する）
+            document.getElementById('toggle-pcd').closest('label').style.display = 'none'; 
             document.getElementById('toggle-pgm').closest('label').style.display = 'none';
             document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
             
             // 初期マップ名が設定されていれば自動ロード
             if (currentMapName) {
+                // ロード選択チェックボックスは初期状態で全てONになっている
+                // 読み込み開始
                 startLoadProcess();
             } else {
                 document.getElementById('loading-message').style.display = 'block';

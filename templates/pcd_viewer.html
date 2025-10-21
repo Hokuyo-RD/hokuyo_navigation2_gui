@@ -239,13 +239,13 @@
                 // グローバル座標系でのマップの中心位置を計算します。
                 // Three.jsのPlaneGeometryの中心は (0, 0) なので、その中心をグローバル座標系の中心に合わせる。
                 const centerX = origin[0] + mapWidth / 2;  // origin_x + (W * R / 2)
-                const centerY = origin[1] + mapHeight / 2; // origin_y + (H * R / 2) - PGMのY軸はThree.jsのZ軸に対応
+                const centerY = origin[1] + mapHeight / 2; // origin_y + (H * R / 2) - PGMのY軸はThree.jsのY軸に対応
 
                 // 🌟 修正点 🌟: 位置を Three.js シーンの原点 (0, 0, 0) に固定します。
                 planeMesh.position.set(
-                    centerX,                          // X軸: 0 に固定
-                    centerY,           // Y (ROS Z) 軸: PGM_Y_OFFSET のみ適用
-                    0                           // Z (ROS Y) 軸: 0 に固定
+                    centerX,                          // X軸中心
+                    centerY,                          // Y軸中心
+                    0                                 // Z軸: 0 に固定
                 ); 
 
                 // 5. シーンに追加

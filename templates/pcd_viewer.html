@@ -357,7 +357,9 @@
                 document.getElementById('info').innerHTML = `PCD: ${filename} (${pointCount} points)`;
                 document.getElementById('loading-message').style.display = 'none';
 
-                // ★ 修正済み: PCDトグルのリスナー設定は init() で一度だけ行われているため、ここでは不要
+                // ロード成功時に PCD トグルを再表示
+                const togglePCDLabel = document.getElementById('toggle-pcd').closest('label');
+                togglePCDLabel.style.display = 'flex';
 
             } catch (error) {
                 console.error('PCDファイルのロード中にエラーが発生しました:', error);
@@ -472,24 +474,36 @@
             }
         }
 
-        // ----------------------------------------------------
+// ----------------------------------------------------
         // アンロード関数 (グローバルスコープ)
         // ----------------------------------------------------
         window.unloadMap = function(type) {
             switch(type) {
                 case 'pcd':
+                    // PCD トグル要素とそのラベルを取得
+                    const togglePCD = document.getElementById('toggle-pcd');
+                    const togglePCDLabel = togglePCD.closest('label'); // <label> 要素を取得
+
                     if (pointsMesh) {
                         scene.remove(pointsMesh);
                         pointsMesh.geometry.dispose();
                         pointsMesh.material.dispose();
-                        pointsMesh = null;
+                        pointsMesh = null; // PCD メッシュをクリア
+                        
                         document.getElementById('info').innerHTML = "PCD アンロード完了";
-                        // PCDをアンロードしたら、他の情報もリセットすることを推奨
-                        unloadMap('pgm');
-                        unloadMap('waypoints');
-                        currentMapName = '';
-                        document.getElementById('map-name-input').value = '';
+                        
+                        // PGM と Waypoint の連鎖的なアンロードは行わない (前の指示通り)
                     }
+                    
+                    // ★★★ 修正箇所 ★★★
+                    // PCDをアンロードしたらチェックボックスを非表示にする
+                    togglePCDLabel.style.display = 'none';
+                    
+                    // PGMとWaypointが残っている可能性があるため、
+                    // これらのトグルが表示状態であれば、チェックを外す (任意だが推奨)
+                    document.getElementById('toggle-pgm').checked = false;
+                    document.getElementById('toggle-waypoints').checked = false;
+                    
                     break;
                 case 'pgm':
                     const togglePGMLabel = document.getElementById('toggle-pgm').closest('label');
@@ -512,7 +526,7 @@
                             if (child.geometry) child.geometry.dispose();
                             if (child.material) child.material.dispose();
                         });
-                        waypointsGroup = new THREE.Group(); // Waypointsをアンロードしたら新しいGroupに設定 (または null に設定)
+                        waypointsGroup = new THREE.Group(); // Waypointsをアンロードしたら新しいGroupに設定
                         waypoints = [];
                         document.getElementById('info').innerHTML += "<br>Waypoint アンロード完了";
                     }
@@ -609,6 +623,7 @@
             });
             
             // 初期状態でPGMとWaypointのトグルを非表示に（ロード成功後に表示する）
+            document.getElementById('toggle-pcd').closest('label').style.display = 'none'; // PCDを追加
             document.getElementById('toggle-pgm').closest('label').style.display = 'none';
             document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
             

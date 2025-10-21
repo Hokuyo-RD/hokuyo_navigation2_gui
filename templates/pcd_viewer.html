@@ -357,13 +357,7 @@
                 document.getElementById('info').innerHTML = `PCD: ${filename} (${pointCount} points)`;
                 document.getElementById('loading-message').style.display = 'none';
 
-                // PCDコントロールのリスナーは init() で一度だけ設定しても良いが、ここではシンプルに毎回再設定
-                const togglePCD = document.getElementById('toggle-pcd');
-                togglePCD.addEventListener('change', () => {
-                    if (pointsMesh) {
-                        pointsMesh.visible = togglePCD.checked;
-                    }
-                }, { once: true });
+                // ★ 修正済み: PCDトグルのリスナー設定は init() で一度だけ行われているため、ここでは不要
 
             } catch (error) {
                 console.error('PCDファイルのロード中にエラーが発生しました:', error);
@@ -504,7 +498,7 @@
                         planeMesh.geometry.dispose();
                         if (planeMesh.material.map) planeMesh.material.map.dispose();
                         planeMesh.material.dispose();
-                        planeMesh = null; // ★ PGMをアンロードしたら null に設定
+                        planeMesh = null; // PGMをアンロードしたら null に設定
                         mapData = null; // YAMLデータもクリア
                         document.getElementById('info').innerHTML += "<br>PGM/YAML アンロード完了";
                     }
@@ -518,7 +512,7 @@
                             if (child.geometry) child.geometry.dispose();
                             if (child.material) child.material.dispose();
                         });
-                        waypointsGroup = new THREE.Group(); // ★ Waypointsをアンロードしたら新しいGroupに設定 (または null に設定)
+                        waypointsGroup = new THREE.Group(); // Waypointsをアンロードしたら新しいGroupに設定 (または null に設定)
                         waypoints = [];
                         document.getElementById('info').innerHTML += "<br>Waypoint アンロード完了";
                     }
@@ -589,8 +583,17 @@
             // ロードボタンにイベントリスナーを設定
             document.getElementById('load-map-button').addEventListener('click', startLoadProcess);
             
-            // 🌟 PGM/Waypoint トグルイベントリスナーを init で一度だけ設定 (修正箇所) 🌟
-            // これにより、ロード関数で毎回リスナーを再設定する必要がなくなり、アンロード時の競合がなくなります。
+            // 🌟 PGM/Waypoint/PCD トグルイベントリスナーを init で一度だけ設定 🌟
+            // このブロックはロード/アンロードサイクル全体で永続的に動作します。
+            
+            const togglePCD = document.getElementById('toggle-pcd');
+            togglePCD.addEventListener('change', () => {
+                // pointsMesh が存在する場合にのみ可視性を切り替える
+                if (pointsMesh) { 
+                    pointsMesh.visible = togglePCD.checked;
+                }
+            });
+
             const togglePGM = document.getElementById('toggle-pgm');
             togglePGM.addEventListener('change', () => {
                 if (planeMesh) { 
@@ -600,13 +603,12 @@
 
             const toggleWaypoints = document.getElementById('toggle-waypoints');
             toggleWaypoints.addEventListener('change', () => {
-                // waypointsGroup はアンロード時に新しいグループに置き換えられるので、nullチェックは不要だが、念のため。
                 if (waypointsGroup) {
                     waypointsGroup.visible = toggleWaypoints.checked;
                 }
             });
             
-            // 初期状態でトグルを非表示に
+            // 初期状態でPGMとWaypointのトグルを非表示に（ロード成功後に表示する）
             document.getElementById('toggle-pgm').closest('label').style.display = 'none';
             document.getElementById('toggle-waypoints').closest('label').style.display = 'none';
             

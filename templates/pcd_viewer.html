@@ -487,6 +487,7 @@
 
                 waypoints = rawWaypoints;
                 const newWaypointsGroup = new THREE.Group();
+                newWaypointsGroup.name = uniqueId; // 識別しやすいように名前を設定
                 
                 const WAYPOINT_Z_OFFSET = 0.0; 
                 
@@ -549,19 +550,30 @@
             let elementExists = false;
 
             if (mesh) {
-                scene.remove(mesh);
-                
                 // GeometryとMaterialの解放
                 if (mesh.isMesh) {
                     mesh.geometry.dispose();
                     if (mesh.material.map) mesh.material.map.dispose();
                     mesh.material.dispose();
                 } else if (mesh.isGroup) {
-                    mesh.children.forEach(child => {
+                    // 🌟 修正点: Groupの子要素を逆順で処理し、シーンからの削除とリソース解放を確実に行う
+                    for (let i = mesh.children.length - 1; i >= 0; i--) {
+                        const child = mesh.children[i];
                         if (child.geometry) child.geometry.dispose();
-                        if (child.material) child.material.dispose();
-                    });
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(m => m.dispose());
+                            } else {
+                                // ArrowHelperなどの場合はmaterialがundefinedになることがあるためチェック
+                                if (child.material.dispose) child.material.dispose();
+                            }
+                        }
+                        // ArrowHelperの線や円錐もmesh.removeで確実に削除されます
+                        mesh.remove(child);
+                    }
                 }
+
+                scene.remove(mesh); // Group全体をシーンから削除
                 
                 delete meshRegistry[uniqueId];
                 elementExists = true;

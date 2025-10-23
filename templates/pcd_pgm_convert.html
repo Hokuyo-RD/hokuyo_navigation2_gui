@@ -51,6 +51,14 @@
             color: #28a745; /* 強調表示 */
             font-size: 1.1em;
         }
+        .waypoint-info {
+            color: #ff8c00; /* ウェイポイントの色 */
+            font-size: 1.0em;
+            margin-bottom: 15px;
+            padding: 5px 0;
+            border-top: 1px dashed #eee;
+            border-bottom: 1px dashed #eee;
+        }
         .note {
             font-size: 0.9em;
             color: #888;
@@ -128,12 +136,22 @@
             window.close();
         }
     </script>
-    </head>
+</head>
 <body>
     <div class="container">
         <h2>PCD to PGM 変換: 設定</h2>
 
         <p>変換元PCDファイル: <strong>{{ input_pcd_filename }}</strong></p>
+        
+        <p class="waypoint-info">
+            ウェイポイントファイル: 
+            {% if input_waypoint_filename %}
+                <strong style="color: #ff8c00;">{{ input_waypoint_filename }}</strong> (PCD to PGMに反映)
+            {% else %}
+                <span style="color: #6c757d;">なし (ウェイポイント情報は使用しません)</span>
+            {% endif %}
+        </p>
+        <input type="hidden" id="input_waypoint_filename" value="{{ input_waypoint_filename if input_waypoint_filename else '' }}">
 
         <label for="output_map_name">出力PGMマップベース名:</label>
         <input type="text" id="output_map_name" value="{{ default_output_name }}" required>
@@ -149,6 +167,7 @@
             $(document).ready(function() {
                 var pollingInterval;
                 var mapName;
+                var waypointFilename = $('#input_waypoint_filename').val(); // ウェイポイントファイル名を取得
 
                 $('#start_convert_button').click(function() {
                     mapName = $('#output_map_name').val().trim();
@@ -161,7 +180,7 @@
                     $('#status_message').html('');
                     $('#loading_spinner').show();
                     $('#start_convert_button').prop('disabled', true);
-                    $('#cancel_button').prop('disabled', true); // 変換中はキャンセルも無効に
+                    $('#cancel_button').prop('disabled', true); 
 
                     // 1. 変換開始APIを呼び出す
                     $.ajax({
@@ -170,7 +189,9 @@
                         contentType: 'application/json',
                         data: JSON.stringify({
                             input_pcd_filename: '{{ input_pcd_filename }}',
-                            output_map_name: mapName
+                            output_map_name: mapName,
+                            // 修正点 3: ウェイポイントファイル名をペイロードに追加
+                            waypoint_filename: waypointFilename 
                         }),
                         success: function(response) {
                             if (response.status === 'success') {
@@ -206,7 +227,7 @@
                                 
                                 var downloadLink = '<a href="' + response.download_url + '" class="button primary" style="margin-top: 10px;">PGM/YAMLマップをダウンロード</a>';
                                 
-                                // 🌟 修正: 完了後のリンクを closeCurrentTabAndReloadOpener に変更 🌟
+                                // 完了後のリンク
                                 var backLink = '<a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">他のPCDを選択</a>';
                                 var mainGuiLink = '<a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">メインGUIに戻る</a>';
 
@@ -236,7 +257,7 @@
 
                 function cleanup() {
                     $('#start_convert_button').prop('disabled', false);
-                    $('#cancel_button').prop('disabled', false); // エラー発生時はキャンセル可能に
+                    $('#cancel_button').prop('disabled', false); 
                     $('#loading_spinner').hide();
                 }
             });

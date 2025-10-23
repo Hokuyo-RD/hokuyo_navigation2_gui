@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ウェイポイントファイル選択 - PCD2PGM</title>
+    
+    <style>
+        /* 基本スタイル */
+        body { 
+            font-family: sans-serif; 
+            padding: 20px; 
+            background-color: #f4f7f9; 
+            color: #333;
+        }
+        .container {
+            max-width: 600px; /* pcd_pgm_convert.htmlに合わせる */
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #007bff; /* メインカラー */
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+        }
+
+        /* フォーム要素 (ここではリスト) */
+        .info-box {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        /* ファイルリストのスタイル */
+        .file-list {
+            list-style: none;
+            padding: 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            background-color: #f8f8f8;
+        }
+        .file-list li {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 1em;
+            color: #333;
+        }
+        .file-list li:last-child {
+            border-bottom: none;
+        }
+        .file-list li:hover {
+            background-color: #e9ecef;
+        }
+        .file-list li.selected {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        .file-list li.selected:hover {
+            background-color: #0056b3;
+        }
+
+        /* ボタン共通スタイル (pcd_pgm_convert.htmlから流用) */
+        .button {
+            padding: 10px 20px;
+            margin-right: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.2s, opacity 0.2s;
+            display: inline-block;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        /* Primaryボタン (選択/続行) */
+        .primary {
+            background-color: #28a745; /* 続行の緑系 */
+            color: white;
+        }
+        .primary:hover:not(:disabled) {
+            background-color: #1e7e34;
+        }
+        .primary:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Secondaryボタン (スキップ/キャンセル/戻る) */
+        .secondary {
+            background-color: #6c757d; /* スキップのグレー系 */
+            color: white;
+        }
+        .secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        /* エラーメッセージ (pcd_pgm_convert.htmlのロジックに合わせる) */
+        #status_message {
+            padding: 10px;
+            border-left: 5px solid #dc3545; /* エラー/警告用 */
+            background-color: #f8d7da;
+            border-radius: 5px;
+            color: #721c24;
+            margin-top: 20px;
+        }
+        #status_message p {
+             margin: 0;
+             line-height: 1.4;
+        }
+
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        // pcd_pgm_convert.htmlから流用
+        function closeCurrentTabAndReloadOpener() {
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.location.reload(); 
+                }
+            } catch (e) {
+                console.warn("親ウィンドウのリロードに失敗しました:", e);
+            }
+            window.close();
+        }
+
+        $(document).ready(function() {
+            var selectedWaypoint = ''; // 選択されたウェイポイントファイル名 (ファイル名のみ)
+
+            // 1. ファイルリストのクリックイベント
+            $('.file-list li').click(function() {
+                $('.file-list li').removeClass('selected');
+                $(this).addClass('selected');
+                selectedWaypoint = $(this).data('filename'); // data-filename属性からファイル名を取得
+                $('#continue_button').prop('disabled', false); // ファイルが選択されたら有効化
+                console.log("選択されたウェイポイント: " + selectedWaypoint);
+            });
+            
+            // 2. 「キャンセル」ボタンの動作
+            $('#cancel_button').click(function() {
+                // ウェイポイントの選択をキャンセルし、親ウィンドウに戻る
+                closeCurrentTabAndReloadOpener(); 
+            });
+
+            // 3. 「スキップ（なしで続行）」ボタンの動作
+            $('#skip_button').click(function() {
+                // ウェイポイントファイル名を空文字列として次へ進む
+                redirectToPgmConvert('');
+            });
+
+            // 4. 「選択して続行」ボタンの動作
+            $('#continue_button').click(function() {
+                if (selectedWaypoint) {
+                    redirectToPgmConvert(selectedWaypoint);
+                } else {
+                    alert('ウェイポイントファイルを選択するか、「スキップ」をクリックしてください。');
+                }
+            });
+
+            // 5. 次の画面へ遷移する関数
+            function redirectToPgmConvert(waypoint_filename) {
+                var pcd_filename = '{{ input_pcd_filename }}'; // サーバーから渡されたPCDファイル名
+
+                // 次の画面（pcd_pgm_convert.html）へリダイレクト
+                // PCDファイル名と選択したウェイポイントファイル名をクエリパラメータで渡す
+                var redirectUrl = '{{ url_for('pcd_pgm_convert_page') }}' + 
+                                  '?input_pcd_filename=' + encodeURIComponent(pcd_filename) + 
+                                  '&input_waypoint_filename=' + encodeURIComponent(waypoint_filename);
+                
+                window.location.href = redirectUrl;
+            }
+
+            // 初期状態で続行ボタンを無効化
+            $('#continue_button').prop('disabled', true);
+            
+            // ウェイポイントファイルがない場合のメッセージ
+            if ($('.file-list li').length === 0) {
+                 $('#status_message').html('<p>⚠️ **ウェイポイントファイルが見つかりません。** スキップボタンでPCD変換へ進んでください。</p>').show();
+            } else {
+                 $('#status_message').hide();
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h2>PCD to PGM 変換: ウェイポイント選択</h2>
+        
+        <div class="info-box">
+            PCDファイル: <strong>{{ input_pcd_filename }}</strong><br>
+            <p style="margin: 5px 0 0 0;">マップのPGM化と同時にウェイポイント情報（JSON）をYAMLに含めるか選択してください。</p>
+        </div>
+
+        <h3>利用可能なウェイポイントファイル (.json)</h3>
+        
+        <ul class="file-list">
+            {% for filename in waypoint_files %}
+                <li data-filename="{{ filename }}">{{ filename }}</li>
+            {% else %}
+                <li style="color: #6c757d; cursor: default;">利用可能な .json ウェイポイントファイルはありません。</li>
+            {% endfor %}
+        </ul>
+        
+        <div id="status_message"></div>
+
+        <div class="action-buttons">
+            <button id="continue_button" class="button primary">選択して続行</button>
+            <button id="skip_button" class="button secondary">スキップ（なしで続行）</button>
+            <button id="cancel_button" class="button secondary">キャンセル</button>
+        </div>
+
+    </div>
+</body>
+</html>

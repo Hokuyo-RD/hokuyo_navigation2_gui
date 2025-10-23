@@ -34,7 +34,7 @@ DOWNLOAD_FOLDER = ROSBAG_ROOT_DIR
 ALLOWED_EXTENSIONS = {'bag', 'db3', 'mcap'}
 
 MAP_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'map')
-WP_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'waypoints')
+WP_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'waypoints') # ウェイポイントディレクトリ
 
 ROSBRIDGE_URI = "ws://localhost:9090"
 SERVER_HOST = '0.0.0.0'
@@ -49,6 +49,7 @@ current_mode = "stopped"
 os.makedirs(ROSBAG_ROOT_DIR, exist_ok=True)
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 os.makedirs(MAP_DIR, exist_ok=True)
+os.makedirs(WP_DIR, exist_ok=True) # ウェイポイントディレクトリを作成
 
 def zip_directory(path, zip_filename):
     """指定されたパスのディレクトリをZIPファイルに圧縮する"""
@@ -323,8 +324,8 @@ def convert():
             command_list = [
                 script_path, 
                 "sync", 
-                base_name,          # 選択したROS Bag名 (拡張子なし)
-                output_filename_base # 新しいROS Bag名 (出力ディレクトリ名)
+                base_name,
+                output_filename_base
             ]
             
             Thread(target=run_subprocess, args=(command_list,)).start()
@@ -385,12 +386,12 @@ def _start_mapping_process(mode, req):
         script_path = os.path.join(BASE_PATH, "start_mapping.sh")
         command_list = [
             script_path, 
-            mode,            # 0. モード ('p2o' または 'lio_raw')
-            base_name,       # 1. 選択したROS Bag名
-            output_map_name, # 2. 新しいマップ名 (PCD名)
-            MAP_DIR,         # 3. マップ保存ディレクトリパス
-            WP_DIR,          # 4. waypoints保存ディレクトリパス
-            flag_file_name_full # 5. 完了フラグファイル名
+            mode,
+            base_name,
+            output_map_name,
+            MAP_DIR,
+            WP_DIR,
+            flag_file_name_full
         ]
         
         Thread(target=run_subprocess, args=(command_list,)).start()
@@ -581,7 +582,7 @@ def view_map(map_name):
             print(f"ERROR: Failed to read YAML file '{yaml_file_path}': {e}")
             flash(f'警告: YAMLファイル "{yaml_filename}" の読み込みに失敗しました。', 'warning')
 
-    # 🌟 Waypointファイルの内容を読み込む (新規追加) 🌟
+    # 🌟 Waypointファイルの内容を読み込む 🌟
     # ウェイポイントファイルはWP_DIRにあると仮定
     wp_filename = f'{map_name}.json'
     wp_file_path = os.path.join(WP_DIR, wp_filename)
@@ -603,8 +604,7 @@ def view_map(map_name):
     return render_template('pcd_viewer.html', 
                            map_name=map_name,
                            yaml_data=yaml_data_string,
-                           waypoints_data=waypoints_data_string) # 🌟 修正点 🌟
-
+                           waypoints_data=waypoints_data_string)
 
 @app.route('/map/<filename>')
 def serve_map_file(filename):
@@ -663,26 +663,74 @@ def browse_pcd():
 
 @app.route('/pcd2pgm_select', methods=['POST'])
 def pcd2pgm_select():
-    """選択されたPCDファイル名を受け取り、変換設定画面へ遷移する"""
-    pcd_filename = request.form.get('pcd_filename') 
+    """選択されたPCDファイル名を受け取り、ウェイポイント選択画面へ遷移する"""
+    selected_pcd_filename = request.form.get('pcd_filename') 
+    
+    if not selected_pcd_filename:
+        flash("PCDファイルが選択されていません。", "error")
+        return redirect(url_for('browse_pcd'))
+    # ウェイポイント選択画面にリダイレクトし、選択したPCDファイル名をクエリパラメータで渡す 👈 修正点
+    return redirect(url_for('browse_waypoint', 
+                            input_pcd_filename=selected_pcd_filename))
+
+# ウェイポイント選択機能の追加 ----------------------------------------------------
+@app.route('/browse_waypoint')
+def browse_waypoint():
+    """
+    PCD2PGM変換に使用するウェイポイントファイル（.json）のリストを表示するページをレンダリングする。
+    """
+    input_pcd_filename = request.args.get('input_pcd_filename', 'PCDファイル名未指定')
+    
+    if not input_pcd_filename:
+        flash("エラー: 変換元のPCDファイルが指定されていません。再度選択してください。", "error")
+        return redirect(url_for('browse_pcd'))
+    # 1. ウェイポイントディレクトリ内のファイルを取得
+    try:
+        # WP_DIR の中のファイル名のみを取得
+        all_files = os.listdir(WP_DIR)
+        
+        # .json 拡張子を持つファイル名のみをフィルタリング
+        # ファイルのフルパスではなく、ファイル名のみをリストに格納する
+        waypoint_files = [f for f in all_files if f.endswith('.json')]
+    except Exception:
+        print(f"ERROR: Failed to list files in WP_DIR: {e}")
+        waypoint_files = []
+
+    # 2. 前の画面から渡されたPCDファイル名を取得
+    # これをテンプレートで表示することで、どのPCDに対する処理かが明確になる
+    
+    # 3. テンプレートをレンダリングし、ファイルリストとPCDファイル名を渡す
+    return render_template('waypoint_browse.html',
+                           input_pcd_filename=input_pcd_filename,
+                           waypoint_files=waypoint_files)
+
+
+@app.route('/pcd2pgm_select_waypoint', methods=['POST'])
+def pcd2pgm_select_waypoint():
+    """選択されたウェイポイントファイル名を受け取り、最終的な変換設定画面へ遷移する"""
+    pcd_filename = request.form.get('pcd_filename')
+    waypoint_filename = request.form.get('waypoint_filename')
     
     if not pcd_filename:
         flash("PCDファイルが選択されていません。", "error")
         return redirect(url_for('browse_pcd'))
     
-    full_path = os.path.join(MAP_DIR, pcd_filename)
-    if not _is_safe_path(full_path, MAP_DIR):
-        flash("許可されていないパスへのアクセスが試行されました。", "error")
-        return redirect(url_for('browse_pcd'))
-    if not os.path.exists(full_path):
-        flash(f"PCDファイルが見つかりません: {pcd_filename}", "error")
-        return redirect(url_for('browse_pcd'))
+    # ウェイポイントファイルは空文字列（スキップ）も許容
+    if waypoint_filename:
+        full_path = os.path.join(WP_DIR, waypoint_filename)
+        if not os.path.exists(full_path):
+             flash(f"警告: ウェイポイントファイル '{waypoint_filename}' が見つかりませんでした。ウェイポイント情報なしで変換を実行します。", "warning")
+             waypoint_filename = '' # ファイルがない場合は空にして送信
 
+    # マップのベース名を取得
     base_map_name = os.path.splitext(pcd_filename)[0]
 
+    # 最終的な変換設定画面 (pcd_pgm_convert.html) に遷移
     return render_template('pcd_pgm_convert.html', 
-                           input_pcd_filename=pcd_filename,
-                           default_output_name=f'{base_map_name}')
+                            input_pcd_filename=pcd_filename,
+                            input_waypoint_filename=waypoint_filename, # ウェイポイントファイル名を渡す
+                            default_output_name=f'{base_map_name}')
+# -----------------------------------------------------------------------------
 
 @app.route('/pcd2pgm_convert', methods=['POST'])
 def pcd2pgm_convert():
@@ -694,6 +742,7 @@ def pcd2pgm_convert():
 
     input_pcd_filename = data.get('input_pcd_filename')
     output_map_name = data.get('output_map_name') # PGMファイルのベース名
+    waypoint_filename = data.get('waypoint_filename', '') # ウェイポイントファイル名を受け取る
 
     if not input_pcd_filename:
         return jsonify({'status': 'error', 'message': '入力PCDファイル名が指定されていません。'}), 400
@@ -702,6 +751,10 @@ def pcd2pgm_convert():
     if not output_map_name:
         return jsonify({'status': 'error', 'message': '出力マップ名を入力してください。'}), 400
     
+    # ウェイポイントファイルが存在するかチェック（存在しない場合は空文字列のままにする）
+    if waypoint_filename and not os.path.exists(os.path.join(WP_DIR, waypoint_filename)):
+        waypoint_filename = ''
+    
     FLAG_MODE = 'PCD2PGM'
     flag_file_name_full = f'{output_map_name}.{FLAG_MODE}_DONE'
     
@@ -709,11 +762,12 @@ def pcd2pgm_convert():
         script_path = os.path.join(BASE_PATH, "start_mapping.sh")
         command_list = [
             script_path, 
-            "pcd2pgm",                   # 0. モード
-            input_pcd_filename,          # 1. 入力PCDファイル名 (例: my_map.pcd)
-            output_map_name,             # 2. 出力PGMベース名 (例: my_map_pgm)
-            MAP_DIR,                     # 3. マップ保存ディレクトリパス
-            flag_file_name_full          # 4. 完了フラグファイル名
+            "pcd2pgm",
+            input_pcd_filename,
+            output_map_name,
+            MAP_DIR,
+            waypoint_filename,
+            flag_file_name_full,
         ]
         
         # 別スレッドで実行
@@ -772,6 +826,26 @@ def check_pcd2pgm_status():
             'message': 'PCD to PGM 変換処理を続行中です...'
         })
 
+@app.route('/pcd_pgm_convert_page')
+def pcd_pgm_convert_page():
+    input_pcd_filename = request.args.get('input_pcd_filename')
+    input_waypoint_filename = request.args.get('input_waypoint_filename', '')
+
+    # 【重要】PCDファイル名が空または不正な場合は処理を中断し、前の画面に戻す
+    if not input_pcd_filename or input_pcd_filename == 'PCDファイル名未指定':
+        flash('エラー: 変換元のPCDファイルが指定されていません。再度選択してください。', 'error')
+        # ここでPCDファイルを選択する最初の画面のURLにリダイレクトする
+        # （例として '/')
+        return redirect(url_for('index'))
+    
+    # default_output_nameの計算は、input_pcd_filenameが有効であることが保証された後に行う
+    default_output_name = input_pcd_filename.replace('.pcd', '_pgm') if input_pcd_filename.endswith('.pcd') else f'{input_pcd_filename}_pgm'
+    
+    return render_template('pcd_pgm_convert.html', 
+                           input_pcd_filename=input_pcd_filename, 
+                           default_output_name=default_output_name,
+                           input_waypoint_filename=input_waypoint_filename)
+
 @app.route('/download_pgm_map/<basename>')
 def download_pgm_map(basename):
     """PGMとYAMLファイルをZIP圧縮してダウンロードさせる"""
@@ -785,7 +859,7 @@ def download_pgm_map(basename):
     
     try:
         shutil.copy2(os.path.join(MAP_DIR, pgm_filename), temp_dir)
-        shutil.copy2(os.path.join(MAP_DIR, yaml_filename), temp_dir)        
+        shutil.copy2(os.path.join(MAP_DIR, yaml_filename), temp_dir)
         shutil.make_archive(zip_base, 'zip', temp_dir)
         
         zip_filename_only = os.path.basename(zip_path)
@@ -837,7 +911,7 @@ def trigger_script():
             current_mode = "running"
             return redirect('/program_executed')
         else:
-            return render_template('outdoor_run_popup.html', error="開始を確認してください。")  
+            return render_template('outdoor_run_popup.html', error="開始を確認してください。")
     elif command == "execute_mapping_sync":
         current_mode = "stopped"
         flash("トピック同期に使用するROS Bagを選択してください。", "info")

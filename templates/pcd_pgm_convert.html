@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <title>PGMマップ設定 - PCD to PGM 変換</title>
-    <meta charset="UTF-8">
-    <style>
-        /* 基本スタイル */
-        body { 
+    <title>PGMマップ設定 - PCD to PGM 変換</title>
+    <meta charset="UTF-8">
+    <style>
+        /* 基本スタイル */
+        body { 
             font-family: sans-serif; 
             padding: 20px; 
             background-color: #f4f7f9; 
             color: #333;
         }
-        .container {
+        .container {
             max-width: 600px;
             margin: auto;
             background-color: #fff;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
+}
+        h2 {
             color: #007bff; /* メインカラー */
             border-bottom: 2px solid #e9ecef;
             padding-bottom: 10px;
@@ -28,14 +28,14 @@
         }
 
         /* フォーム要素 */
-        label {
+        label {
             display: block;
             margin-top: 15px;
             margin-bottom: 5px;
             font-weight: bold;
             color: #555;
         }
-        input[type="text"] {
+        input[type="text"] {
             width: 96%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -43,15 +43,15 @@
             font-size: 1em;
             transition: border-color 0.2s;
         }
-        input[type="text"]:focus {
+        input[type="text"]:focus {
             border-color: #007bff;
             outline: none;
         }
-        p strong {
+        p strong {
             color: #28a745; /* 強調表示 */
             font-size: 1.1em;
         }
-        .waypoint-info {
+        .waypoint-info {
             color: #ff8c00; /* ウェイポイントの色 */
             font-size: 1.0em;
             margin-bottom: 15px;
@@ -59,15 +59,33 @@
             border-top: 1px dashed #eee;
             border-bottom: 1px dashed #eee;
         }
-        .note {
+        .note {
             font-size: 0.9em;
             color: #888;
             margin-top: 5px;
         }
+        /* ループ設定用のスタイル */
+        .loop-setting {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .loop-setting input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2); /* チェックボックスを少し大きく */
+        }
+        .loop-setting label {
+            display: inline;
+            font-weight: normal;
+            margin-top: 0;
+            color: #333;
+        }
 
-        /* ボタン共通スタイル */
-        .button {
-            padding: 10px 20px;
+
+        .button {
+    padding: 10px 20px;
             margin-right: 15px;
             border: none;
             border-radius: 6px;
@@ -79,119 +97,135 @@
             text-align: center;
             margin-top: 20px;
         }
-        
+        
         /* Primaryボタン (変換開始/ダウンロード) */
-        .primary {
+        .primary {
             background-color: #28a745; /* PCD/PGMの緑系 */
             color: white;
         }
         .primary:hover:not(:disabled) {
             background-color: #1e7e34;
         }
-        .primary:disabled {
+        .primary:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
             opacity: 0.7;
         }
 
         /* Secondaryボタン (キャンセル/戻る/完了) */
-        .secondary {
+        .secondary {
             background-color: #6c757d;
             color: white;
         }
-        .secondary:hover {
+        .secondary:hover {
             background-color: #5a6268;
         }
 
         /* ステータスとローディング */
-        #status_message {
+        #status_message {
             padding: 10px;
             border-left: 5px solid #007bff;
             background-color: #e6f0ff;
             border-radius: 5px;
         }
-        #status_message p {
+        #status_message p {
             margin: 0;
             line-height: 1.4;
         }
-        #loading_spinner {
+        #loading_spinner {
             font-style: italic;
             color: #ff9800; /* 処理中の色 */
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <script>
-        function closeCurrentTabAndReloadOpener() {
-            try {
-                // window.openerが存在する場合、親ウィンドウをリロードしてから閉じる
-                if (window.opener && !window.opener.closed) {
-                    // 親ウィンドウ（メインGUI）のステータス更新を想定してリロード
-                    window.opener.location.reload(); 
-                }
-            } catch (e) {
-                console.warn("親ウィンドウのリロードに失敗しました:", e);
-            }
-            // 現在のタブ/ウィンドウを閉じる
-            window.close();
-        }
-    </script>
+    <script>
+        function closeCurrentTabAndReloadOpener() {
+            try {
+                // window.openerが存在する場合、親ウィンドウをリロードしてから閉じる
+                if (window.opener && !window.opener.closed) {
+                    // 親ウィンドウ（メインGUI）のステータス更新を想定してリロード
+                    window.opener.location.reload(); 
+                }
+            } catch (e) {
+                console.warn("親ウィンドウのリロードに失敗しました:", e);
+            }
+            // 現在のタブ/ウィンドウを閉じる
+            window.close();
+        }
+    </script>
 </head>
 <body>
-    <div class="container">
-        <h2>PCD to PGM 変換: 設定</h2>
+    <div class="container">
+        <h2>PCD to PGM 変換: 設定</h2>
 
-        <p>変換元PCDファイル: <strong>{{ input_pcd_filename }}</strong></p>
-        
-        <p class="waypoint-info">
-            ウェイポイントファイル: 
-            {% if input_waypoint_filename %}
-                <strong style="color: #ff8c00;">{{ input_waypoint_filename }}</strong> (PCD to PGMに反映)
-            {% else %}
-                <span style="color: #6c757d;">なし (ウェイポイント情報は使用しません)</span>
-            {% endif %}
-        </p>
-        <input type="hidden" id="input_waypoint_filename" value="{{ input_waypoint_filename if input_waypoint_filename else '' }}">
+        <p>変換元PCDファイル: <strong>{{ input_pcd_filename }}</strong></p>
+        
+        <p class="waypoint-info">
+            ウェイポイントファイル: 
+            {% if input_waypoint_filename %}
+                <strong style="color: #ff8c00;">{{ input_waypoint_filename }}</strong> (PCD to PGMに反映)
+            {% else %}
+                <span style="color: #6c757d;">なし (ウェイポイント情報は使用しません)</span>
+            {% endif %}
+        </p>
+        <input type="hidden" id="input_waypoint_filename" value="{{ input_waypoint_filename if input_waypoint_filename else '' }}">
 
-        <label for="output_map_name">出力PGMマップベース名:</label>
-        <input type="text" id="output_map_name" value="{{ default_output_name }}" required>
-        <p class="note">（例: `{{ default_output_name }}` → `{{ default_output_name }}.pgm` と `{{ default_output_name }}.yaml` が作成されます）</p>
+        <label for="output_map_name">出力PGMマップベース名:</label>
+        <input type="text" id="output_map_name" value="{{ default_output_name }}" required>
+        <p class="note">（例: `{{ default_output_name }}` → `{{ default_output_name }}.pgm` と `{{ default_output_name }}.yaml` が作成されます）</p>
 
-        <button id="start_convert_button" class="button primary">変換開始</button>
-        <button id="cancel_button" class="button secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
+        {% if input_waypoint_filename %}
+        <div class="loop-setting">
+            <input type="checkbox" id="loop_waypoints" name="loop_waypoints" value="true">
+            <label for="loop_waypoints">ウェイポイントをループとして扱う (自動走行の終点から始点に戻る)</label>
+        </div>
+        {% endif %}
 
-        <div id="status_message" style="margin-top: 20px;"></div>
-        <div id="loading_spinner" style="display:none; margin-top: 10px;">処理中...</div>
+        <button id="start_convert_button" class="button primary">変換開始</button>
+        <button id="cancel_button" class="button secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
 
-        <script>
-            $(document).ready(function() {
-                var pollingInterval;
-                var mapName;
-                var waypointFilename = $('#input_waypoint_filename').val(); // ウェイポイントファイル名を取得
+        <div id="status_message" style="margin-top: 20px;"></div>
+        <div id="loading_spinner" style="display:none; margin-top: 10px;">処理中...</div>
 
-                $('#start_convert_button').click(function() {
-                    mapName = $('#output_map_name').val().trim();
-                    if (!mapName) {
-                        alert("出力マップ名を入力してください。");
-                        return;
+        <script>
+            $(document).ready(function() {
+                var pollingInterval;
+                var mapName;
+                var waypointFilename = $('#input_waypoint_filename').val(); // ウェイポイントファイル名を取得
+
+                $('#start_convert_button').click(function() {
+                    mapName = $('#output_map_name').val().trim();
+                    if (!mapName) {
+                        alert("出力マップ名を入力してください。");
+                        return;
+                    }
+
+                    // 【追加】: ループフラグの状態を取得
+                    // チェックボックスが存在し、チェックされている場合は 'true'、それ以外は 'false' を設定
+                    var loopWaypoints = 'false';
+                    if ($('#loop_waypoints').length) {
+                        loopWaypoints = $('#loop_waypoints').prop('checked') ? 'true' : 'false';
                     }
 
-                    // ステータス初期化とローディング表示
-                    $('#status_message').html('');
-                    $('#loading_spinner').show();
-                    $('#start_convert_button').prop('disabled', true);
-                    $('#cancel_button').prop('disabled', true); 
+                    // ステータス初期化とローディング表示
+                    $('#status_message').html('');
+                    $('#loading_spinner').show();
+                    $('#start_convert_button').prop('disabled', true);
+                    $('#cancel_button').prop('disabled', true); 
 
-                    // 1. 変換開始APIを呼び出す
-                    $.ajax({
+                    // 1. 変換開始APIを呼び出す
+                    $.ajax({
                         url: '{{ url_for('pcd2pgm_convert') }}',
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({
-                            input_pcd_filename: '{{ input_pcd_filename }}',
-                            output_map_name: mapName,
-                            // 修正点 3: ウェイポイントファイル名をペイロードに追加
-                            waypoint_filename: waypointFilename 
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            input_pcd_filename: '{{ input_pcd_filename }}',
+                            output_map_name: mapName,
+                            // 修正点 3: ウェイポイントファイル名をペイロードに追加
+                            waypoint_filename: waypointFilename,
+                            // 【追加】: ループフラグをペイロードに追加
+                            loop_waypoints: loopWaypoints 
                         }),
                         success: function(response) {
                             if (response.status === 'success') {

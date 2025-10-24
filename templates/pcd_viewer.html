@@ -50,7 +50,6 @@
             align-items: center;
             cursor: pointer;
         }
-        /* ロードコントロールのスタイル調整 */
         #load-controls {
              display: flex; 
              flex-direction: column; 
@@ -68,6 +67,63 @@
             flex-direction: column;
             gap: 5px;
         }
+        /* --- モーダル用スタイルの追加 --- */
+        .modal {
+            display: none; 
+            position: fixed;
+            z-index: 200; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        .modal-content {
+            background-color: #333;
+            margin: 10% auto; /* 上部の余白を調整 */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+            color: #fff;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+        }
+        .modal-content label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #map-list-container, #unload-list-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #555;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        #modal-map-name-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
     </style>
     <script type="importmap">
         {
@@ -79,81 +135,78 @@
     </script>
     
     <script src="{{ url_for('static', filename='js/yaml/yaml.min.js') }}"></script>
-</head>
+    </head>
 <body>
+    <div id="load-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('load-modal').style.display='none';">&times;</span>
+            <h3>マップのロード</h3>
+            <label for="modal-map-name-input">マップ名:</label>
+            <input type="text" id="modal-map-name-input" placeholder="例: my_map">
+            
+            <h4>ロードする要素の選択:</h4>
+            <div id="map-list-container">
+                <p>マップ名を入力し、ロードボタンを押してください...</p>
+            </div>
+            
+            <button id="confirm-load-button" style="padding: 8px 15px;">選択した要素をロード</button>
+        </div>
+    </div>
+
+    <div id="unload-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('unload-modal').style.display='none';">&times;</span>
+            <h3>要素のアンロード</h3>
+            
+            <h4>現在表示中の要素:</h4>
+            <div id="unload-list-container">
+                <p>アンロード対象のチェックボックス...</p>
+            </div>
+            
+            <button id="confirm-unload-button" style="padding: 8px 15px;">選択した要素をアンロード</button>
+        </div>
+    </div>
+
+
     <div id="viewer-container"></div>
     <div id="loading-message">マップ名を指定してロードしてください。</div>
     <div id="info"></div>
     
     <div id="controls">
         <div style="display: flex; flex-direction: column; gap: 5px;">
-            <label for="map-name-input">マップ名 (例: my_map):</label>
-            <input type="text" id="map-name-input" value="{{ map_name | default("") }}" style="padding: 5px;">
-            <div id="load-controls">
-                <h4>対象の選択:</h4>
-                <label>
-                    <input type="checkbox" id="select-pcd" checked> 
-                    PCD
-                </label>
-                <label>
-                    <input type="checkbox" id="select-pgm" checked> 
-                    PGM/YAML
-                </label>
-                <label>
-                    <input type="checkbox" id="select-waypoints" checked> 
-                    Waypoints
-                </label>
-            </div>
-            <button id="load-map-button" style="padding: 5px; margin-top: 5px;">ロード開始</button>
-            <button onclick="startUnloadProcess()" style="padding: 5px;">アンロード実行</button>
+            <label for="map-name-input">**現在の**マップ名:</label>
+            <input type="text" id="map-name-input" value="" style="padding: 5px;" disabled title="ロードボタンで設定されます">
+            
+            <button id="load-map-button" style="padding: 5px; margin-top: 5px;">マップ ロード</button>
+            <button id="unload-map-button" style="padding: 5px;">マップ アンロード</button>
         </div>
         
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
 
-        <h4>表示/非表示:</h4>
+        <h4>表示/非表示 (動的):</h4>
         <div id="dynamic-toggles">
-            </div>
+        </div>
 
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
-
-
     </div>
 
     <script type="module">
-        // 外部ライブラリのインポート (CDNのインポートマップを利用)
         import * as THREE from 'three';
         import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'; 
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
-        
-        // Waypoint 可視化用のグローバル変数
         let waypoints = []; 
-        
-        // PGMマップ用のグローバル変数
         let mapData = null; 
-        
-        // グローバル変数: 複数のファイル/マップのメッシュを管理
-        // Key: {type}-{mapName} (例: 'pcd-my_map'), Value: Three.js Mesh/Group
         const meshRegistry = {}; 
-        
-        let currentMapName = '{{ map_name | default("") }}'; // 現在ロード中のマップ名を保持
-        
-        // Three.jsの標準変数
+        let currentMapName = ''; // 現在ロード中のマップ名を保持
         let scene, camera, renderer, loader;
         let controls;
-        const initialModel = { position: new THREE.Vector3(), rotation: new THREE.Euler() };
 
-        // ----------------------------------------------------
-        // ROS形式のクォータニオンからYaw角 (ラジアン) を計算するヘルパー関数
-        // ----------------------------------------------------
         function quaternionToYaw(qx, qy, qz, qw) {
             const siny_cosp = 2 * (qw * qz + qx * qy);
             const cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
             return Math.atan2(siny_cosp, cosy_cosp);
         }
 
-        // ----------------------------------------------------
-        // PGMファイルのヘッダーを読み取り、ピクセルデータとして返すカスタムパーサー関数
-        // ----------------------------------------------------
         async function parsePGM(urlOrBuffer, mapData) {
             let buffer;
             if (typeof urlOrBuffer === 'string') {
@@ -180,14 +233,23 @@
             let headerText = '';
             let headerEndIndex = -1;
             
+            // ヘッダーを解析してデータ開始位置を見つける
+            let foundDimensions = false;
+            let foundMaxval = false;
+
             for (let i = offset; i < buffer.byteLength; i++) {
                 const charCode = new Uint8Array(buffer, i, 1)[0];
                 const char = String.fromCharCode(charCode);
 
                 if (char === '\n') {
-                    const lines = headerText.split('\n').filter(line => !line.startsWith('#') && line.trim() !== '');
-                    if (lines.length >= 2) {
-                        headerEndIndex = i;
+                    // ヘッダー行を処理
+                    const lines = headerText.split('\n').map(line => line.trim()).filter(line => line !== '');
+                    
+                    // コメント行 (#) 以外の行を抽出
+                    const dataLines = lines.filter(line => !line.startsWith('#'));
+                    
+                    if (dataLines.length >= 2) {
+                        headerEndIndex = i + 1; // ピクセルデータの開始位置
                         break;
                     }
                 }
@@ -203,14 +265,14 @@
             const dimensions = lines[0].trim().split(/\s+/).map(Number);
             const width = dimensions[0];
             const height = dimensions[1];
-            const maxValue = 255; 
+            const maxValue = Number(lines[1].trim()); // 通常は255
             
-            if (!width || !height) {
-                 throw new Error("PGM header data (width, height) is invalid.");
+            if (!width || !height || !maxValue) {
+                 throw new Error("PGM header data (width, height, max value) is invalid.");
             }
             
             // 3. ピクセルデータ
-            const pixelDataStart = headerEndIndex + 1;
+            const pixelDataStart = headerEndIndex;
             const pixelDataSize = width * height;
             const grayData = new Uint8Array(buffer, pixelDataStart, pixelDataSize);
 
@@ -228,33 +290,35 @@
                 const gray = grayData[i];
                 const offset = i * 4;
 
-                if (gray <= occupiedGray) {
-                    // 占有セル (障害物): 赤色で強調し、半不透明
-                    data[offset] = 255;     // R
-                    data[offset + 1] = 50;  // G
-                    data[offset + 2] = 50;  // B
+                if (gray === 0) {
+                    // 占有セル (黒): 赤色で強調し、半不透明
+                    data[offset] = 255;     // R
+                    data[offset + 1] = 50;  // G
+                    data[offset + 2] = 50;  // B
                     data[offset + 3] = 200; // A: 80% 不透明
-                } else if (gray >= freeGray) {
-                    // 自由セル (空き地): 薄い緑色で、半透明
-                    data[offset] = 150;     // R
+                } else if (gray === 254) {
+                    // 自由セル (白): 薄い緑色で、半透明
+                    data[offset] = 150;     // R
                     data[offset + 1] = 255; // G
                     data[offset + 2] = 150; // B
                     data[offset + 3] = 100; // A: 40% 不透明
-                } else {
-                    // 未知の領域 (中間色): 完全に透明
+                } else if (gray === 205) {
+                    // 未知の領域 (灰色): 完全に透明
                     data[offset] = 0;
                     data[offset + 1] = 0;
                     data[offset + 2] = 0;
                     data[offset + 3] = 0; // A: 完全に透明
+                } else {
+                    data[offset] = 0;
+                    data[offset + 1] = 0;
+                    data[offset + 2] = 0;
+                    data[offset + 3] = 0;
                 }
             }
 
             return { data, width, height, maxValue };
         }
         
-        // ----------------------------------------------------
-        // ヘルパー関数: 表示トグルを動的に追加する
-        // ----------------------------------------------------
         function createToggle(id, labelText, mesh) {
             const container = document.getElementById('dynamic-toggles');
             
@@ -268,6 +332,7 @@
             label.setAttribute('for', id);
             label.id = id + '-label';
             label.style.display = 'flex';
+            label.style.gap = '5px';
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
@@ -287,18 +352,13 @@
             label.appendChild(span);
             container.appendChild(label);
 
-            return label; // アンロード時に削除するためにラベル要素を返す
+            return label; 
         }
 
-
-        // ----------------------------------------------------
-        // PGMマップのロードと配置関数 (ファイル名を含むIDを生成)
-        // ----------------------------------------------------
         async function loadPGMMap(mapName) { 
             const componentType = 'pgm';
             const uniqueId = `${componentType}-${mapName}`;
             
-            // ロード前に必ずアンロード（自己クリーンアップ）
             unloadMap(componentType, mapName); 
 
             if (!mapData || !mapData.image) {
@@ -350,7 +410,7 @@
 
                 const centerX = origin[0] + mapWidth / 2;  
                 const centerY = origin[1] + mapHeight / 2; 
-
+                
                 mesh.position.set(
                     centerX,                          // X軸中心
                     centerY,                          // Y軸中心
@@ -374,15 +434,11 @@
             }
         }
         
-        // ----------------------------------------------------
-        // PCDロード関数 (ファイル名を含むIDを生成)
-        // ----------------------------------------------------
         async function loadPCD(mapName) {
             const componentType = 'pcd';
             const uniqueId = `${componentType}-${mapName}`;
             const pcdUrl = `/map/${mapName}.pcd`;
             
-            // ロード前に必ずアンロード（自己クリーンアップ）
             unloadMap(componentType, mapName); 
             document.getElementById('loading-message').textContent = `PCDファイル (${mapName}.pcd) をロード中...`;
             document.getElementById('loading-message').style.display = 'block';
@@ -398,7 +454,7 @@
 
                 // PCDLoader の parse メソッドを使用して ArrayBuffer から直接ロード
                 const points = loader.parse(buffer);
-                
+
                 points.position.set(0, 0, 0); 
                 points.visible = true; // 初期状態は表示
 
@@ -433,13 +489,9 @@
             }
         }
 
-        // ----------------------------------------------------
-        // YAMLロード関数 (PGMロードをトリガーする)
-        // ----------------------------------------------------
         async function loadYAML(mapName) {
             const yamlUrl = `/map/${mapName}.yaml`;
             
-            // ロード前に必ずアンロード（自己クリーンアップ: PGM/YAMLはセットでunload）
             unloadMap('pgm', mapName); 
             
             try {
@@ -449,11 +501,11 @@
                 }
                 
                 const yamlText = await response.text();
+                // jsyamlがグローバルにロードされていることを前提とする
                 mapData = jsyaml.load(yamlText); 
                 
                 document.getElementById('info').innerHTML += `<br>YAML: ${mapName}.yaml ロード完了`;
                 
-                // PGMマップのロードを開始
                 await loadPGMMap(mapName);
 
             } catch (error) {
@@ -461,16 +513,12 @@
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">YAMLロード失敗: ${error.message}</span>`;
             }
         }
-
-        // ----------------------------------------------------
-        // Waypointロード関数 (ファイル名を含むIDを生成)
-        // ----------------------------------------------------
+        
         async function loadWaypoints(mapName) {
             const componentType = 'waypoints';
             const uniqueId = `${componentType}-${mapName}`;
             const jsonUrl = `/map/${mapName}.json`; 
             
-            // ロード前に必ずアンロード（自己クリーンアップ）
             unloadMap(componentType, mapName); 
 
             try {
@@ -500,7 +548,7 @@
                     const x = position[0];
                     const y = position[1];
                     const z = WAYPOINT_Z_OFFSET; 
-                    
+
                     const yaw = quaternionToYaw(orientation[0], orientation[1], orientation[2], orientation[3]);
                     
                     const SPHERE_RADIUS = 0.3; 
@@ -540,23 +588,17 @@
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointロード失敗: ${error.message}</span>`;
             }
         }
-
-        // ----------------------------------------------------
-        // アンロード関数 (個別 - ファイル名とタイプで特定)
-        // ----------------------------------------------------
         window.unloadMap = function(type, mapName) {
             const uniqueId = `${type}-${mapName}`;
             const mesh = meshRegistry[uniqueId];
             let elementExists = false;
 
             if (mesh) {
-                // GeometryとMaterialの解放
-                if (mesh.isMesh) {
+                if (mesh.isMesh || mesh.isPoints) {
                     mesh.geometry.dispose();
                     if (mesh.material.map) mesh.material.map.dispose();
                     mesh.material.dispose();
                 } else if (mesh.isGroup) {
-                    // 🌟 修正点: Groupの子要素を逆順で処理し、シーンからの削除とリソース解放を確実に行う
                     for (let i = mesh.children.length - 1; i >= 0; i--) {
                         const child = mesh.children[i];
                         if (child.geometry) child.geometry.dispose();
@@ -564,143 +606,154 @@
                             if (Array.isArray(child.material)) {
                                 child.material.forEach(m => m.dispose());
                             } else {
-                                // ArrowHelperなどの場合はmaterialがundefinedになることがあるためチェック
                                 if (child.material.dispose) child.material.dispose();
                             }
                         }
-                        // ArrowHelperの線や円錐もmesh.removeで確実に削除されます
                         mesh.remove(child);
                     }
                 }
 
-                scene.remove(mesh); // Group全体をシーンから削除
-                
+                scene.remove(mesh);
                 delete meshRegistry[uniqueId];
                 elementExists = true;
-                
-                // トグルボタンの削除
                 const toggleLabel = document.getElementById(uniqueId + '-label');
                 if (toggleLabel) {
                     toggleLabel.remove();
                 }
-
-                // mapDataのクリア (PGM/YAMLの場合のみ)
                 if (type === 'pgm') {
                     mapData = null; 
                 }
             }
             
             if (elementExists) {
-                // ロード選択チェックボックスを true に戻す
-                const selectElement = document.getElementById(`select-${type}`);
-                if(selectElement) selectElement.checked = true;
-
                 return true;
             }
             return false;
         }
         
-        // ----------------------------------------------------
-        // アンロード開始関数 (修正: 入力フィールドからマップ名を取得)
-        // ----------------------------------------------------
-        window.startUnloadProcess = function() {
-            // 🌟 修正点: currentMapName ではなく、入力フィールドから直接マップ名を取得
-            const mapName = document.getElementById('map-name-input').value.trim(); 
-            
-            if (!mapName) {
-                document.getElementById('info').innerHTML = "エラー: アンロードするマップ名を入力してください。";
-                return;
-            }
+        async function executeMapLoading(mapName, loadPCDFlag, loadPGMFlag, loadWaypointsFlag) {
+            currentMapName = mapName; 
 
-            // ロードフラグを新しい選択用チェックボックスから取得
-            const unloadPCDFlag = document.getElementById('select-pcd').checked;
-            const unloadPGMFlag = document.getElementById('select-pgm').checked;
-            const unloadWaypointsFlag = document.getElementById('select-waypoints').checked;
-
-            let unloadedCount = 0;
-
-            // PGM/YAMLをアンロード
-            if (unloadPGMFlag) {
-                if (unloadMap('pgm', mapName)) unloadedCount++;
-            } 
-
-            // Waypointをアンロード
-            if (unloadWaypointsFlag) {
-                if (unloadMap('waypoints', mapName)) unloadedCount++;
-            } 
-            
-            // PCDをアンロード
-            if (unloadPCDFlag) {
-                if (unloadMap('pcd', mapName)) unloadedCount++;
-            } 
-            
-            let infoMessage = "";
-            if (unloadedCount === 0) {
-                 infoMessage = `アンロード対象なし。マップ '${mapName}' のチェック: PCD=${unloadPCDFlag ? 'ON' : 'OFF'}, PGM=${unloadPGMFlag ? 'ON' : 'OFF'}, WP=${unloadWaypointsFlag ? 'ON' : 'OFF'}`;
-            } else {
-                 infoMessage = `マップ '${mapName}' から ${unloadedCount} 要素をアンロードしました。`;
-            }
-
-            // 修正: mapNameをクリアしない
-            
-            document.getElementById('info').innerHTML = infoMessage;
-            document.getElementById('loading-message').textContent = "マップ名を指定してロードしてください。";
-        }
-
-
-        // ----------------------------------------------------
-        // ロード開始関数
-        // ----------------------------------------------------
-        async function startLoadProcess() {
-            const mapNameInput = document.getElementById('map-name-input');
-            const mapName = mapNameInput.value.trim();
-
-            if (!mapName) {
-                alert("マップ名を入力してください。");
-                return;
-            }
-            
-            currentMapName = mapName; // ロード対象のマップ名を保存
-            
             document.getElementById('loading-message').textContent = `マップ '${mapName}' のファイルをロード中...`;
             document.getElementById('loading-message').style.display = 'block';
             document.getElementById('info').innerHTML = `ロード開始: ${mapName}`;
             
-            // ロードフラグを新しい選択用チェックボックスから取得
-            const loadPCDFlag = document.getElementById('select-pcd').checked;
-            const loadPGMFlag = document.getElementById('select-pgm').checked;
-            const loadWaypointsFlag = document.getElementById('select-waypoints').checked;
-
             let loadCount = 0;
-
-            // 1. PCDをロード
             if (loadPCDFlag) {
                 await loadPCD(mapName);
                 loadCount++;
             } 
-
-            // 2. YAML (PGMメタデータ) をロードし、PGM画像もロード
             if (loadPGMFlag) {
                 await loadYAML(mapName); 
                 loadCount++;
             } 
-            
-            // 3. Waypoint (JSON) をロード
             if (loadWaypointsFlag) {
                 await loadWaypoints(mapName);
                 loadCount++;
             } 
             
             if (loadCount === 0) {
-                 document.getElementById('info').innerHTML += `<br><span style="color: yellow;">警告: ロード対象が選択されていません。</span>`;
+                document.getElementById('info').innerHTML += `<br><span style="color: yellow;">警告: ロード対象が選択されていません。</span>`;
             }
 
             document.getElementById('loading-message').style.display = 'none';
         }
 
-        // ----------------------------------------------------
-        // 初期化処理
-        // ----------------------------------------------------
+        window.startLoadProcess = async function() {
+            const loadModal = document.getElementById('load-modal');
+            const mapNameInput = document.getElementById('modal-map-name-input');
+            const loadMapButton = document.getElementById('confirm-load-button');
+            const listContainer = document.getElementById('map-list-container');
+            mapNameInput.value = currentMapName;
+
+            const mapName = currentMapName || mapNameInput.placeholder;
+            listContainer.innerHTML = `
+                <label>
+                    <input type="checkbox" id="modal-select-pcd" checked> 
+                    PCD (${mapName}.pcd)
+                </label>
+                <label>
+                    <input type="checkbox" id="modal-select-pgm" checked> 
+                    PGM/YAML (${mapName}.yaml/.pgm)
+                </label>
+                <label>
+                    <input type="checkbox" id="modal-select-waypoints" checked> 
+                    Waypoints (${mapName}_waypoints.json)
+                </label>
+            `;
+            loadModal.style.display = 'block';
+            loadMapButton.onclick = async () => {
+                const newMapName = mapNameInput.value.trim();
+                if (!newMapName) {
+                    alert("マップ名を入力してください。");
+                    return;
+                }
+                
+                loadModal.style.display = 'none';
+                const loadPCDFlag = document.getElementById('modal-select-pcd')?.checked || false;
+                const loadPGMFlag = document.getElementById('modal-select-pgm')?.checked || false;
+                const loadWaypointsFlag = document.getElementById('modal-select-waypoints')?.checked || false;
+                
+                await executeMapLoading(newMapName, loadPCDFlag, loadPGMFlag, loadWaypointsFlag);
+                document.getElementById('map-name-input').value = newMapName;
+            };
+        }
+
+        window.startUnloadProcess = function() {
+            const unloadModal = document.getElementById('unload-modal');
+            const unloadListContainer = document.getElementById('unload-list-container');
+            const confirmUnloadButton = document.getElementById('confirm-unload-button');
+            
+            unloadListContainer.innerHTML = ''; 
+            let hasVisibleElements = false;
+            
+            for (const uniqueId in meshRegistry) {
+                const [type, mapName] = uniqueId.split('-');
+                const labelText = `${type.toUpperCase()} (${mapName})`;
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" name="unload_item" value="${uniqueId}" checked> ${labelText}`;
+                unloadListContainer.appendChild(label);
+                
+                hasVisibleElements = true;
+            }
+            
+            if (!hasVisibleElements) {
+                unloadListContainer.innerHTML = '<p style="color: yellow;">現在表示中の要素はありません。</p>';
+                confirmUnloadButton.disabled = true;
+            } else {
+                confirmUnloadButton.disabled = false;
+            }
+
+            unloadModal.style.display = 'block';
+
+            confirmUnloadButton.onclick = () => {
+                const selectedItems = Array.from(unloadListContainer.querySelectorAll('input[name="unload_item"]:checked'))
+                                             .map(input => input.value);
+                
+                let unloadedCount = 0;
+                
+                selectedItems.forEach(uniqueId => {
+                    const [type, mapName] = uniqueId.split('-');
+                    
+                    if (unloadMap(type, mapName)) {
+                        unloadedCount++;
+                    }
+                });
+                
+                let infoMessage = "";
+                if (unloadedCount === 0) {
+                    infoMessage = "アンロード対象が選択されていないか、すでにアンロード済みです。";
+                } else {
+                    infoMessage = `合計 ${unloadedCount} 個の要素をアンロードしました。`;
+                }
+                
+                document.getElementById('info').innerHTML = infoMessage;
+                document.getElementById('loading-message').textContent = "マップ名を指定してロードしてください。";
+                
+                unloadModal.style.display = 'none';
+            };
+        }
+
         function init() {
             const container = document.getElementById('viewer-container');
             
@@ -723,26 +776,11 @@
             loader = new PCDLoader();
             
             window.addEventListener('resize', onWindowResize, false);
-            
-            // ロードボタンにイベントリスナーを設定
             document.getElementById('load-map-button').addEventListener('click', startLoadProcess);
-            
-            // 初期マップ名が設定されていれば自動ロード
-            if (currentMapName) {
-                // ロード選択チェックボックスは初期状態で全てONになっている
-                // 読み込み開始
-                startLoadProcess();
-            } else {
-                document.getElementById('loading-message').style.display = 'block';
-            }
-
-            // アニメーションループ開始
+            document.getElementById('unload-map-button').addEventListener('click', startUnloadProcess);
+            document.getElementById('loading-message').style.display = 'block';
             animate();
         }
-
-        // ----------------------------------------------------
-        // アニメーション/ユーティリティ関数
-        // ----------------------------------------------------
 
         function onWindowResize() {
             const container = document.getElementById('viewer-container');

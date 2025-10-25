@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <title>PCDファイル選択 - PCD to PGM 変換</title>
-    <meta charset="UTF-8">
-    <style>
-        /* 基本スタイル */
-        body { 
+    <title>PCDファイル選択 - PCD to PGM 変換</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    
+    <style>
+        /* 基本スタイル */
+        body { 
             font-family: sans-serif; 
             padding: 20px; 
             background-color: #f4f7f9; 
             color: #333;
         }
-        .container {
-            max-width: 800px;
+        .container {
+            max-width: 600px; 
             margin: auto;
             background-color: #fff;
             padding: 30px;
@@ -23,48 +25,48 @@
             color: #007bff; /* メインカラー */
             border-bottom: 2px solid #e9ecef;
             padding-bottom: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             font-size: 1.5em;
         }
-        p {
+        p {
             margin-bottom: 20px;
             color: #555;
         }
 
-        /* テーブルスタイル */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 25px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            background-color: #fff;
-            border-radius: 6px;
-            overflow: hidden; /* 角丸を適用するため */
+        .file-list {
+            list-style: none;
+            padding: 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            background-color: #f8f8f8;
         }
-        thead {
-            background-color: #e9f7ef; /* PCD/PGMの緑系を意識 */
-            color: #1a7431;
+        .file-list li {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 1em;
+            color: #333;
         }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #dee2e6;
+        .file-list li:last-child {
+            border-bottom: none;
         }
-        th {
+        .file-list li:hover {
+            background-color: #e9ecef;
+        }
+        .file-list li.selected {
+            background-color: #007bff;
+            color: white;
             font-weight: bold;
         }
-        tbody tr:hover {
-            background-color: #f8f9fa;
+        .file-list li.selected:hover {
+            background-color: #0056b3;
         }
-        
-        /* ラジオボタン */
-        td:first-child {
-            width: 10%;
-            text-align: center;
-        }
-
-        /* ボタン共通スタイル */
-        .button {
+        
+        .button {
             padding: 10px 20px;
             margin-right: 15px;
             border: none;
@@ -75,124 +77,150 @@
             transition: background-color 0.2s, opacity 0.2s;
             display: inline-block;
             text-align: center;
-        }
-        
-        /* Primaryボタン (選択して次へ) */
-        .primary {
-            background-color: #28a745; /* PCD/PGMのメインカラー */
-            color: white;
-        }
-        .primary:hover:not(:disabled) {
-            background-color: #1e7e34;
-        }
-        .primary:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-
-        /* Secondaryボタン (戻る) */
-        .secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        .secondary:hover {
-            background-color: #5a6268;
-        }
-
-        /* メッセージ/フラッシュ */
-        .flashes {
-            list-style: none;
-            padding: 0;
             margin-top: 20px;
         }
-        .flashes li {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            border: 1px solid;
+        
+        /* Primaryボタン (選択して次へ) */
+        .primary {
+            background-color: #28a745; 
+            color: white;
         }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border-color: #c3e6cb;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-        }
-        .warning {
-            background-color: #fff3cd;
-            color: #856404;
-            border-color: #ffeeba;
-        }
-    </style>
+        .primary:hover:not(:disabled) {
+            background-color: #1e7e34;
+        }
+        .primary:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
 
-    <script>
-        function closeCurrentTabAndReloadOpener() {
-            try {
-                // window.openerが存在する場合、親ウィンドウをリロードしてから閉じる
-                if (window.opener && !window.opener.closed) {
-                    // 親ウィンドウ（メインGUI）のステータス更新を想定してリロード
-                    window.opener.location.reload(); 
-                }
-            } catch (e) {
-                console.warn("親ウィンドウのリロードに失敗しました:", e);
-            }
-            // 現在のタブ/ウィンドウを閉じる
-            window.close();
-        }
-    </script>
-    </head>
+        /* Secondaryボタン (戻る) */
+        .secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .secondary:hover {
+            background-color: #5a6268;
+        }
+
+        /* メッセージ/フラッシュ */
+        #status_message {
+            padding: 10px;
+            border-left: 5px solid #dc3545; /* エラー/警告用 */
+            background-color: #f8d7da;
+            border-radius: 5px;
+            color: #721c24;
+            margin-top: 20px;
+        }
+        #status_message p {
+             margin: 0;
+             line-height: 1.4;
+        }
+        .flashes {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        .flashes li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            border: 1px solid;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-color: #ffeeba;
+        }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // 親ウィンドウをリロードしてから現在のウィンドウを閉じる関数
+        function closeCurrentTabAndReloadOpener() {
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.location.reload(); 
+                }
+            } catch (e) {
+                console.warn("親ウィンドウのリロードに失敗しました:", e);
+            }
+            window.close();
+        }
+
+        $(document).ready(function() {
+            var selectedPcd = ''; // 選択されたPCDファイル名を保持する変数
+            var $continueButton = $('#continue_button');
+
+            // 1. ファイルリストのクリックイベント
+            $('.file-list li').click(function() {
+                $('.file-list li').removeClass('selected');
+                $(this).addClass('selected');
+                selectedPcd = $(this).data('filename'); // data-filename属性からファイル名を取得
+                $continueButton.prop('disabled', false); // ファイルが選択されたら有効化
+                console.log("選択されたPCD: " + selectedPcd);
+                
+                // 選択されたファイル名を非表示のフォームフィールドに設定
+                $('#pcd_filename_input').val(selectedPcd);
+            });
+            
+            // 2. 初期状態で続行ボタンを無効化
+            $continueButton.prop('disabled', true);
+            
+            // 3. PCDファイルがない場合のメッセージ
+            // ファイルがないか、あるのがテンプレートのプレースホルダのみかを確認
+            if ($('.file-list li').length === 0 || ($('.file-list li').length === 1 && $('.file-list li').data('filename') === undefined)) {
+                $('#status_message').html('<p class="error">⚠️ **PCDファイルが見つかりません。** マッピングを実行してPCDを作成してください。</p>').show();
+                $continueButton.prop('disabled', true);
+            } else {
+                $('#status_message').hide();
+            }
+        });
+    </script>
+</head>
 <body>
-    <div class="container">
-        <h2>PCD to PGM 変換: PCDファイル選択</h2>
-        <p>変換元のPCDファイル（`{{ map_dir }}` ディレクトリ内）を選択してください。</p>
+    <div class="container">
+        <h2>PCD to PGM 変換: PCDファイル選択</h2>
+        <p>変換元のPCDファイル（`{{ map_dir }}` ディレクトリ内）を選択してください。</p>
 
-        <form method="POST" action="{{ url_for('pcd2pgm_select') }}">
-            <table>
-                <thead>
-                    <tr>
-                        <th>選択</th>
-                        <th>ファイル名</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for file in pcd_files %}
-                    <tr>
-                        <td>
-                            <input type="radio" name="pcd_filename" value="{{ file }}" required>
-                        </td>
-                        <td>{{ file }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="2">PCDファイルが見つかりません。マッピングを実行してPCDを作成してください。</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            
-            {% if pcd_files %}
-            <button type="submit" class="button primary">選択して次へ</button>
-            {% else %}
-            <button type="submit" class="button primary" disabled>選択して次へ</button>
-            {% endif %}
+        <div id="status_message"></div>         <form method="POST" action="{{ url_for('pcd2pgm_select') }}">
+                        <input type="hidden" name="pcd_filename" id="pcd_filename_input" required>
+            
+                        <ul class="file-list">
+                {% for file in pcd_files %}
+                    <li data-filename="{{ file }}">{{ file }}</li>
+                {% else %}
+                    <li style="color: #6c757d; cursor: default;">利用可能な PCD ファイルはありません。</li>
+                {% endfor %}
+            </ul>
+            
+            <div class="action-buttons">
+                <button type="submit" id="continue_button" class="button primary">選択して次へ</button>
+            
+                                <button type="button" onclick="closeCurrentTabAndReloadOpener()" class="button secondary">戻る</button>
+            </div>
+        </form>
 
-            <a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary">戻る</a>
-        </form>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                    {% for category, message in messages %}
-                        <li class="{{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-    </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+    </div>
 </body>
 </html>

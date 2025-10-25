@@ -87,11 +87,11 @@ button[value="stop"]:hover {
     background-color: #c82333;
 }
 
-button[value="map"] {
+button[value="map_viewer"] {
     background-color: #28a745;
 }
 
-button[value="map"]:hover {
+button[value="map_viewer"]:hover {
     background-color: #1e7e34;
 }
 

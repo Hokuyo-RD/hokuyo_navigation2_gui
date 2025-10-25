@@ -21,8 +21,8 @@ hokuyo_nav2_gui
     <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
     </form>
-    <form method="post" action="/gui" target="_blank">
-        <button type="submit" name="command" value="map">2D地図エディタ</button>
+    <form method="get" action="/map_viewer" target="_blank">
+        <button type="submit" name="command" value="map_viewer" id="map_viewer">Map Viewer</button>
     </form>
     <br>
     <a href="http://192.168.1.100:5000/" target="_blank" >自律走行経路確認Viewer</a>

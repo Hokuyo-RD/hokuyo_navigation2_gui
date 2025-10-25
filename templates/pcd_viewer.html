@@ -175,15 +175,15 @@
     <div id="controls">
         <div style="display: flex; flex-direction: column; gap: 5px;">
             <label for="map-name-input">**現在の**マップ名:</label>
-            <input type="text" id="map-name-input" value="" style="padding: 5px;" disabled title="ロードボタンで設定されます">
+            <input type="text" id="map-name-input" value="{{ map_name }}" style="padding: 5px;" disabled title="ロードボタンで設定されます">
             
-            <button id="load-map-button" style="padding: 5px; margin-top: 5px;">マップ ロード</button>
-            <button id="unload-map-button" style="padding: 5px;">マップ アンロード</button>
+            <button id="load-map-button" style="padding: 5px; margin-top: 5px;">ロード</button>
+            <button id="unload-map-button" style="padding: 5px;">アンロード</button>
         </div>
         
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
 
-        <h4>表示/非表示 (動的):</h4>
+        <h4>表示/非表示:</h4>
         <div id="dynamic-toggles">
         </div>
 
@@ -197,7 +197,7 @@
         let waypoints = []; 
         let mapData = null; 
         const meshRegistry = {}; 
-        let currentMapName = ''; // 現在ロード中のマップ名を保持
+        let currentMapName = '{{ map_name }}'; // Flaskから渡された値を初期値として設定
         let scene, camera, renderer, loader;
         let controls;
 
@@ -234,9 +234,6 @@
             let headerEndIndex = -1;
             
             // ヘッダーを解析してデータ開始位置を見つける
-            let foundDimensions = false;
-            let foundMaxval = false;
-
             for (let i = offset; i < buffer.byteLength; i++) {
                 const charCode = new Uint8Array(buffer, i, 1)[0];
                 const char = String.fromCharCode(charCode);
@@ -283,8 +280,7 @@
             const freeThresh = mapData.free_thresh || 0.196;
             
             // しきい値を 0-255 のグレースケール値に変換
-            const occupiedGray = Math.round(occupiedThresh * maxValue);
-            const freeGray = Math.round(freeThresh * maxValue);
+            // Note: 実際には、ROSのmap_serverは 0, 205, 254 の3値を使用することが多いです
             
             for (let i = 0; i < pixelDataSize; i++) {
                 const gray = grayData[i];
@@ -309,6 +305,7 @@
                     data[offset + 2] = 0;
                     data[offset + 3] = 0; // A: 完全に透明
                 } else {
+                    // その他の値（通常は発生しない）
                     data[offset] = 0;
                     data[offset + 1] = 0;
                     data[offset + 2] = 0;
@@ -495,16 +492,23 @@
             unloadMap('pgm', mapName); 
             
             try {
-                const response = await fetch(yamlUrl);
-                if (!response.ok) {
-                    throw new Error(`ファイルが見つかりません。ステータス: ${response.status}`);
+                // Flaskから渡された mapData (yaml_data) をチェック
+                const initialYamlData = "{{ yaml_data|safe }}";
+                if (initialYamlData && currentMapName === mapName) {
+                    mapData = jsyaml.load(initialYamlData);
+                    document.getElementById('info').innerHTML += `<br>YAML: ${mapName}.yaml (初期データ) ロード完了`;
+                } else {
+                    // ファイルをサーバーから取得
+                    const response = await fetch(yamlUrl);
+                    if (!response.ok) {
+                        throw new Error(`ファイルが見つかりません。ステータス: ${response.status}`);
+                    }
+                    
+                    const yamlText = await response.text();
+                    mapData = jsyaml.load(yamlText); 
+                    
+                    document.getElementById('info').innerHTML += `<br>YAML: ${mapName}.yaml ロード完了`;
                 }
-                
-                const yamlText = await response.text();
-                // jsyamlがグローバルにロードされていることを前提とする
-                mapData = jsyaml.load(yamlText); 
-                
-                document.getElementById('info').innerHTML += `<br>YAML: ${mapName}.yaml ロード完了`;
                 
                 await loadPGMMap(mapName);
 
@@ -522,12 +526,21 @@
             unloadMap(componentType, mapName); 
 
             try {
-                const response = await fetch(jsonUrl);
-                if (!response.ok) {
-                    throw new Error(`ファイルが見つかりません。ステータス: ${response.status}`);
+                let rawWaypoints;
+                const initialWaypointsData = "{{ waypoints_data|safe }}";
+
+                // Flaskから渡された Waypointデータ (waypoints_data) をチェック
+                if (initialWaypointsData !== "[]" && currentMapName === mapName) {
+                    rawWaypoints = JSON.parse(initialWaypointsData);
+                    document.getElementById('info').innerHTML += `<br>Waypoint: ${mapName}.json (初期データ) ロード完了`;
+                } else {
+                    // ファイルをサーバーから取得
+                    const response = await fetch(jsonUrl);
+                    if (!response.ok) {
+                        throw new Error(`ファイルが見つかりません。ステータス: ${response.status}`);
+                    }
+                    rawWaypoints = await response.json(); 
                 }
-                
-                const rawWaypoints = await response.json(); 
 
                 if (rawWaypoints.length === 0) {
                     throw new Error("ウェイポイントファイルが空です。");
@@ -535,7 +548,7 @@
 
                 waypoints = rawWaypoints;
                 const newWaypointsGroup = new THREE.Group();
-                newWaypointsGroup.name = uniqueId; // 識別しやすいように名前を設定
+                newWaypointsGroup.name = uniqueId; 
                 
                 const WAYPOINT_Z_OFFSET = 0.0; 
                 
@@ -571,7 +584,7 @@
                     newWaypointsGroup.add(arrowHelper);
                 });
                 
-                newWaypointsGroup.visible = true; // 初期状態は表示
+                newWaypointsGroup.visible = true; 
                 scene.add(newWaypointsGroup);
                 
                 // レジストリに登録
@@ -632,21 +645,26 @@
         }
         
         async function executeMapLoading(mapName, loadPCDFlag, loadPGMFlag, loadWaypointsFlag) {
+            // ロード前に、現在のマップに設定
             currentMapName = mapName; 
+            document.getElementById('map-name-input').value = mapName;
 
             document.getElementById('loading-message').textContent = `マップ '${mapName}' のファイルをロード中...`;
             document.getElementById('loading-message').style.display = 'block';
             document.getElementById('info').innerHTML = `ロード開始: ${mapName}`;
             
             let loadCount = 0;
+            // PCDのロード
             if (loadPCDFlag) {
                 await loadPCD(mapName);
                 loadCount++;
             } 
+            // PGM/YAMLのロード
             if (loadPGMFlag) {
                 await loadYAML(mapName); 
                 loadCount++;
             } 
+            // Waypointsのロード
             if (loadWaypointsFlag) {
                 await loadWaypoints(mapName);
                 loadCount++;
@@ -664,24 +682,31 @@
             const mapNameInput = document.getElementById('modal-map-name-input');
             const loadMapButton = document.getElementById('confirm-load-button');
             const listContainer = document.getElementById('map-list-container');
+            
+            // 現在のマップ名があれば入力欄に設定
             mapNameInput.value = currentMapName;
 
-            const mapName = currentMapName || mapNameInput.placeholder;
+            // プレースホルダーのマップ名（または現在のマップ名）
+            const mapNameForDisplay = currentMapName || mapNameInput.placeholder; 
+            
+            // ロード対象のチェックボックスを動的に設定
             listContainer.innerHTML = `
                 <label>
                     <input type="checkbox" id="modal-select-pcd" checked> 
-                    PCD (${mapName}.pcd)
+                    PCD (${mapNameForDisplay}.pcd)
                 </label>
                 <label>
                     <input type="checkbox" id="modal-select-pgm" checked> 
-                    PGM/YAML (${mapName}.yaml/.pgm)
+                    PGM/YAML (${mapNameForDisplay}.yaml/.pgm)
                 </label>
                 <label>
                     <input type="checkbox" id="modal-select-waypoints" checked> 
-                    Waypoints (${mapName}_waypoints.json)
+                    Waypoints (${mapNameForDisplay}.json)
                 </label>
             `;
             loadModal.style.display = 'block';
+            
+            // ロードボタンクリック時の処理
             loadMapButton.onclick = async () => {
                 const newMapName = mapNameInput.value.trim();
                 if (!newMapName) {
@@ -748,7 +773,8 @@
                 }
                 
                 document.getElementById('info').innerHTML = infoMessage;
-                document.getElementById('loading-message').textContent = "マップ名を指定してロードしてください。";
+                // アンロード後、現在のマップ名をクリアしても良いが、前回ロードしたマップ名として残しておく選択肢も
+                // currentMapName = ""; // 必要に応じてコメントアウトを解除
                 
                 unloadModal.style.display = 'none';
             };
@@ -774,15 +800,10 @@
             controls.minDistance = 0.5;
             controls.maxDistance = 100;
             
-            // 2. screenSpacePanning はデフォルトの false でOK（水平回転の挙動を標準に保つ）
-            // controls.screenSpacePanning = false; // デフォルト設定なので省略可能
-
-            // 3. controls.upもZ軸に設定（冗長な場合もありますが、確実性を高めます）
-            // controls.object.up はカメラの up を継承しているので、camera.up の設定が最も重要です。
-            //念のため、targetは設定しておきます。
+            // 2. controls.upもZ軸に設定（確実性のため）
             controls.target.set(0, 0, 0); 
 
-            // 4. camera.up の変更を反映するためにコントロールを更新
+            // 3. camera.up の変更を反映するためにコントロールを更新
             controls.update();
 
             loader = new PCDLoader();
@@ -790,7 +811,37 @@
             window.addEventListener('resize', onWindowResize, false);
             document.getElementById('load-map-button').addEventListener('click', startLoadProcess);
             document.getElementById('unload-map-button').addEventListener('click', startUnloadProcess);
-            document.getElementById('loading-message').style.display = 'block';
+            
+            // --- 【空のビューア機能のための追加ロジック】 ---
+            // Flaskから渡された map_name を取得（Jinja2テンプレート構文を使用）
+            const initialMapName = "{{ map_name }}"; 
+            
+            if (initialMapName) {
+                // map_name が指定されている場合（/view_map/<map_name> からの遷移）
+                // 初期マップ名を設定し、ロード待ち状態のメッセージを表示
+                currentMapName = initialMapName;
+                document.getElementById('map-name-input').value = initialMapName;
+                
+                // 初回ロードを実行（データが既にテンプレートに含まれている場合もあるため）
+                // テンプレート変数が存在するかチェック
+                const hasInitialPCD = true; // /view_map/<map_name> のロジックではPCDは必須としていたため
+                const hasInitialYAML = "{{ yaml_data|safe }}" !== "";
+                const hasInitialWaypoints = "{{ waypoints_data|safe }}" !== "[]";
+                
+                if (hasInitialPCD || hasInitialYAML || hasInitialWaypoints) {
+                    executeMapLoading(initialMapName, hasInitialPCD, hasInitialYAML, hasInitialWaypoints);
+                } else {
+                    document.getElementById('loading-message').textContent = `マップ: '${initialMapName}' のデータが見つかりません。ロードボタンから再試行してください。`;
+                }
+
+            } else {
+                // map_name が空の場合（/map_viewer からの遷移）
+                // ロードモーダルを自動的に開く
+                document.getElementById('loading-message').textContent = "マップを選択してください。";
+                startLoadProcess();
+            }
+            // --- 【追加ロジックここまで】 ---
+
             animate();
         }
 

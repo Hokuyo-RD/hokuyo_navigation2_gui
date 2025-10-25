@@ -548,6 +548,33 @@ def download_map(filename):
         flash(f'マップファイルのダウンロード中にエラーが発生しました: {e}', 'error')
         return redirect(url_for('main_gui'))
 
+@app.route('/map_viewer', methods=['GET'])
+def open_empty_viewer():
+    """
+    ファイル指定なしで、マップを後から選択できる空のビューアを開く。
+    このエンドポイントは、クライアント側でロードモーダルを表示させることを目的とする。
+    """
+    # 既存の view_map エンドポイントと同じテンプレートを使用しますが、
+    # データを空（またはデフォルト値）で渡します。
+    
+    # マップ名: 空
+    map_name = "" 
+    
+    # YAMLデータ: 空の文字列
+    yaml_data_string = "" 
+    
+    # Waypointデータ: 空のJSON配列
+    waypoints_data_string = "[]" 
+
+    print("空のPCD/PGMビューアを開きます。ユーザーはロードボタンからマップを選択できます。")
+    
+    return render_template(
+        'pcd_viewer.html', 
+        map_name=map_name, 
+        yaml_data=yaml_data_string, 
+        waypoints_data=waypoints_data_string
+    )
+
 @app.route('/view_map/<map_name>')
 def view_map(map_name):
     """

@@ -558,18 +558,53 @@ def open_empty_viewer():
     # データを空（またはデフォルト値）で渡します。
     
     # マップ名: 空
-    map_name = "" 
-    
+    map_name = request.args.get('map_name', '')
     # YAMLデータ: 空の文字列
-    yaml_data_string = "" 
+    yaml_data_string = ""
     
     # Waypointデータ: 空のJSON配列
     waypoints_data_string = "[]" 
 
-    print("空のPCD/PGMビューアを開きます。ユーザーはロードボタンからマップを選択できます。")
-    
+    if map_name:
+        # マップ名が指定されている場合のロードロジック
+        print(f"INFO: マップ名 '{map_name}' が指定されました。ファイル読み込みを試行します。")
+        
+        # 1. PCDファイルの存在チェック (必須と仮定)
+        pcd_filename = f'{map_name}.pcd'
+        pcd_file_path = os.path.join(MAP_DIR, pcd_filename)
+        
+        if not os.path.exists(pcd_file_path):
+            flash(f'エラー: マップファイル "{pcd_filename}" がサーバーに見つかりません。', 'error')
+            # ファイルが存在しない場合は、マップ名が空のビューワを開く(またはリダイレクト)
+            map_name = ""
+            
+        # 2. YAMLファイルの読み込み
+        yaml_filename = f'{map_name}.yaml'
+        yaml_file_path = os.path.join(MAP_DIR, yaml_filename)
+        if os.path.exists(yaml_file_path):
+            try:
+                with open(yaml_file_path, 'r') as f:
+                    yaml_data_string = f.read()
+                print(f"INFO: YAML file '{yaml_filename}' loaded for viewer.")
+            except Exception as e:
+                print(f"ERROR: Failed to read YAML file '{yaml_file_path}': {e}")
+                flash(f'警告: YAMLファイル "{yaml_filename}" の読み込みに失敗しました。', 'warning')
+        # 3. ウェイポイントファイルの読み込み
+        wp_filename = f'{map_name}.json'
+        wp_file_path = os.path.join(WP_DIR, wp_filename)
+        if os.path.exists(wp_file_path):
+            try:
+                with open(wp_file_path, 'r') as f:
+                    waypoints_data_string = f.read()
+                print(f"INFO: Waypoint file '{wp_filename}' loaded for viewer.")
+            except Exception as e:
+                print(f"ERROR: Failed to read Waypoint file '{wp_file_path}': {e}")
+                flash(f'警告: Waypointファイル "{wp_filename}" の読み込みに失敗しました。', 'warning')
+    else:
+        print("INFO: マップ名が指定されていません。空のビューワを開きます。")
+        
     return render_template(
-        'pcd_viewer.html', 
+        'pcd_viewer.html', # パラメータがなければ ""
         map_name=map_name, 
         yaml_data=yaml_data_string, 
         waypoints_data=waypoints_data_string

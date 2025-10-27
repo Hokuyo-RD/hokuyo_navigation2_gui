@@ -604,7 +604,7 @@ def open_empty_viewer():
         print("INFO: マップ名が指定されていません。空のビューワを開きます。")
         
     return render_template(
-        'pcd_viewer.html', # パラメータがなければ ""
+        'map_viewer.html', # パラメータがなければ ""
         map_name=map_name, 
         yaml_data=yaml_data_string, 
         waypoints_data=waypoints_data_string
@@ -653,7 +653,7 @@ def view_map(map_name):
             print(f"ERROR: Failed to read Waypoint file '{wp_file_path}': {e}")
             flash(f'警告: Waypointファイル "{wp_filename}" の読み込みに失敗しました。', 'warning')
 
-    return render_template('pcd_viewer.html', 
+    return render_template('map_viewer.html', 
                            map_name=map_name,
                            yaml_data=yaml_data_string,
                            waypoints_data=waypoints_data_string)
@@ -661,7 +661,7 @@ def view_map(map_name):
 @app.route('/map/<filename>')
 def serve_map_file(filename):
     """
-    pcd_viewer.htmlからリクエストされたPCDファイル、PGMファイル、
+    map_viewer.htmlからリクエストされたPCDファイル、PGMファイル、
     およびウェイポイントファイルをブラウザに提供する。
     """
     ext = os.path.splitext(filename)[1].lower()

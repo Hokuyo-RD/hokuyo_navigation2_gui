@@ -1,179 +1,296 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <title>PGMマップ設定 - PCD to PGM 変換</title>
-    <meta charset="UTF-8">
-    <style>
-        /* 基本スタイル */
-        body { 
-            font-family: sans-serif; 
-            padding: 20px; 
-            background-color: #f4f7f9; 
+    <title>PGMマップ設定 - PCD to PGM 変換</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+
+    <style>
+        /* ---------------------------------------------------------------------- */
+        /* 全体的なリセットとベーススタイル */
+        /* ---------------------------------------------------------------------- */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* モダンなフォントに更新 */
+            padding: 30px; /* 余白を少し増やす */
+            background-color: #eef3f7; /* 明るくソフトな背景色 */
             color: #333;
+            line-height: 1.6;
         }
-        .container {
-            max-width: 600px;
-            margin: auto;
+        .container {
+            max-width: 650px; /* 最大幅を少し広げる */
+            margin: 40px auto; /* 上下の余白を増やす */
             background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-        h2 {
-            color: #007bff; /* メインカラー */
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 10px;
-            margin-bottom: 25px;
-            font-size: 1.5em;
+            padding: 40px; /* パディングを増やす */
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); /* シャドウをソフトで深く */
+        }
+        h2 {
+            color: #1e88e5; /* より落ち着いた青 */
+            border-bottom: 3px solid #1e88e5; /* 実線に */
+            padding-bottom: 12px;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            text-align: center; /* タイトルを中央寄せ */
+            letter-spacing: 0.5px;
+        }
+        
+        /* ---------------------------------------------------------------------- */
+        /* ファイル表示エリアのスタイル */
+        /* ---------------------------------------------------------------------- */
+        .file-selection-display {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 30px;
+            border-left: 5px solid #ccc; /* 左側に区切り線を追加 */
+            padding-left: 15px;
+        }
+        .file-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f7fcf9; /* より明るい背景色 */
+            font-size: 1em;
+            color: #333;
+            line-height: 1.4;
+            display: flex; /* アイコン配置の準備 */
+            align-items: center;
+        }
+        .file-item::before {
+            content: '📁'; /* ファイルアイコン */
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        .file-item strong {
+            color: #00897b; /* より鮮やかな緑青 */
+            font-weight: 600; /* 太すぎないフォントウェイト */
+            word-break: break-all; /* 長すぎるファイル名の折り返し */
+        }
+        .file-item.waypoint-info {
+            background-color: #fff8e1; /* ウェイポイント情報に注意を促す薄い黄色 */
+            border-color: #ffecb3;
+        }
+        .file-item.waypoint-info::before {
+            content: '📍'; /* ウェイポイントアイコン */
+            color: #ffb300;
+        }
+        .file-item.waypoint-info strong {
+            color: #ffa000;
+        }
+        .file-item.no-waypoint {
+            background-color: #f5f5f5; 
+            border-color: #e0e0e0;
+            color: #757575;
+            font-style: italic;
+        }
+        .file-item.no-waypoint::before {
+            content: '🚫'; /* なしアイコン */
+            color: #757575;
         }
 
+        /* ---------------------------------------------------------------------- */
         /* フォーム要素 */
-        label {
+        /* ---------------------------------------------------------------------- */
+        label {
             display: block;
-            margin-top: 15px;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-weight: 600; /* より強く */
+            color: #455a64; /* 濃いグレー */
+            font-size: 1.05em;
         }
-        input[type="text"] {
-            width: 96%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+        input[type="text"] {
+            width: 96%; /* 全幅より少し小さく (パディング込みで調整) */
+            padding: 12px; /* パディングを増やす */
+            border: 1px solid #ddd;
+            border-radius: 6px;
             font-size: 1em;
-            transition: border-color 0.2s;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
-        input[type="text"]:focus {
-            border-color: #007bff;
+        input[type="text"]:focus {
+            border-color: #1e88e5; /* 青に強調 */
+            box-shadow: 0 0 5px rgba(30, 136, 229, 0.5); /* フォーカス時にシャドウを追加 */
             outline: none;
         }
-        p strong {
-            color: #28a745; /* 強調表示 */
-            font-size: 1.1em;
-        }
-        .waypoint-info {
-            color: #ff8c00; /* ウェイポイントの色 */
-            font-size: 1.0em;
-            margin-bottom: 15px;
-            padding: 5px 0;
-            border-top: 1px dashed #eee;
-            border-bottom: 1px dashed #eee;
-        }
-        .note {
-            font-size: 0.9em;
+        .note {
+            font-size: 0.85em;
             color: #888;
             margin-top: 5px;
+            margin-bottom: 20px;
+            padding-left: 5px;
         }
         /* ループ設定用のスタイル */
         .loop-setting {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
+            margin-top: 25px;
+            padding: 15px;
+            border: 1px solid #b2ebf2; /* 明るい水色のボーダー */
+            border-radius: 8px;
+            background-color: #e0f7fa; /* 明るい水色の背景 */
+            display: flex;
+            align-items: center;
         }
         .loop-setting input[type="checkbox"] {
-            margin-right: 10px;
-            transform: scale(1.2); /* チェックボックスを少し大きく */
+            margin-right: 12px;
+            transform: scale(1.3); /* チェックボックスを大きく */
+            accent-color: #00bcd4; /* チェックボックスの色を変更 */
         }
         .loop-setting label {
             display: inline;
-            font-weight: normal;
-            margin-top: 0;
-            color: #333;
+            font-weight: 500;
+            margin: 0;
+            color: #006064;
+            cursor: pointer;
         }
 
-
-        .button {
-    padding: 10px 20px;
+        /* ---------------------------------------------------------------------- */
+        /* ボタン共通スタイル */
+        /* ---------------------------------------------------------------------- */
+        .button {
+            padding: 12px 25px; /* パディングを増やす */
             margin-right: 15px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px; /* 角を丸く */
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 600;
             text-decoration: none;
-            transition: background-color 0.2s, opacity 0.2s;
+            transition: all 0.2s ease-in-out; /* トランジションをスムーズに */
             display: inline-block;
             text-align: center;
-            margin-top: 20px;
+            margin-top: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* ボタンにシャドウを追加 */
         }
-        
+        .button:active {
+            transform: translateY(1px); /* クリック時の沈み込みエフェクト */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
         /* Primaryボタン (変換開始/ダウンロード) */
-        .primary {
-            background-color: #28a745; /* PCD/PGMの緑系 */
+        .primary {
+            background-color: #4caf50; /* 落ち着いた緑 */
             color: white;
         }
         .primary:hover:not(:disabled) {
-            background-color: #1e7e34;
+            background-color: #388e3c; /* ホバーで少し濃く */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
         }
-        .primary:disabled {
-            background-color: #cccccc;
+        .primary:disabled {
+            background-color: #bdbdbd; /* グレーアウト */
             cursor: not-allowed;
-            opacity: 0.7;
+            opacity: 0.8;
+            box-shadow: none;
         }
 
         /* Secondaryボタン (キャンセル/戻る/完了) */
-        .secondary {
-            background-color: #6c757d;
+        .secondary {
+            background-color: #9e9e9e; /* ニュートラルなグレー */
             color: white;
         }
-        .secondary:hover {
-            background-color: #5a6268;
+        .secondary:hover:not(:disabled) {
+            background-color: #757575;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .secondary:disabled {
+            background-color: #e0e0e0;
+            color: #a0a0a0;
+            cursor: not-allowed;
+            opacity: 0.8;
         }
 
+        /* ---------------------------------------------------------------------- */
         /* ステータスとローディング */
-        #status_message {
-            padding: 10px;
-            border-left: 5px solid #007bff;
-            background-color: #e6f0ff;
-            border-radius: 5px;
+        /* ---------------------------------------------------------------------- */
+        #status_message {
+            padding: 15px;
+            border-left: 6px solid #1e88e5; /* 青い強調線 */
+            background-color: #e3f2fd; /* 薄い水色の背景 */
+            border-radius: 8px;
+            margin-top: 30px !important; /* 強調 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
-        #status_message p {
+        #status_message p {
             margin: 0;
-            line-height: 1.4;
+            line-height: 1.5;
+            font-weight: 500;
         }
-        #loading_spinner {
-            font-style: italic;
-            color: #ff9800; /* 処理中の色 */
+        /* 完了時のメッセージスタイル */
+        #status_message p[style*="green"] {
+            color: #2e7d32 !important; 
+            font-weight: 700 !important;
+            font-size: 1.1em;
+        }
+        /* エラー時のメッセージスタイル */
+        #status_message p[style*="red"] {
+            color: #d32f2f !important; 
+            font-weight: 700 !important;
+            font-size: 1.1em;
+        }
+
+        #loading_spinner {
+            font-style: normal; /* 斜体を解除 */
+            color: #ff9800;
+            margin-top: 15px !important;
+            font-weight: bold;
+            animation: pulse 1.5s infinite; /* アニメーションを追加 */
+            display: flex;
+            align-items: center;
+        }
+        #loading_spinner::before {
+            content: '🔄'; /* 回転アイコン */
+            margin-right: 10px;
+            animation: spin 1.5s linear infinite; /* アイコンを回転 */
+        }
+
+        /* アニメーションキーフレーム */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <script>
-        function closeCurrentTabAndReloadOpener() {
-            try {
-                // window.openerが存在する場合、親ウィンドウをリロードしてから閉じる
-                if (window.opener && !window.opener.closed) {
-                    // 親ウィンドウ（メインGUI）のステータス更新を想定してリロード
-                    window.opener.location.reload(); 
-                }
-            } catch (e) {
-                console.warn("親ウィンドウのリロードに失敗しました:", e);
-            }
-            // 現在のタブ/ウィンドウを閉じる
-            window.close();
-        }
-    </script>
+    <script>
+        function closeCurrentTabAndReloadOpener() {
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.location.reload(); 
+                }
+            } catch (e) {
+                console.warn("親ウィンドウのリロードに失敗しました:", e);
+            }
+            window.close();
+        }
+    </script>
 </head>
 <body>
-    <div class="container">
-        <h2>PCD to PGM 変換: 設定</h2>
+    <div class="container">
+        <h2>PCD to PGM 変換: 設定</h2>
 
-        <p>変換元PCDファイル: <strong>{{ input_pcd_filename }}</strong></p>
-        
-        <p class="waypoint-info">
-            ウェイポイントファイル: 
-            {% if input_waypoint_filename %}
-                <strong style="color: #ff8c00;">{{ input_waypoint_filename }}</strong> (PCD to PGMに反映)
-            {% else %}
-                <span style="color: #6c757d;">なし (ウェイポイント情報は使用しません)</span>
-            {% endif %}
-        </p>
-        <input type="hidden" id="input_waypoint_filename" value="{{ input_waypoint_filename if input_waypoint_filename else '' }}">
+        <ul class="file-selection-display">
+            <li class="file-item">
+                変換元PCDファイル: <strong>{{ input_pcd_filename }}</strong>
+            </li>
 
-        <label for="output_map_name">出力PGMマップベース名:</label>
-        <input type="text" id="output_map_name" value="{{ default_output_name }}" required>
-        <p class="note">（例: `{{ default_output_name }}` → `{{ default_output_name }}.pgm` と `{{ default_output_name }}.yaml` が作成されます）</p>
+            {% if input_waypoint_filename %}
+            <li class="file-item waypoint-info">
+                ウェイポイントファイル: <strong>{{ input_waypoint_filename }}</strong> (PCD to PGMに反映)
+            </li>
+            {% else %}
+            <li class="file-item no-waypoint">
+                ウェイポイントファイル: なし (ウェイポイント情報は使用しません)
+            </li>
+            {% endif %}
+        </ul>
+
+        <input type="hidden" id="input_waypoint_filename" value="{{ input_waypoint_filename if input_waypoint_filename else '' }}">
+
+        <label for="output_map_name">出力PGMマップベース名:</label>
+        <input type="text" id="output_map_name" value="{{ default_output_name }}" required>
+        <p class="note">（例: `{{ default_output_name }}` → `{{ default_output_name }}.pgm` と `{{ default_output_name }}.yaml` が作成されます）</p>
 
         {% if input_waypoint_filename %}
         <div class="loop-setting">
@@ -182,49 +299,47 @@
         </div>
         {% endif %}
 
-        <button id="start_convert_button" class="button primary">変換開始</button>
-        <button id="cancel_button" class="button secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
+        <button id="start_convert_button" class="button primary">変換開始</button>
+        <button id="cancel_button" class="button secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
 
-        <div id="status_message" style="margin-top: 20px;"></div>
-        <div id="loading_spinner" style="display:none; margin-top: 10px;">処理中...</div>
+        <div id="status_message" style="margin-top: 20px;">
+            <p>設定を確認し、「変換開始」ボタンを押してください。</p>
+        </div>
+        <div id="loading_spinner" style="display:none; margin-top: 10px;">処理中...</div>
 
-        <script>
-            $(document).ready(function() {
-                var pollingInterval;
-                var mapName;
-                var waypointFilename = $('#input_waypoint_filename').val(); // ウェイポイントファイル名を取得
+        <script>
+            $(document).ready(function() {
+                var pollingInterval;
+                var mapName;
+                var waypointFilename = $('#input_waypoint_filename').val(); 
 
-                $('#start_convert_button').click(function() {
-                    mapName = $('#output_map_name').val().trim();
-                    if (!mapName) {
-                        alert("出力マップ名を入力してください。");
-                        return;
-                    }
+                $('#start_convert_button').click(function() {
+                    mapName = $('#output_map_name').val().trim();
+                    if (!mapName) {
+                        alert("出力マップ名を入力してください。");
+                        return;
+                    }
 
-                    // 【追加】: ループフラグの状態を取得
-                    // チェックボックスが存在し、チェックされている場合は 'true'、それ以外は 'false' を設定
                     var loopWaypoints = 'false';
                     if ($('#loop_waypoints').length) {
                         loopWaypoints = $('#loop_waypoints').prop('checked') ? 'true' : 'false';
                     }
 
-                    // ステータス初期化とローディング表示
-                    $('#status_message').html('');
-                    $('#loading_spinner').show();
-                    $('#start_convert_button').prop('disabled', true);
-                    $('#cancel_button').prop('disabled', true); 
+                    // ステータス初期化とローディング表示
+                    $('#status_message').html('');
+                    $('#loading_spinner').show();
+                    $('#start_convert_button').prop('disabled', true);
+                    $('#cancel_button').prop('disabled', true); 
 
-                    // 1. 変換開始APIを呼び出す
-                    $.ajax({
+                    // 1. 変換開始APIを呼び出す
+                    $.ajax({
                         url: '{{ url_for('pcd2pgm_convert') }}',
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({
-                            input_pcd_filename: '{{ input_pcd_filename }}',
-                            output_map_name: mapName,
-                            // 修正点 3: ウェイポイントファイル名をペイロードに追加
-                            waypoint_filename: waypointFilename,
-                            // 【追加】: ループフラグをペイロードに追加
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            input_pcd_filename: '{{ input_pcd_filename }}',
+                            output_map_name: mapName,
+                            waypoint_filename: waypointFilename,
                             loop_waypoints: loopWaypoints 
                         }),
                         success: function(response) {
@@ -260,16 +375,11 @@
                                 $('#loading_spinner').hide();
                                 
                                 var downloadLink = '<a href="' + response.download_url + '" class="button primary" style="margin-top: 10px;">PGM/YAMLマップをダウンロード</a>';
-                                
-                                // 完了後のリンク
-                                var backLink = '<a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">他のPCDを選択</a>';
-                                var mainGuiLink = '<a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">メインGUIに戻る</a>';
+                                var backLink = '<button type="button" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">他のPCDを選択/メインGUIに戻る</button>';
 
                                 $('#status_message').append(
                                     '<p style="color: green; font-weight: bold; margin-top: 10px;">✅ 変換完了！</p>' + 
-                                    downloadLink + 
-                                    backLink +
-                                    mainGuiLink
+                                    '<div style="margin-top: 15px;">' + downloadLink + backLink + '</div>'
                                 );
                                 
                             } else if (response.status === 'error') {

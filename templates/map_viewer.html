@@ -124,6 +124,48 @@
             margin-bottom: 15px;
             box-sizing: border-box;
         }
+        /* --- ウェイポイント情報パネル用スタイルの追加 --- */
+        #waypoint-info {
+            position: absolute;
+            bottom: 10px; /* 画面下部に配置 */
+            left: 10px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            z-index: 10;
+            max-width: 300px;
+            display: none; /* 初期状態では非表示 */
+            flex-direction: column;
+            gap: 5px;
+        }
+        #waypoint-info h4 {
+            margin: 0 0 5px 0;
+            font-weight: bold;
+            color: #ffcc00; /* 強調色 */
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+        #waypoint-info .coord-input {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        #waypoint-info .coord-input label {
+            width: 15px; /* X, Y, Z のラベル幅 */
+        }
+        #waypoint-info .coord-input input {
+            width: 60px; /* 入力フィールドの幅 */
+            padding: 2px 5px;
+            border: 1px solid #777;
+            background-color: #444;
+            color: #fff;
+        }
+        #waypoint-info button {
+            margin-top: 10px;
+            padding: 5px;
+        }
     </style>
     <script type="importmap">
         {
@@ -157,7 +199,7 @@
             <h4>現在表示中の要素:</h4>
             <div id="unload-list-container">
                 <p>アンロード対象のチェックボックス...</p>
-            </div>            
+            </div>            
             <button id="confirm-unload-button" style="padding: 8px 15px;">選択した要素をアンロード</button>
         </div>
     </div>
@@ -165,6 +207,30 @@
     <div id="viewer-container"></div>
     <div id="loading-message">マップ名を指定してロードしてください。</div>
     <div id="info"></div>
+    
+    <div id="waypoint-info">
+        <h4>選択中のウェイポイント</h4>
+        <div id="wp-details">
+            <p>クリックしてウェイポイントを選択してください。</p>
+        </div>
+        <div id="wp-edit-controls" style="margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+            **位置 (X, Y, Z):**
+            <div class="coord-input">
+                <label for="edit-x">X:</label>
+                <input type="number" id="edit-x" step="0.01">
+            </div>
+            <div class="coord-input">
+                <label for="edit-y">Y:</label>
+                <input type="number" id="edit-y" step="0.01">
+            </div>
+            <div class="coord-input">
+                <label for="edit-z">Z:</label>
+                <input type="number" id="edit-z" step="0.01">
+            </div>
+            <button id="apply-changes-button" disabled>変更を適用</button>
+        </div>
+    </div>
+
     <div id="controls">
         <div style="display: flex; flex-direction: column; gap: 5px;">
             <label for="map-name-input">**現在の**マップ名:</label>
@@ -182,17 +248,23 @@
         import * as THREE from 'three';
         import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'; 
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
+        
         let waypoints = []; 
         let mapData = null; 
         const meshRegistry = {}; 
         let currentMapName = '{{ map_name }}'; // Flaskから渡された値を初期値として設定
         let scene, camera, renderer, loader;
         let controls;
+        let raycaster; // --- 追加: Raycaster
+        let mouse = new THREE.Vector2(); // --- 追加: マウス座標
+        let selectedWaypoint = null; // --- 追加: 選択中のウェイポイントオブジェクト
+
         function quaternionToYaw(qx, qy, qz, qw) {
             const siny_cosp = 2 * (qw * qz + qx * qy);
             const cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
             return Math.atan2(siny_cosp, cosy_cosp);
         }
+        
         async function parsePGM(urlOrBuffer, mapData) {
             let buffer;
             if (typeof urlOrBuffer === 'string') {
@@ -283,6 +355,7 @@
             }
             return { data, width, height, maxValue };
         }
+        
         function createToggle(id, labelText, mesh) {
             const container = document.getElementById('dynamic-toggles');
             const existingLabel = document.getElementById(id + '-label');
@@ -310,6 +383,7 @@
             container.appendChild(label);
             return label; 
         }
+        
         async function loadPGMMap(mapName) { 
             const componentType = 'pgm';
             const uniqueId = `${componentType}-${mapName}`;
@@ -344,8 +418,8 @@
                 
                 texture.flipY = false; 
                 texture.wrapS = THREE.ClampToEdgeWrapping; 
-                texture.repeat.set(-1, 1);                  
-                texture.offset.set(1, 0);                   
+                texture.repeat.set(-1, 1);                  
+                texture.offset.set(1, 0);                   
                 texture.needsUpdate = true;
                 
                 const material = new THREE.MeshBasicMaterial({ 
@@ -363,13 +437,13 @@
                 mesh.rotation.y = 0; 
                 mesh.rotation.z = -Math.PI; 
 
-                const centerX = origin[0] + mapWidth / 2;  
+                const centerX = origin[0] + mapWidth / 2;  
                 const centerY = origin[1] + mapHeight / 2; 
                 
                 mesh.position.set(
-                    centerX,                          // X軸中心
-                    centerY,                          // Y軸中心
-                    PGM_Z_OFFSET                      // Z軸: 0.0
+                    centerX,                          // X軸中心
+                    centerY,                          // Y軸中心
+                    PGM_Z_OFFSET                      // Z軸: 0.0
                 ); 
                 
                 scene.add(mesh);
@@ -425,6 +499,7 @@
                 document.getElementById('info').innerHTML = `PCDロード失敗: ${error.message}`;
             }
         }
+        
         async function loadYAML(mapName) {
             const yamlUrl = `/map/${mapName}.yaml`;
             unloadMap('pgm', mapName); 
@@ -450,6 +525,7 @@
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">YAMLロード失敗: ${error.message}</span>`;
             }
         }
+        
         async function loadWaypoints(mapName) {
             const componentType = 'waypoints';
             const uniqueId = `${componentType}-${mapName}`;
@@ -491,7 +567,15 @@
                     const material = new THREE.MeshBasicMaterial({ color: 0x00ffff }); 
                     const sphere = new THREE.Mesh(geometry, material);
                     sphere.position.set(x, y, z);
+                    
+                    // --- Waypoint の属性とインデックスを userData に格納 ---
+                    sphere.name = `waypoint_sphere_${index}`;
+                    sphere.userData.waypointIndex = index;
+                    // JSONの3番目以降の要素を属性として格納
+                    sphere.userData.attributes = wp.length > 2 ? wp.slice(2) : {}; 
+
                     newWaypointsGroup.add(sphere);
+                    
                     const dir = new THREE.Vector3(1, 0, 0); 
                     dir.applyAxisAngle(new THREE.Vector3(0, 0, 1), yaw); 
                     const origin = new THREE.Vector3(x, y, z);
@@ -511,10 +595,20 @@
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointロード失敗: ${error.message}</span>`;
             }
         }
+        
         window.unloadMap = function(type, mapName) {
             const uniqueId = `${type}-${mapName}`;
             const mesh = meshRegistry[uniqueId];
             let elementExists = false;
+
+            // --- Waypoint アンロード時の選択状態リセット ---
+            if (type === 'waypoints') {
+                if (selectedWaypoint && mesh && selectedWaypoint.parent === mesh) {
+                    selectedWaypoint = null;
+                    hideWaypointInfo();
+                }
+            }
+            // ----------------------------------------
 
             if (mesh) {
                 if (mesh.isMesh || mesh.isPoints) {
@@ -673,6 +767,183 @@
             };
         }
 
+        // --- Waypoint の選択と編集に関する新しい関数 ---
+        function onWaypointClick(event) {
+            event.preventDefault();
+
+            const container = document.getElementById('viewer-container');
+            // マウス座標を -1 から +1 の範囲に変換 (Three.jsの座標系)
+            mouse.x = (event.clientX / container.clientWidth) * 2 - 1;
+            mouse.y = -(event.clientY / container.clientHeight) * 2 + 1;
+
+            // レイキャスターを更新
+            raycaster.setFromCamera(mouse, camera);
+
+            // シーン内のすべてのウェイポイント球体に対して交差をチェック
+            let waypointsGroup = null;
+            for (const key in meshRegistry) {
+                if (key.startsWith('waypoints-')) {
+                    waypointsGroup = meshRegistry[key];
+                    break;
+                }
+            }
+
+            if (!waypointsGroup) return; // ウェイポイントがロードされていなければ何もしない
+
+            // Waypoint の球体 (isMesh) のみを対象とする
+            const intersects = raycaster.intersectObjects(waypointsGroup.children.filter(c => c.isMesh && c.name.startsWith('waypoint_sphere_'))); 
+            
+            // 前に選択されていたウェイポイントをリセット
+            if (selectedWaypoint) {
+                selectedWaypoint.material.color.setHex(0x00ffff); // デフォルトの色に戻す
+                selectedWaypoint = null;
+            }
+
+            if (intersects.length > 0) {
+                // 最も近いウェイポイントを選択
+                const intersectedObject = intersects[0].object;
+
+                if (intersectedObject.isMesh && intersectedObject.name.startsWith('waypoint_sphere_')) {
+                    selectedWaypoint = intersectedObject;
+                    selectedWaypoint.material.color.setHex(0xff0000); // 選択されたら赤色にする
+
+                    const index = selectedWaypoint.userData.waypointIndex;
+                    const position = selectedWaypoint.position;
+                    const attributes = selectedWaypoint.userData.attributes;
+                    
+                    displayWaypointInfo(index, position, attributes);
+                } else {
+                    hideWaypointInfo();
+                }
+            } else {
+                hideWaypointInfo();
+            }
+        }
+
+        function displayWaypointInfo(index, position, attributes) {
+            const infoDiv = document.getElementById('wp-details');
+            const infoPanel = document.getElementById('waypoint-info');
+            const editX = document.getElementById('edit-x');
+            const editY = document.getElementById('edit-y');
+            const editZ = document.getElementById('edit-z');
+            const applyButton = document.getElementById('apply-changes-button');
+
+            // 属性表示
+            let detailsHtml = `
+                <p><strong>インデックス:</strong> ${index}</p>
+                <p><strong>現在の位置:</strong><br>
+                X: ${position.x.toFixed(3)}, 
+                Y: ${position.y.toFixed(3)}, 
+                Z: ${position.z.toFixed(3)}</p>
+            `;
+            
+            // JSONの3番目以降の要素（属性）を表示
+            if (Array.isArray(attributes)) {
+                 attributes.forEach((attr, i) => {
+                     if (typeof attr === 'object' && attr !== null) {
+                         for (const key in attr) {
+                             detailsHtml += `<p><strong>${key}:</strong> ${attr[key]}</p>`;
+                         }
+                     } else {
+                         detailsHtml += `<p><strong>属性${i + 1}:</strong> ${attr}</p>`;
+                     }
+                 });
+            } else if (typeof attributes === 'object' && attributes !== null) {
+                for (const key in attributes) {
+                    detailsHtml += `<p><strong>${key}:</strong> ${attributes[key]}</p>`;
+                }
+            }
+
+            infoDiv.innerHTML = detailsHtml;
+
+            // 編集 UI に現在の位置を設定
+            editX.value = position.x.toFixed(3);
+            editY.value = position.y.toFixed(3);
+            editZ.value = position.z.toFixed(3);
+
+            // 編集ボタンを有効化
+            applyButton.disabled = false;
+            
+            infoPanel.style.display = 'flex';
+        }
+        
+        function hideWaypointInfo() {
+            document.getElementById('waypoint-info').style.display = 'none';
+            document.getElementById('apply-changes-button').disabled = true;
+        }
+
+        function applyWaypointChanges() {
+            if (!selectedWaypoint) {
+                alert("ウェイポイントが選択されていません。");
+                return;
+            }
+
+            const index = selectedWaypoint.userData.waypointIndex;
+            const newX = parseFloat(document.getElementById('edit-x').value);
+            const newY = parseFloat(document.getElementById('edit-y').value);
+            const newZ = parseFloat(document.getElementById('edit-z').value);
+            
+            if (isNaN(newX) || isNaN(newY) || isNaN(newZ)) {
+                alert("無効な座標値です。数値で入力してください。");
+                return;
+            }
+
+            // 3D オブジェクトの位置を更新
+            selectedWaypoint.position.set(newX, newY, newZ);
+            
+            // ウェイポイントの矢印を更新
+            const waypointsGroup = selectedWaypoint.parent;
+            if (waypointsGroup) {
+                // Waypoint は (球体, 矢印, 球体, 矢印, ...) の順でグループの子に格納されている
+                const sphereIndexInGroup = waypointsGroup.children.findIndex(c => c === selectedWaypoint);
+                const arrowIndex = sphereIndexInGroup + 1;
+                const correspondingArrow = waypointsGroup.children[arrowIndex];
+                
+                if (correspondingArrow && correspondingArrow.type === 'Group') {
+                    // 現在の方向を取得
+                    const dir = new THREE.Vector3();
+                    // ArrowHelper の軸 (Cone) の方向を取得
+                    if (correspondingArrow.children[0] && correspondingArrow.children[0].isMesh) {
+                        correspondingArrow.children[0].getWorldDirection(dir); 
+                    } else if (correspondingArrow.children[1] && correspondingArrow.children[1].isMesh) {
+                         correspondingArrow.children[1].getWorldDirection(dir); 
+                    } else {
+                        // 矢印が取得できなければ、ウェイポイントの位置だけ更新して抜ける
+                        console.warn("ArrowHelper の方向取得に失敗しました。");
+                        return;
+                    }
+                    
+                    // 矢印のプロパティを再設定
+                    const length = 1.0; 
+                    const color = 0xffff00; // 元の色を固定
+                    
+                    // 古い矢印を削除
+                    waypointsGroup.remove(correspondingArrow);
+                    
+                    // 新しい ArrowHelper を作成して追加
+                    const newOrigin = new THREE.Vector3(newX, newY, newZ);
+                    const newArrowHelper = new THREE.ArrowHelper(dir, newOrigin, length, color, 0.2, 0.15);
+                    // 元の位置に挿入 (描画順を維持)
+                    waypointsGroup.children.splice(arrowIndex, 0, newArrowHelper);
+                }
+            }
+
+
+            // 元のデータ配列も更新
+            if (waypoints[index]) {
+                // ROS のウェイポイントは [position[x, y, z], orientation[qx, qy, qz, qw], ...]
+                waypoints[index][0][0] = newX;
+                waypoints[index][0][1] = newY;
+                waypoints[index][0][2] = newZ;
+            }
+            
+            // 選択状態を維持しつつ、UIを更新
+            displayWaypointInfo(index, selectedWaypoint.position, selectedWaypoint.userData.attributes);
+
+            document.getElementById('info').innerHTML = `ウェイポイント ${index} の位置を (${newX.toFixed(3)}, ${newY.toFixed(3)}, ${newZ.toFixed(3)}) に更新しました。`;
+        }
+        // ----------------------------------------
+        
         function init() {
             const container = document.getElementById('viewer-container');
             
@@ -694,15 +965,24 @@
 
             loader = new PCDLoader();
             
+            // --- Raycaster の初期化 ---
+            raycaster = new THREE.Raycaster(); 
+            raycaster.params.Points.threshold = 0.1; // PCD の閾値
+            
             window.addEventListener('resize', onWindowResize, false);
             document.getElementById('load-map-button').addEventListener('click', startLoadProcess);
             document.getElementById('unload-map-button').addEventListener('click', startUnloadProcess);
+            // --- ウェイポイント編集イベントリスナー ---
+            renderer.domElement.addEventListener('click', onWaypointClick, false);
+            document.getElementById('apply-changes-button').addEventListener('click', applyWaypointChanges);
+            // ----------------------------------------
+            
             const initialMapName = "{{ map_name }}"; 
             
             if (initialMapName) {
                 currentMapName = initialMapName;
                 document.getElementById('map-name-input').value = initialMapName;
-                const hasInitialPCD = true; // /view_map/<map_name> のロジックではPCDは必須としていたため
+                const hasInitialPCD = true; 
                 const hasInitialYAML = "{{ yaml_data|safe }}" !== "";
                 const hasInitialWaypoints = "{{ waypoints_data|safe }}" !== "[]";
                 

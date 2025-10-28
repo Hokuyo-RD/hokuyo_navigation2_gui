@@ -219,7 +219,7 @@
                 <input type="number" id="edit-y" step="0.01">
             </div>
             <div class="coord-input">
-                <label for="edit-z">Z:</label>
+                <label for="edit-yaw">Yaw:</label>
                 <input type="number" id="edit-yaw" step="1.0" title="Yaw角 (度)">
             </div>
             <button id="delete-waypoint-button" disabled>選択中のウェイポイントを削除</button>
@@ -270,6 +270,7 @@
         let draggableObjects = [];
         let isAddingWaypointMode = false;
         let gridHelper;
+        let groundPlane; // 地面判定用の透明な平面
 
         function quaternionToYaw(qx, qy, qz, qw) {
             const siny_cosp = 2 * (qw * qz + qx * qy);
@@ -719,12 +720,38 @@
             };
         }
         function onWaypointClick(event) {
+            // ウェイポイント追加モード中は選択処理を無効化
+            if (isAddingWaypointMode) {
+                const container = document.getElementById('viewer-container');
+                mouse.x = (event.clientX / container.clientWidth) * 2 - 1;
+                mouse.y = -(event.clientY / container.clientHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+
+                // 地面判定用の透明な平面との交点を計算
+                const intersects = raycaster.intersectObject(groundPlane);
+
+                if (intersects.length > 0) {
+                    const intersectPoint = intersects[0].point;
+                    addWaypointAt(intersectPoint);
+                    document.getElementById('info').innerHTML = `ウェイポイントを (${intersectPoint.x.toFixed(2)}, ${intersectPoint.y.toFixed(2)}) に追加しました。`;
+                    toggleAddWaypointMode(); // 1つ追加したらモードを解除
+                }
+                return;
+            }
+
             event.preventDefault();
 
             const container = document.getElementById('viewer-container');
             mouse.x = (event.clientX / container.clientWidth) * 2 - 1;
             mouse.y = -(event.clientY / container.clientHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
+
+            // ウェイポイント追加モードのキーボード解除
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && isAddingWaypointMode) {
+                    toggleAddWaypointMode();
+                }
+            });
             let waypointsGroup = null;
             for (const key in meshRegistry) {
                 if (key.startsWith('waypoints-')) {
@@ -840,6 +867,59 @@
             document.getElementById('info').innerHTML = `ウェイポイント ${index} の向きを ${newYawDeg.toFixed(1)}° に更新しました。`;
         }
 
+        function addWaypointAt(position) {
+            if (!currentMapName) {
+                alert("ウェイポイントを追加するには、まずマップをロードまたは指定してください。");
+                toggleAddWaypointMode(); // モードを解除
+                return;
+            }
+
+            const componentType = 'waypoints';
+            const uniqueId = `${componentType}-${currentMapName}`;
+            let waypointsGroup = scene.getObjectByName(uniqueId);
+
+            // ウェイポイントグループがなければ新規作成
+            if (!waypointsGroup) {
+                waypointsGroup = new THREE.Group();
+                waypointsGroup.name = uniqueId;
+                scene.add(waypointsGroup);
+                meshRegistry[uniqueId] = waypointsGroup;
+                createToggle(uniqueId, `Waypoints (${currentMapName})`, waypointsGroup);
+            }
+
+            const newIndex = waypoints.length;
+            const WAYPOINT_Z_OFFSET = 0.0;
+            const x = position.x;
+            const y = position.y;
+            const z = WAYPOINT_Z_OFFSET;
+
+            // 新しいウェイポイントデータを配列に追加 (向きはデフォルトでYaw=0)
+            const newWpData = [[x, y, z], [0, 0, 0, 1]]; // [position], [quaternion]
+            waypoints.push(newWpData);
+
+            // 球体を作成
+            const SPHERE_RADIUS = 0.3;
+            const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.set(x, y, z);
+            sphere.name = `waypoint_sphere_${newIndex}`;
+            sphere.userData.waypointIndex = newIndex;
+            sphere.userData.attributes = {}; // 新規追加なので属性は空
+            waypointsGroup.add(sphere);
+
+            // 矢印を作成
+            const dir = new THREE.Vector3(1, 0, 0);
+            const origin = new THREE.Vector3(x, y, z);
+            const arrowHelper = new THREE.ArrowHelper(dir, origin, 1.0, 0xffff00, 0.2, 0.15);
+            arrowHelper.name = `waypoint_arrow_${newIndex}`;
+            waypointsGroup.add(arrowHelper);
+
+            // ドラッグコントロールに追加
+            draggableObjects.push(sphere);
+            dragControls.getObjects().push(sphere);
+        }
+
         function toggleAddWaypointMode() {
             isAddingWaypointMode = !isAddingWaypointMode;
             const button = document.getElementById('add-waypoint-button');
@@ -934,11 +1014,19 @@
             renderer.domElement.addEventListener('click', onWaypointClick, false);
             document.getElementById('edit-yaw').addEventListener('change', applyYawChange);
             document.getElementById('save-waypoints-button').addEventListener('click', saveWaypointsToServer);
+            document.getElementById('add-waypoint-button').addEventListener('click', toggleAddWaypointMode);
 
             // グリッドヘルパーの追加
             gridHelper = new THREE.GridHelper(200, 200, 0x888888, 0x444444);
             gridHelper.rotation.x = Math.PI / 2;
             scene.add(gridHelper);
+
+            // 地面判定用の透明な平面を作成
+            const planeGeometry = new THREE.PlaneGeometry(1000, 1000); // 十分大きな平面
+            const planeMaterial = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
+            groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            groundPlane.rotation.x = -Math.PI / 2; // XY平面になるように回転
+            scene.add(groundPlane);
 
             // グリッド表示切替
             document.getElementById('grid-toggle').addEventListener('change', (event) => {

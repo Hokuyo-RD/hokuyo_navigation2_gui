@@ -247,6 +247,10 @@
         <div id="dynamic-toggles">
         </div>
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label><input type="checkbox" id="auto-orient-waypoints"> 次のWPを指す</label>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
         <button id="add-waypoint-button" style="padding: 5px;">ウェイポイント追加</button>
         <button id="save-waypoints-button" style="padding: 5px;">ウェイポイントを保存</button>
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
@@ -563,6 +567,7 @@
                     dragControls.getObjects().push(...draggableObjects);
                 }
                 document.getElementById('info').innerHTML += `<br>Waypointを ${waypoints.length} 個配置完了`;
+                if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
             } catch (error) {
                 console.error('Waypointファイルのロード中にエラーが発生しました:', error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointロード失敗: ${error.message}</span>`;
@@ -657,6 +662,45 @@
                 return true;
             }
             return false;
+        }
+        function recalculateAllWaypointOrientations() {
+            if (waypoints.length < 2) return;
+
+            const waypointsGroup = scene.getObjectByName(`${'waypoints'}-${currentMapName}`);
+            if (!waypointsGroup) return;
+
+            for (let i = 0; i < waypoints.length - 1; i++) {
+                const currentPos = new THREE.Vector3().fromArray(waypoints[i][0]);
+                const nextPos = new THREE.Vector3().fromArray(waypoints[i + 1][0]);
+
+                const direction = new THREE.Vector3().subVectors(nextPos, currentPos);
+                const yawRad = Math.atan2(direction.y, direction.x);
+
+                // Update waypoints array
+                const newQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, yawRad));
+                waypoints[i][1] = [newQuat.x, newQuat.y, newQuat.z, newQuat.w];
+
+                // Update ArrowHelper in the scene
+                const arrow = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${i}`);
+                if (arrow) {
+                    arrow.setDirection(direction.normalize());
+                }
+
+                // Update TransformControls if this waypoint is selected
+                if (selectedWaypoint && selectedWaypoint.userData.waypointIndex === i) {
+                    selectedWaypoint.quaternion.copy(newQuat);
+                    displayWaypointInfo(i, selectedWaypoint.position, selectedWaypoint.userData.attributes);
+                }
+            }
+            document.getElementById('info').innerHTML = '全ウェイポイントの向きを自動調整しました。';
+        }
+        function toggleAutoOrient(isAuto) {
+            const yawInput = document.getElementById('edit-yaw');
+            yawInput.disabled = isAuto;
+            transformControls.enabled = !isAuto;
+            if (isAuto) {
+                recalculateAllWaypointOrientations();
+            }
         }
         async function executeMapLoading(mapName, loadPCDFlag, loadPGMFlag, loadWaypointsFlag) {
             currentMapName = mapName; 
@@ -986,6 +1030,7 @@
                 // 4. 後続のウェイポイントのインデックスを更新
                 waypointsGroup.children.forEach(child => {
                     if (child.userData.waypointIndex > indexToDelete) {
+                        const oldIndex = child.userData.waypointIndex;
                         child.userData.waypointIndex--;
                         // オブジェクト名も更新しておくと整合性が取れます
                         if (child.name.startsWith('waypoint_sphere_')) child.name = `waypoint_sphere_${child.userData.waypointIndex}`;
@@ -995,6 +1040,8 @@
 
                 hideWaypointInfo();
                 document.getElementById('info').innerHTML = `ウェイポイント ${indexToDelete} を削除しました。`;
+                updateWaypointPath(currentMapName);
+                if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
             }
         }
 
@@ -1057,7 +1104,8 @@
             // ドラッグコントロールに追加
             draggableObjects.push(sphere);
             dragControls.getObjects().push(sphere);
-                updateWaypointPath(currentMapName);
+            updateWaypointPath(currentMapName);
+            if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
         }
 
         function toggleAddWaypointMode() {
@@ -1093,6 +1141,9 @@
             transformControls.showX = false;
             transformControls.showY = false;
             transformControls.showZ = true;
+            transformControls.addEventListener('mouseDown', function () {
+                orbitControls.enabled = false;
+            });
             transformControls.addEventListener('dragging-changed', function (event) {
                 orbitControls.enabled = !event.value;
             });
@@ -1147,6 +1198,7 @@
                     waypoints[index][0][1] = event.object.position.y;
                     waypoints[index][0][2] = event.object.position.z;
                 }
+                if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
                 updateWaypointPath(currentMapName);
             });
 
@@ -1162,6 +1214,9 @@
             document.getElementById('save-waypoints-button').addEventListener('click', saveWaypointsToServer);
             document.getElementById('delete-waypoint-button').addEventListener('click', deleteSelectedWaypoint);
             document.getElementById('add-waypoint-button').addEventListener('click', toggleAddWaypointMode);
+            document.getElementById('auto-orient-waypoints').addEventListener('change', (event) => {
+                toggleAutoOrient(event.target.checked);
+            });
 
             // グリッドヘルパーの追加
             gridHelper = new THREE.GridHelper(200, 200, 0x888888, 0x444444);

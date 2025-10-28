@@ -727,12 +727,24 @@
                 mouse.y = -(event.clientY / container.clientHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
 
-                // 地面判定用の透明な平面との交点を計算
-                const intersects = raycaster.intersectObject(groundPlane);
+                // 1. PGMマップがあればそれを優先的に判定対象にする
+                const pgmObjects = Object.keys(meshRegistry)
+                                         .filter(key => key.startsWith('pgm-'))
+                                         .map(key => meshRegistry[key]);
+
+                let intersects;
+                if (pgmObjects.length > 0 && pgmObjects[0].visible) {
+                    // PGMマップが表示されている場合
+                    intersects = raycaster.intersectObjects(pgmObjects);
+                } else {
+                    // PGMマップがない、または非表示の場合はグリッドを判定対象にする
+                    intersects = raycaster.intersectObject(gridHelper);
+                }
 
                 if (intersects.length > 0) {
                     const intersectPoint = intersects[0].point;
-                    addWaypointAt(intersectPoint);
+                    // Z座標を強制的に0に設定して追加
+                    addWaypointAt(new THREE.Vector3(intersectPoint.x, intersectPoint.y, 0));
                     document.getElementById('info').innerHTML = `ウェイポイントを (${intersectPoint.x.toFixed(2)}, ${intersectPoint.y.toFixed(2)}) に追加しました。`;
                     toggleAddWaypointMode(); // 1つ追加したらモードを解除
                 }
@@ -1069,10 +1081,8 @@
             scene.add(gridHelper);
 
             // 地面判定用の透明な平面を作成
-            const planeGeometry = new THREE.PlaneGeometry(1000, 1000); // 十分大きな平面
-            const planeMaterial = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
-            groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-            groundPlane.rotation.x = -Math.PI / 2; // XY平面になるように回転
+            const planeGeometry = new THREE.PlaneGeometry(2000, 2000); // 十分大きな平面
+            groundPlane = new THREE.Mesh(planeGeometry, new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }));
             scene.add(groundPlane);
 
             // グリッド表示切替

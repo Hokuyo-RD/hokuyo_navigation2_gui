@@ -867,6 +867,48 @@
             document.getElementById('info').innerHTML = `ウェイポイント ${index} の向きを ${newYawDeg.toFixed(1)}° に更新しました。`;
         }
 
+        function deleteSelectedWaypoint() {
+            if (!selectedWaypoint) {
+                alert("削除するウェイポイントが選択されていません。");
+                return;
+            }
+
+            const indexToDelete = selectedWaypoint.userData.waypointIndex;
+            if (confirm(`ウェイポイント ${indexToDelete} を削除しますか？`)) {
+                const waypointsGroup = selectedWaypoint.parent;
+
+                // 1. TransformControlsからデタッチ
+                transformControls.detach();
+
+                // 2. シーンから球体と矢印を削除
+                const arrowToDelete = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${indexToDelete}`);
+                waypointsGroup.remove(selectedWaypoint);
+                if (arrowToDelete) {
+                    waypointsGroup.remove(arrowToDelete);
+                }
+
+                // 3. waypoints配列とdraggableObjectsからデータを削除
+                waypoints.splice(indexToDelete, 1);
+                const draggableIndex = draggableObjects.indexOf(selectedWaypoint);
+                if (draggableIndex > -1) {
+                    draggableObjects.splice(draggableIndex, 1);
+                }
+
+                // 4. 後続のウェイポイントのインデックスを更新
+                waypointsGroup.children.forEach(child => {
+                    if (child.userData.waypointIndex > indexToDelete) {
+                        child.userData.waypointIndex--;
+                        // オブジェクト名も更新しておくと整合性が取れます
+                        if (child.name.startsWith('waypoint_sphere_')) child.name = `waypoint_sphere_${child.userData.waypointIndex}`;
+                        if (child.name.startsWith('waypoint_arrow_')) child.name = `waypoint_arrow_${child.userData.waypointIndex}`;
+                    }
+                });
+
+                hideWaypointInfo();
+                document.getElementById('info').innerHTML = `ウェイポイント ${indexToDelete} を削除しました。`;
+            }
+        }
+
         function addWaypointAt(position) {
             if (!currentMapName) {
                 alert("ウェイポイントを追加するには、まずマップをロードまたは指定してください。");
@@ -1018,6 +1060,7 @@
             renderer.domElement.addEventListener('click', onWaypointClick, false);
             document.getElementById('edit-yaw').addEventListener('change', applyYawChange);
             document.getElementById('save-waypoints-button').addEventListener('click', saveWaypointsToServer);
+            document.getElementById('delete-waypoint-button').addEventListener('click', deleteSelectedWaypoint);
             document.getElementById('add-waypoint-button').addEventListener('click', toggleAddWaypointMode);
 
             // グリッドヘルパーの追加

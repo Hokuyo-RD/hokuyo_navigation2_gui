@@ -965,6 +965,7 @@
                 if (intersectedObject.isMesh && intersectedObject.name.startsWith('waypoint_sphere_')) {
                     selectedWaypoint = intersectedObject;
                     selectedWaypoint.material.color.setHex(0x0000ff); // 選択時の色を青に変更
+                    dragControls.enabled = true; // 選択されたらドラッグを有効化
                     transformControls.attach(selectedWaypoint);
 
                     const index = selectedWaypoint.userData.waypointIndex;
@@ -1328,6 +1329,7 @@
             transformControls.addEventListener('dragging-changed', function (event) {
                 orbitControls.enabled = !event.value;
             });
+            transformControls.addEventListener('mouseUp', () => { if (selectedWaypoint) dragControls.enabled = true; });
             transformControls.addEventListener('objectChange', () => {
                 if (selectedWaypoint) {
                     const index = selectedWaypoint.userData.waypointIndex;
@@ -1382,6 +1384,7 @@
                 if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
                 updateWaypointPath(currentMapName);
             });
+            dragControls.enabled = false; // 初期状態ではドラッグを無効化
 
 
             pcdLoader = new PCDLoader();

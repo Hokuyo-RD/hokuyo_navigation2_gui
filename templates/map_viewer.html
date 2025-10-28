@@ -1048,6 +1048,7 @@
                 if (arrow) {
                     arrow.position.copy(event.object.position);
                 }
+                selectedWaypoint = event.object; // ドラッグ中のオブジェクトを選択中として設定
                 displayWaypointInfo(index, event.object.position, event.object.userData.attributes);
             });
             dragControls.addEventListener('dragend', function (event) {

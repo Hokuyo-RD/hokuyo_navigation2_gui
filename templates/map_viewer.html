@@ -562,7 +562,10 @@
                     const yaw = quaternionToYaw(orientation[0], orientation[1], orientation[2], orientation[3]);
                     const SPHERE_RADIUS = 0.3; 
                     const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16); 
-                    const material = new THREE.MeshBasicMaterial({ color: 0x00ffff }); 
+                    const attributes = wp.length > 2 ? (Array.isArray(wp[2]) ? wp[2][0] : wp[2]) : {};
+                    const type = attributes.type || 'default';
+                    const colorValue = getColorByType(type);
+                    const material = new THREE.MeshBasicMaterial({ color: colorValue }); 
                     const sphere = new THREE.Mesh(geometry, material);
                     sphere.position.set(x, y, z);
                     sphere.name = `waypoint_sphere_${index}`;
@@ -942,6 +945,13 @@
             const intersects = raycaster.intersectObjects(waypointsGroup.children.filter(c => c.isMesh && c.name.startsWith('waypoint_sphere_'))); 
             if (selectedWaypoint) {
                 selectedWaypoint.material.color.setHex(0x00ffff);
+                // 選択解除時に元の色に戻す
+                const index = selectedWaypoint.userData.waypointIndex;
+                const wp = waypoints[index];
+                const attrs = wp && wp.length > 2 ? (Array.isArray(wp[2]) ? wp[2][0] : wp[2]) : {};
+                const type = attrs.type || 'default';
+                const originalColor = getColorByType(type);
+                selectedWaypoint.material.color.setHex(originalColor);
                 // 選択されていたオブジェクトがシーンから削除されている可能性があるため、
                 // transformControlsがそれを参照している場合はデタッチする
                 if (transformControls.object === selectedWaypoint) {
@@ -954,7 +964,7 @@
                 const intersectedObject = intersects[0].object;
                 if (intersectedObject.isMesh && intersectedObject.name.startsWith('waypoint_sphere_')) {
                     selectedWaypoint = intersectedObject;
-                    selectedWaypoint.material.color.setHex(0xff0000);
+                    selectedWaypoint.material.color.setHex(0x0000ff); // 選択時の色を青に変更
                     transformControls.attach(selectedWaypoint);
 
                     const index = selectedWaypoint.userData.waypointIndex;
@@ -970,6 +980,20 @@
                 hideWaypointInfo();
             }
         }
+
+        function getColorByType(type) {
+            switch (type) {
+                case 'normal':
+                    return 0x00ff00; // 緑
+                case 'slow':
+                    return 0xffff00; // 黄
+                case 'stop':
+                    return 0xff0000; // 赤
+                default:
+                    return 0x00ffff; // 水色 (デフォルト)
+            }
+        }
+
         function displayWaypointInfo(index, position, attributes) {
             const infoDiv = document.getElementById('wp-details');
             const infoPanel = document.getElementById('waypoint-info');
@@ -1175,6 +1199,11 @@
                 "xy_tolerance": 1,
                 "yaw_tolerance": 3.14
             };
+
+            // 属性に基づいて色を決定
+            const attr = Array.isArray(attributes) ? attributes[0] : attributes;
+            const type = attr.type || 'default';
+            const color = getColorByType(type);
 
             const newWpData = [[x, y, z], [0, 0, 0, 1], defaultAttributes]; // [position], [quaternion], [attributes]
             const finalIndex = (insertionIndex === undefined || insertionIndex > waypoints.length) ? waypoints.length : insertionIndex;

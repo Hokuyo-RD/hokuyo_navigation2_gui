@@ -1040,6 +1040,8 @@
                 // 選択状態をクリア
                 selectedWaypoint = null;
                 transformControls.detach();
+                const addAfterButton = document.getElementById('add-waypoint-after-button');
+                if (addAfterButton) addAfterButton.disabled = true;
 
                 // 3. waypoints配列とdraggableObjectsからデータを削除
                 waypoints.splice(indexToDelete, 1);

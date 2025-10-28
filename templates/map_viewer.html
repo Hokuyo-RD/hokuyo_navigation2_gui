@@ -67,7 +67,6 @@
             flex-direction: column;
             gap: 5px;
         }
-        /* --- モーダル用スタイルの追加 --- */
         .modal {
             display: none; 
             position: fixed;
@@ -124,7 +123,6 @@
             margin-bottom: 15px;
             box-sizing: border-box;
         }
-        /* --- ウェイポイント情報パネル用スタイルの追加 --- */
         #waypoint-info {
             position: absolute;
             bottom: 10px; /* 画面下部に配置 */
@@ -247,12 +245,12 @@
         let waypoints = []; 
         let mapData = null; 
         const meshRegistry = {}; 
-        let currentMapName = '{{ map_name }}'; // Flaskから渡された値を初期値として設定
+        let currentMapName = '{{ map_name }}';
         let scene, camera, renderer, loader;
         let controls;
-        let raycaster; // --- 追加: Raycaster
-        let mouse = new THREE.Vector2(); // --- 追加: マウス座標
-        let selectedWaypoint = null; // --- 追加: 選択中のウェイポイントオブジェクト
+        let raycaster;
+        let mouse = new THREE.Vector2();
+        let selectedWaypoint = null;
         function quaternionToYaw(qx, qy, qz, qw) {
             const siny_cosp = 2 * (qw * qz + qx * qy);
             const cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
@@ -271,7 +269,6 @@
             }
             const decoder = new TextDecoder('ascii');
             let offset = 0;
-            // 1. マジックナンバー (P5)
             let magicNumber = decoder.decode(new Uint8Array(buffer, offset, 2));
             if (magicNumber !== 'P5') {
                 throw new Error(`Unsupported PGM format: ${magicNumber}. Only P5 (binary) is supported.`);
@@ -283,9 +280,7 @@
                 const charCode = new Uint8Array(buffer, i, 1)[0];
                 const char = String.fromCharCode(charCode);
                 if (char === '\n') {
-                    // ヘッダー行を処理
                     const lines = headerText.split('\n').map(line => line.trim()).filter(line => line !== '');
-                    // コメント行 (#) 以外の行を抽出
                     const dataLines = lines.filter(line => !line.startsWith('#'));
                     if (dataLines.length >= 2) {
                         headerEndIndex = i + 1; // ピクセルデータの開始位置
@@ -305,27 +300,21 @@
             if (!width || !height || !maxValue) {
                  throw new Error("PGM header data (width, height, max value) is invalid.");
             }
-            // 3. ピクセルデータ
             const pixelDataStart = headerEndIndex;
             const pixelDataSize = width * height;
             const grayData = new Uint8Array(buffer, pixelDataStart, pixelDataSize);
-            // 4. Three.jsテクスチャ用のRGBAデータに変換と色付け (視認性改善ロジック)
             const data = new Uint8Array(pixelDataSize * 4);
             const occupiedThresh = mapData.occupied_thresh || 0.65;
             const freeThresh = mapData.free_thresh || 0.196;
-            // しきい値を 0-255 のグレースケール値に変換
             for (let i = 0; i < pixelDataSize; i++) {
                 const gray = grayData[i];
                 const offset = i * 4;
-
                 if (gray === 0) {
-                    // 占有セル (黒): 赤色で強調し、半不透明
                     data[offset] = 255;     // R
                     data[offset + 1] = 50;  // G
                     data[offset + 2] = 50;  // B
                     data[offset + 3] = 200; // A: 80% 不透明
                 } else if (gray === 254) {
-                    // 自由セル (白): 薄い緑色で、半透明
                     data[offset] = 150;     // R
                     data[offset + 1] = 255; // G
                     data[offset + 2] = 150; // B
@@ -578,7 +567,6 @@
                         mesh.remove(child);
                     }
                 }
-
                 scene.remove(mesh);
                 delete meshRegistry[uniqueId];
                 elementExists = true;

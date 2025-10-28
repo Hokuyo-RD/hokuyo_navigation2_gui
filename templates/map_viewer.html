@@ -871,7 +871,11 @@
             const intersects = raycaster.intersectObjects(waypointsGroup.children.filter(c => c.isMesh && c.name.startsWith('waypoint_sphere_'))); 
             if (selectedWaypoint) {
                 selectedWaypoint.material.color.setHex(0x00ffff);
-                transformControls.detach();
+                // 選択されていたオブジェクトがシーンから削除されている可能性があるため、
+                // transformControlsがそれを参照している場合はデタッチする
+                if (transformControls.object === selectedWaypoint) {
+                    transformControls.detach();
+                }
                 document.getElementById('add-waypoint-after-button').disabled = true;
                 selectedWaypoint = null;
             }

@@ -209,10 +209,10 @@
             <p>クリックしてウェイポイントを選択してください。</p>
         </div>
         <div id="wp-edit-controls" style="margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
-            **位置 (X, Y, Z):**
+            **位置と向き:**
             <div class="coord-input">
                 <label for="edit-x">X:</label>
-                <input type="number" id="edit-x" step="0.01">
+                <input type="number" id="edit-x" step="0.01" disabled>
             </div>
             <div class="coord-input">
                 <label for="edit-y">Y:</label>
@@ -220,9 +220,8 @@
             </div>
             <div class="coord-input">
                 <label for="edit-z">Z:</label>
-                <input type="number" id="edit-z" step="0.01">
+                <input type="number" id="edit-yaw" step="1.0" title="Yaw角 (度)">
             </div>
-            <button id="apply-changes-button" disabled>変更を適用</button>
         </div>
     </div>
     <div id="controls">
@@ -241,16 +240,21 @@
     <script type="module">
         import * as THREE from 'three';
         import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'; 
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { DragControls } from 'three/addons/controls/DragControls.js';
+
         let waypoints = []; 
         let mapData = null; 
         const meshRegistry = {}; 
         let currentMapName = '{{ map_name }}';
-        let scene, camera, renderer, loader;
-        let controls;
+        let scene, camera, renderer, pcdLoader;
+        let orbitControls, transformControls, dragControls;
         let raycaster;
         let mouse = new THREE.Vector2();
         let selectedWaypoint = null;
+        let draggableObjects = [];
+
         function quaternionToYaw(qx, qy, qz, qw) {
             const siny_cosp = 2 * (qw * qz + qx * qy);
             const cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
@@ -432,7 +436,7 @@
                 }
                 const buffer = await response.arrayBuffer();
                 const filename = `${mapName}.pcd`;
-                const points = loader.parse(buffer);
+                const points = pcdLoader.parse(buffer);
                 points.position.set(0, 0, 0); 
                 points.visible = true; // 初期状態は表示
                 if (points.material.size) {
@@ -442,9 +446,9 @@
                 meshRegistry[uniqueId] = points;
                 points.geometry.computeBoundingSphere();
                 const center = points.geometry.boundingSphere.center;
-                camera.position.set(center.x + 5, center.y + 5, center.z + 5);
-                controls.target.copy(center); 
-                controls.update();
+                camera.position.set(center.x, center.y - 10, center.z + 10);
+                orbitControls.target.copy(center); 
+                orbitControls.update();
                 const pointCount = points.geometry.attributes.position.count;
                 document.getElementById('info').innerHTML = `PCD: ${filename} (${pointCount} points)`;
                 document.getElementById('loading-message').style.display = 'none';
@@ -501,6 +505,7 @@
                 }
                 waypoints = rawWaypoints;
                 const newWaypointsGroup = new THREE.Group();
+                draggableObjects = []; // ドラッグ可能オブジェクトをリセット
                 newWaypointsGroup.name = uniqueId; 
                 const WAYPOINT_Z_OFFSET = 0.0; 
                 waypoints.forEach((wp, index) => {
@@ -519,6 +524,7 @@
                     sphere.name = `waypoint_sphere_${index}`;
                     sphere.userData.waypointIndex = index;
                     sphere.userData.attributes = wp.length > 2 ? wp.slice(2) : {}; 
+                    draggableObjects.push(sphere);
                     newWaypointsGroup.add(sphere);
                     const dir = new THREE.Vector3(1, 0, 0); 
                     dir.applyAxisAngle(new THREE.Vector3(0, 0, 1), yaw); 
@@ -526,12 +532,17 @@
                     const length = 1.0; 
                     const color = 0xffff00; 
                     const arrowHelper = new THREE.ArrowHelper(dir, origin, length, color, 0.2, 0.15);
+                    arrowHelper.name = `waypoint_arrow_${index}`;
                     newWaypointsGroup.add(arrowHelper);
                 });
                 newWaypointsGroup.visible = true; 
                 scene.add(newWaypointsGroup);
                 meshRegistry[uniqueId] = newWaypointsGroup;
                 createToggle(uniqueId, `Waypoints (${mapName})`, newWaypointsGroup);
+                if (dragControls) {
+                    dragControls.getObjects().length = 0;
+                    dragControls.getObjects().push(...draggableObjects);
+                }
                 document.getElementById('info').innerHTML += `<br>Waypointを ${waypoints.length} 個配置完了`;
             } catch (error) {
                 console.error('Waypointファイルのロード中にエラーが発生しました:', error);
@@ -545,6 +556,7 @@
             if (type === 'waypoints') {
                 if (selectedWaypoint && mesh && selectedWaypoint.parent === mesh) {
                     selectedWaypoint = null;
+                    transformControls.detach();
                     hideWaypointInfo();
                 }
             }
@@ -705,6 +717,7 @@
             const intersects = raycaster.intersectObjects(waypointsGroup.children.filter(c => c.isMesh && c.name.startsWith('waypoint_sphere_'))); 
             if (selectedWaypoint) {
                 selectedWaypoint.material.color.setHex(0x00ffff);
+                transformControls.detach();
                 selectedWaypoint = null;
             }
             if (intersects.length > 0) {
@@ -712,9 +725,12 @@
                 if (intersectedObject.isMesh && intersectedObject.name.startsWith('waypoint_sphere_')) {
                     selectedWaypoint = intersectedObject;
                     selectedWaypoint.material.color.setHex(0xff0000);
+                    transformControls.attach(selectedWaypoint);
+
                     const index = selectedWaypoint.userData.waypointIndex;
                     const position = selectedWaypoint.position;
                     const attributes = selectedWaypoint.userData.attributes;
+
                     displayWaypointInfo(index, position, attributes);
                 } else {
                     hideWaypointInfo();
@@ -728,15 +744,22 @@
             const infoPanel = document.getElementById('waypoint-info');
             const editX = document.getElementById('edit-x');
             const editY = document.getElementById('edit-y');
-            const editZ = document.getElementById('edit-z');
-            const applyButton = document.getElementById('apply-changes-button');
+            const editYaw = document.getElementById('edit-yaw');
+
+            const waypointsGroup = selectedWaypoint.parent;
+            const arrow = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${index}`);
+            const yawRad = arrow ? arrow.rotation.z : 0;
+            const yawDeg = THREE.MathUtils.radToDeg(yawRad);
+
             let detailsHtml = `
                 <p><strong>インデックス:</strong> ${index}</p>
                 <p><strong>現在の位置:</strong><br>
                 X: ${position.x.toFixed(3)}, 
                 Y: ${position.y.toFixed(3)}, 
                 Z: ${position.z.toFixed(3)}</p>
+                <p><strong>現在の向き (Yaw):</strong> ${yawDeg.toFixed(1)}°</p>
             `;
+
             if (Array.isArray(attributes)) {
                  attributes.forEach((attr, i) => {
                      if (typeof attr === 'object' && attr !== null) {
@@ -752,63 +775,49 @@
                     detailsHtml += `<p><strong>${key}:</strong> ${attributes[key]}</p>`;
                 }
             }
+
             infoDiv.innerHTML = detailsHtml;
             editX.value = position.x.toFixed(3);
             editY.value = position.y.toFixed(3);
-            editZ.value = position.z.toFixed(3);
-            applyButton.disabled = false;
+            editYaw.value = yawDeg.toFixed(1);
+
             infoPanel.style.display = 'flex';
         }
+
         function hideWaypointInfo() {
             document.getElementById('waypoint-info').style.display = 'none';
-            document.getElementById('apply-changes-button').disabled = true;
         }
-        function applyWaypointChanges() {
+
+        function applyYawChange() {
             if (!selectedWaypoint) {
                 alert("ウェイポイントが選択されていません。");
                 return;
             }
             const index = selectedWaypoint.userData.waypointIndex;
-            const newX = parseFloat(document.getElementById('edit-x').value);
-            const newY = parseFloat(document.getElementById('edit-y').value);
-            const newZ = parseFloat(document.getElementById('edit-z').value);
-            if (isNaN(newX) || isNaN(newY) || isNaN(newZ)) {
-                alert("無効な座標値です。数値で入力してください。");
+            const newYawDeg = parseFloat(document.getElementById('edit-yaw').value);
+            if (isNaN(newYawDeg)) {
+                alert("無効なYaw角です。数値で入力してください。");
                 return;
             }
-            selectedWaypoint.position.set(newX, newY, newZ);
+            const newYawRad = THREE.MathUtils.degToRad(newYawDeg);
+
             const waypointsGroup = selectedWaypoint.parent;
             if (waypointsGroup) {
-                const sphereIndexInGroup = waypointsGroup.children.findIndex(c => c === selectedWaypoint);
-                const arrowIndex = sphereIndexInGroup + 1;
-                const correspondingArrow = waypointsGroup.children[arrowIndex];
-                
-                if (correspondingArrow && correspondingArrow.type === 'Group') {
-                    const dir = new THREE.Vector3();
-                    if (correspondingArrow.children[0] && correspondingArrow.children[0].isMesh) {
-                        correspondingArrow.children[0].getWorldDirection(dir); 
-                    } else if (correspondingArrow.children[1] && correspondingArrow.children[1].isMesh) {
-                         correspondingArrow.children[1].getWorldDirection(dir); 
-                    } else {
-                        console.warn("ArrowHelper の方向取得に失敗しました。");
-                        return;
-                    }
-                    const length = 1.0; 
-                    const color = 0xffff00; // 元の色を固定
-                    waypointsGroup.remove(correspondingArrow);
-                    const newOrigin = new THREE.Vector3(newX, newY, newZ);
-                    const newArrowHelper = new THREE.ArrowHelper(dir, newOrigin, length, color, 0.2, 0.15);
-                    waypointsGroup.children.splice(arrowIndex, 0, newArrowHelper);
+                const arrow = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${index}`);
+                if (arrow) {
+                    arrow.rotation.z = newYawRad;
                 }
             }
+
+            const newQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, newYawRad));
+
             if (waypoints[index]) {
-                waypoints[index][0][0] = newX;
-                waypoints[index][0][1] = newY;
-                waypoints[index][0][2] = newZ;
+                waypoints[index][1] = [newQuat.x, newQuat.y, newQuat.z, newQuat.w];
             }
             displayWaypointInfo(index, selectedWaypoint.position, selectedWaypoint.userData.attributes);
-            document.getElementById('info').innerHTML = `ウェイポイント ${index} の位置を (${newX.toFixed(3)}, ${newY.toFixed(3)}, ${newZ.toFixed(3)}) に更新しました。`;
+            document.getElementById('info').innerHTML = `ウェイポイント ${index} の向きを ${newYawDeg.toFixed(1)}° に更新しました。`;
         }
+
         function init() {
             const container = document.getElementById('viewer-container');
             scene = new THREE.Scene();
@@ -819,19 +828,68 @@
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
             container.appendChild(renderer.domElement);
-            controls = new OrbitControls(camera, renderer.domElement);
-            controls.minDistance = 0.5;
-            controls.maxDistance = 100;
-            controls.target.set(0, 0, 0); 
-            controls.update();
-            loader = new PCDLoader();
+
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.minDistance = 0.5;
+            orbitControls.maxDistance = 500;
+            orbitControls.target.set(0, 0, 0); 
+            orbitControls.update();
+
+            transformControls = new TransformControls(camera, renderer.domElement);
+            transformControls.setMode('rotate');
+            transformControls.showX = false;
+            transformControls.showY = false;
+            transformControls.showZ = true;
+            transformControls.addEventListener('dragging-changed', function (event) {
+                orbitControls.enabled = !event.value;
+            });
+            transformControls.addEventListener('objectChange', () => {
+                if (selectedWaypoint) {
+                    const index = selectedWaypoint.userData.waypointIndex;
+                    const newYawRad = selectedWaypoint.rotation.z;
+                    const newQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, newYawRad));
+                    
+                    if (waypoints[index]) {
+                        waypoints[index][1] = [newQuat.x, newQuat.y, newQuat.z, newQuat.w];
+                    }
+
+                    const waypointsGroup = selectedWaypoint.parent;
+                    const arrow = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${index}`);
+                    if (arrow) {
+                        arrow.rotation.z = newYawRad;
+                    }
+                    displayWaypointInfo(index, selectedWaypoint.position, selectedWaypoint.userData.attributes);
+                }
+            });
+            scene.add(transformControls);
+
+            dragControls = new DragControls(draggableObjects, camera, renderer.domElement);
+            dragControls.addEventListener('dragstart', function (event) {
+                orbitControls.enabled = false;
+                transformControls.enabled = false;
+            });
+            dragControls.addEventListener('drag', function (event) {
+                const index = event.object.userData.waypointIndex;
+                const arrow = event.object.parent.children.find(c => c.name === `waypoint_arrow_${index}`);
+                if (arrow) {
+                    arrow.position.copy(event.object.position);
+                }
+                displayWaypointInfo(index, event.object.position, event.object.userData.attributes);
+            });
+            dragControls.addEventListener('dragend', function (event) {
+                orbitControls.enabled = true;
+                transformControls.enabled = true;
+            });
+
+            pcdLoader = new PCDLoader();
             raycaster = new THREE.Raycaster(); 
             raycaster.params.Points.threshold = 0.1; 
             window.addEventListener('resize', onWindowResize, false);
             document.getElementById('load-map-button').addEventListener('click', startLoadProcess);
             document.getElementById('unload-map-button').addEventListener('click', startUnloadProcess);
             renderer.domElement.addEventListener('click', onWaypointClick, false);
-            document.getElementById('apply-changes-button').addEventListener('click', applyWaypointChanges);
+            document.getElementById('edit-yaw').addEventListener('change', applyYawChange);
+
             const initialMapName = "{{ map_name }}"; 
             if (initialMapName) {
                 currentMapName = initialMapName;
@@ -858,7 +916,7 @@
         }
         function animate() {
             requestAnimationFrame(animate);
-            controls.update();
+            orbitControls.update();
             renderer.render(scene, camera);
         }
         init();

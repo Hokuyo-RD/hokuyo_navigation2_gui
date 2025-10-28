@@ -688,6 +688,37 @@ def serve_map_file(filename):
         print(f"ERROR: ファイルの提供に失敗しました ({filename}): {e}")
         return jsonify({'error': 'ファイルが見つからないか、アクセスできません'}), 404
         
+@app.route('/save_waypoints', methods=['POST'])
+def save_waypoints():
+    """
+    クライアントから送信されたウェイポイントデータをJSONファイルとして保存する。
+    """
+    try:
+        data = request.get_json()
+        map_name = data.get('map_name')
+        waypoints_data = data.get('waypoints')
+
+        if not map_name:
+            return jsonify({'status': 'error', 'message': 'マップ名が指定されていません。'}), 400
+        if waypoints_data is None:
+            return jsonify({'status': 'error', 'message': 'ウェイポイントデータが含まれていません。'}), 400
+
+        filename = f"{map_name}.json"
+        file_path = os.path.join(WP_DIR, filename)
+
+        # セキュリティチェック
+        if not _is_safe_path(file_path, WP_DIR):
+            return jsonify({'status': 'error', 'message': '不正なファイルパスです。'}), 403
+
+        with open(file_path, 'w') as f:
+            import json
+            json.dump(waypoints_data, f, indent=4)
+
+        return jsonify({'status': 'success', 'message': f'ウェイポイントファイル ({filename}) が正常に保存されました。'})
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'ウェイポイントの保存中にエラーが発生しました: {e}'}), 500
+
 @app.route('/browse_pcd')
 def browse_pcd():
     """PCD2PGM変換用のPCDファイルブラウザ。MAP_DIRから.pcdファイルを取得。"""

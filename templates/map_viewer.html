@@ -147,11 +147,12 @@
         }
         #waypoint-info .coord-input {
             display: flex;
-            gap: 5px;
+            justify-content: space-between; /* ラベルと入力ボックスを両端に配置 */
             align-items: center;
         }
         #waypoint-info .coord-input label {
-            width: 15px; /* X, Y, Z のラベル幅 */
+            flex-shrink: 0; /* ラベルが縮まないようにする */
+            margin-right: 10px; /* ラベルと入力ボックスの間に余白を追加 */
         }
         #waypoint-info .coord-input input {
             width: 60px; /* 入力フィールドの幅 */

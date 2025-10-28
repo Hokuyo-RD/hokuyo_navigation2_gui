@@ -222,6 +222,7 @@
                 <label for="edit-z">Z:</label>
                 <input type="number" id="edit-yaw" step="1.0" title="Yaw角 (度)">
             </div>
+            <button id="delete-waypoint-button" disabled>選択中のウェイポイントを削除</button>
         </div>
     </div>
     <div id="controls">
@@ -246,6 +247,7 @@
         <div id="dynamic-toggles">
         </div>
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
+        <button id="add-waypoint-button" style="padding: 5px;">ウェイポイント追加</button>
         <button id="save-waypoints-button" style="padding: 5px;">ウェイポイントを保存</button>
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
     </div>
@@ -266,6 +268,7 @@
         let mouse = new THREE.Vector2();
         let selectedWaypoint = null;
         let draggableObjects = [];
+        let isAddingWaypointMode = false;
         let gridHelper;
 
         function quaternionToYaw(qx, qy, qz, qw) {
@@ -761,6 +764,7 @@
             const editX = document.getElementById('edit-x');
             const editY = document.getElementById('edit-y');
             const editYaw = document.getElementById('edit-yaw');
+            const deleteButton = document.getElementById('delete-waypoint-button');
 
             const waypointsGroup = selectedWaypoint.parent;
             const arrow = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${index}`);
@@ -796,12 +800,14 @@
             editX.value = position.x.toFixed(3);
             editY.value = position.y.toFixed(3);
             editYaw.value = yawDeg.toFixed(1);
+            deleteButton.disabled = false;
 
             infoPanel.style.display = 'flex';
         }
 
         function hideWaypointInfo() {
             document.getElementById('waypoint-info').style.display = 'none';
+            document.getElementById('delete-waypoint-button').disabled = true;
         }
 
         function applyYawChange() {
@@ -834,6 +840,17 @@
             document.getElementById('info').innerHTML = `ウェイポイント ${index} の向きを ${newYawDeg.toFixed(1)}° に更新しました。`;
         }
 
+        function toggleAddWaypointMode() {
+            isAddingWaypointMode = !isAddingWaypointMode;
+            const button = document.getElementById('add-waypoint-button');
+            if (isAddingWaypointMode) {
+                button.textContent = '追加モード中... (Escで解除)';
+                button.style.backgroundColor = '#ff8c00';
+            } else {
+                button.textContent = 'ウェイポイント追加';
+                button.style.backgroundColor = '';
+            }
+        }
         function init() {
             const container = document.getElementById('viewer-container');
             scene = new THREE.Scene();

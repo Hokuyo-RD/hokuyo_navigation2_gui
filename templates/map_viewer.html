@@ -605,10 +605,16 @@
             scene.add(line);
             meshRegistry[uniqueId] = line;
 
-            const toggleLabel = document.getElementById(uniqueId + '-label');
-            if (!toggleLabel) {
-                createToggle(uniqueId, `Waypoint Path (${mapName})`, line);
+            let toggleCheckbox = document.getElementById(uniqueId);
+            if (!toggleCheckbox) {
+                // トグルがなければ新規作成
+                const toggleLabel = createToggle(uniqueId, `Waypoint Path (${mapName})`, line);
+                toggleCheckbox = toggleLabel.querySelector('input');
             }
+
+            // 常に最新のLineオブジェクトの可視性をチェックボックスに反映させる
+            line.visible = toggleCheckbox.checked;
+
         }
         window.unloadMap = function(type, mapName) {
             const uniqueId = `${type}-${mapName}`;

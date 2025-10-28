@@ -29,6 +29,18 @@
             font-size: 0.9em;
             z-index: 10;
         }
+        #grid-info {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 1.0em;
+            z-index: 10;
+        }
         #controls {
             position: absolute;
             top: 10px;
@@ -204,6 +216,7 @@
     <div id="viewer-container"></div>
     <div id="loading-message">マップ名を指定してロードしてください。</div>
     <div id="info"></div>
+    <div id="grid-info">Grid: 10m</div>
     <div id="waypoint-info">
         <h4>選択中のウェイポイント</h4>
         <div id="wp-details">
@@ -276,7 +289,10 @@
         let selectedWaypoint = null;
         let draggableObjects = [];
         let isAddingWaypointMode = false;
-        let gridHelper;
+        
+        const gridGroup = new THREE.Group();
+        let activeGrid = null;
+        const gridInfoDiv = document.getElementById('grid-info');
         let groundPlane; // 地面判定用の透明な平面
 
         function quaternionToYaw(qx, qy, qz, qw) {
@@ -479,6 +495,7 @@
                 document.getElementById('info').innerHTML = `PCD: ${filename} (${pointCount} points)`;
                 document.getElementById('loading-message').style.display = 'none';
                 createToggle(uniqueId, `PCD (${mapName})`, points);
+                updateGridBasedOnMapSize();
             } catch (error) {
                 console.error('PCDファイルのロード中にエラーが発生しました:', error);
                 document.getElementById('loading-message').textContent = `エラー: PCDロード失敗 (${mapName}.pcd): ${error.message}`;
@@ -504,6 +521,7 @@
                 }
                 await loadPGMMap(mapName);
             } catch (error) {
+                updateGridBasedOnMapSize(); // YAMLがなくてもPCDだけでグリッド更新
                 console.error('YAMLファイルのロード中にエラーが発生しました:', error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">YAMLロード失敗: ${error.message}</span>`;
             }
@@ -615,6 +633,59 @@
             // 常に最新のLineオブジェクトの可視性をチェックボックスに反映させる
             line.visible = toggleCheckbox.checked;
 
+        }
+        function updateGridBasedOnMapSize() {
+            const box = new THREE.Box3();
+            let mapFound = false;
+
+            // PCDとPGMのメッシュからバウンディングボックスを計算
+            for (const key in meshRegistry) {
+                if (key.startsWith('pcd-') || key.startsWith('pgm-')) {
+                    const mesh = meshRegistry[key];
+                    if (mesh.visible) {
+                        box.expandByObject(mesh);
+                        mapFound = true;
+                    }
+                }
+            }
+
+            if (!mapFound) return; // マップがなければ何もしない
+
+            const size = box.getSize(new THREE.Vector3());
+            const maxSize = Math.max(size.x, size.y, size.z);
+            const newGridSize = Math.ceil(maxSize / 100) * 100 * 2; // マップを覆うのに十分なサイズ
+
+            // 既存のグリッドを削除
+            while(gridGroup.children.length > 0){
+                const grid = gridGroup.children[0];
+                grid.geometry.dispose();
+                grid.material.dispose();
+                gridGroup.remove(grid);
+            }
+
+            // 新しいサイズのグリッドを作成
+            const grids = [];
+            // 1mから10mまでは1m刻み
+            for (let i = 1; i <= 10; i++) {
+                grids.push({
+                    size: newGridSize, divisions: newGridSize / i, scale: `${i}m`,
+                    minDistance: (i - 1) * 10, maxDistance: i * 10,
+                    color1: 0x888888, color2: 0x444444
+                });
+            }
+            // 10mから100mまでは10m刻み
+            for (let i = 2; i <= 10; i++) {
+                const unit = i * 10;
+                grids.push({
+                    size: newGridSize, divisions: newGridSize / unit, scale: `${unit}m`,
+                    minDistance: (i - 1) * 50, maxDistance: i * 50,
+                    color1: 0xaaaaaa, color2: 0x666666
+                });
+            }
+            // 100m以上
+            grids.push({ size: newGridSize, divisions: newGridSize / 100, scale: '100m', minDistance: 500, maxDistance: Infinity, color1: 0xcccccc, color2: 0x888888 });
+            grids.forEach(gridDef => createAdaptiveGrid(gridDef));
+            updateAdaptiveGrid(); // 初期表示を更新
         }
         window.unloadMap = function(type, mapName) {
             const uniqueId = `${type}-${mapName}`;
@@ -1171,6 +1242,35 @@
                 currentInsertionIndex = undefined;
             }
         }
+        function createAdaptiveGrid({ size, divisions, scale, minDistance, maxDistance, color1, color2 }) {
+            const grid = new THREE.GridHelper(size, divisions, color1, color2);
+            grid.rotation.x = Math.PI / 2;
+            grid.userData = { scale, minDistance, maxDistance };
+            grid.visible = false; // 初期状態では非表示
+            gridGroup.add(grid);
+        }
+        function updateAdaptiveGrid() {
+            if (!gridGroup.visible) {
+                gridInfoDiv.style.display = 'none';
+                return;
+            }
+            gridInfoDiv.style.display = 'block';
+            const distance = camera.position.distanceTo(orbitControls.target);
+            let newActiveGrid = null;
+            // 距離に最も近いグリッドを見つける
+            for (const grid of gridGroup.children) {
+                const { minDistance, maxDistance } = grid.userData;
+                if (distance >= minDistance && distance < maxDistance) {
+                    newActiveGrid = grid;
+                    break;
+                }
+            }
+            // 見つかったグリッドのみ表示
+            gridGroup.children.forEach(grid => {
+                grid.visible = (grid === newActiveGrid);
+            });
+            gridInfoDiv.textContent = newActiveGrid ? `Grid: ${newActiveGrid.userData.scale}` : 'Grid: Off';
+        }
         function init() {
             const container = document.getElementById('viewer-container');
             scene = new THREE.Scene();
@@ -1278,19 +1378,28 @@
                 toggleAutoOrient(event.target.checked);
             });
 
-            // グリッドヘルパーの追加
-            gridHelper = new THREE.GridHelper(200, 200, 0x888888, 0x444444);
-            gridHelper.rotation.x = Math.PI / 2;
-            scene.add(gridHelper);
+            // アダプティブグリッドの初期化
+            const initialSize = 200;
+            const grids = [];
+            for (let i = 1; i <= 10; i++) {
+                grids.push({ size: initialSize, divisions: initialSize / i, scale: `${i}m`, minDistance: (i - 1) * 10, maxDistance: i * 10, color1: 0x888888, color2: 0x444444 });
+            }
+            for (let i = 2; i <= 10; i++) {
+                const unit = i * 10;
+                grids.push({ size: initialSize, divisions: initialSize / unit, scale: `${unit}m`, minDistance: (i - 1) * 50, maxDistance: i * 50, color1: 0xaaaaaa, color2: 0x666666 });
+            }
+            grids.push({ size: initialSize, divisions: initialSize / 100, scale: '100m', minDistance: 500, maxDistance: Infinity, color1: 0xcccccc, color2: 0x888888 });
+
+            grids.forEach(gridDef => createAdaptiveGrid(gridDef));
+            scene.add(gridGroup);
 
             // 地面判定用の透明な平面を作成
             const planeGeometry = new THREE.PlaneGeometry(2000, 2000); // 十分大きな平面
-            groundPlane = new THREE.Mesh(planeGeometry, new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }));
-            scene.add(groundPlane);
 
             // グリッド表示切替
             document.getElementById('grid-toggle').addEventListener('change', (event) => {
-                gridHelper.visible = event.target.checked;
+                gridGroup.visible = event.target.checked;
+                updateAdaptiveGrid();
             });
 
             // PGM透過度スライダー
@@ -1334,6 +1443,7 @@
         function animate() {
             requestAnimationFrame(animate);
             orbitControls.update();
+            updateAdaptiveGrid();
             renderer.render(scene, camera);
         }
 

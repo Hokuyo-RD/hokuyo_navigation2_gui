@@ -819,20 +819,26 @@
                 <p><strong>現在の向き (Yaw):</strong> ${yawDeg.toFixed(1)}°</p>
             `;
 
-            if (Array.isArray(attributes)) {
-                 attributes.forEach((attr, i) => {
-                     if (typeof attr === 'object' && attr !== null) {
-                         for (const key in attr) {
-                             detailsHtml += `<p><strong>${key}:</strong> ${attr[key]}</p>`;
-                         }
-                     } else {
-                         detailsHtml += `<p><strong>属性${i + 1}:</strong> ${attr}</p>`;
-                     }
-                 });
-            } else if (typeof attributes === 'object' && attributes !== null) {
-                for (const key in attributes) {
-                    detailsHtml += `<p><strong>${key}:</strong> ${attributes[key]}</p>`;
+            // 属性を編集可能なテキストボックスとして表示
+            const processAttribute = (attr, subIndex = null) => {
+                if (typeof attr === 'object' && attr !== null) {
+                    for (const key in attr) {
+                        const inputId = `edit-attr-${index}-${key}` + (subIndex !== null ? `-${subIndex}` : '');
+                        detailsHtml += `
+                            <div class="coord-input">
+                                <label for="${inputId}" style="width: auto; min-width: 60px;">${key}:</label>
+                                <input type="text" id="${inputId}" value="${attr[key]}" 
+                                       data-index="${index}" data-key="${key}" ${subIndex !== null ? `data-sub-index="${subIndex}"` : ''}>
+                            </div>
+                        `;
+                    }
                 }
+            };
+
+            if (Array.isArray(attributes)) { // 属性が配列の場合
+                attributes.forEach((attr, i) => processAttribute(attr, i));
+            } else if (typeof attributes === 'object' && attributes !== null) { // 属性が単一オブジェクトの場合
+                processAttribute(attributes);
             }
 
             infoDiv.innerHTML = detailsHtml;
@@ -842,8 +848,36 @@
             deleteButton.disabled = false;
 
             infoPanel.style.display = 'flex';
+
+            // 生成されたinput要素にイベントリスナーを追加
+            infoDiv.querySelectorAll('input[type="text"]').forEach(input => {
+                input.addEventListener('change', handleAttributeChange);
+            });
         }
 
+        function handleAttributeChange(event) {
+            if (!selectedWaypoint) return;
+
+            const input = event.target;
+            const index = parseInt(input.dataset.index, 10);
+            const key = input.dataset.key;
+            const subIndex = input.dataset.subIndex ? parseInt(input.dataset.subIndex, 10) : null;
+            let value = input.value;
+
+            const originalValue = subIndex !== null ? waypoints[index][2 + subIndex][key] : waypoints[index][2][key];
+
+            // 元のデータ型が数値なら、入力値も数値に変換する
+            if (typeof originalValue === 'number' && !isNaN(parseFloat(value))) {
+                value = parseFloat(value);
+            }
+
+            if (subIndex !== null) {
+                waypoints[index][2 + subIndex][key] = value;
+            } else {
+                waypoints[index][2][key] = value;
+            }
+            document.getElementById('info').innerHTML = `ウェイポイント ${index} の属性 '${key}' を更新しました。`;
+        }
         function hideWaypointInfo() {
             document.getElementById('waypoint-info').style.display = 'none';
             document.getElementById('delete-waypoint-button').disabled = true;
@@ -947,8 +981,16 @@
             const y = position.y;
             const z = WAYPOINT_Z_OFFSET;
 
+            // デフォルトの属性を定義
+            const defaultAttributes = {
+                "type": "normal",
+                "value": 0,
+                "xy_tolerance": 1,
+                "yaw_tolerance": 3.14
+            };
+
             // 新しいウェイポイントデータを配列に追加 (向きはデフォルトでYaw=0)
-            const newWpData = [[x, y, z], [0, 0, 0, 1]]; // [position], [quaternion]
+            const newWpData = [[x, y, z], [0, 0, 0, 1], defaultAttributes]; // [position], [quaternion], [attributes]
             waypoints.push(newWpData);
 
             // 球体を作成
@@ -959,7 +1001,7 @@
             sphere.position.set(x, y, z);
             sphere.name = `waypoint_sphere_${newIndex}`;
             sphere.userData.waypointIndex = newIndex;
-            sphere.userData.attributes = {}; // 新規追加なので属性は空
+            sphere.userData.attributes = [defaultAttributes]; // 新規追加の属性を設定
             waypointsGroup.add(sphere);
 
             // 矢印を作成

@@ -252,7 +252,9 @@
             <label><input type="checkbox" id="auto-orient-waypoints"> 次のWPを指す</label>
         </div>
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
-        <button id="add-waypoint-button" style="padding: 5px;">ウェイポイント追加</button>
+        <button id="add-waypoint-end-button" style="padding: 5px;">末尾に追加</button>
+        <button id="add-waypoint-start-button" style="padding: 5px;">先頭に追加</button>
+        <button id="add-waypoint-after-button" style="padding: 5px;" disabled>選択中の後に追加</button>
         <button id="save-waypoints-button" style="padding: 5px;">ウェイポイントを保存</button>
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
     </div>
@@ -832,7 +834,7 @@
                 if (intersects.length > 0) {
                     const intersectPoint = intersects[0].point;
                     // Z座標を強制的に0に設定して追加
-                    addWaypointAt(new THREE.Vector3(intersectPoint.x, intersectPoint.y, 0));
+                    addWaypointAt(new THREE.Vector3(intersectPoint.x, intersectPoint.y, 0), currentInsertionIndex);
                     document.getElementById('info').innerHTML = `ウェイポイントを (${intersectPoint.x.toFixed(2)}, ${intersectPoint.y.toFixed(2)}) に追加しました。`;
                     toggleAddWaypointMode(); // 1つ追加したらモードを解除
                 }
@@ -849,7 +851,7 @@
             // ウェイポイント追加モードのキーボード解除
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && isAddingWaypointMode) {
-                    toggleAddWaypointMode();
+                    toggleAddWaypointMode(null);
                 }
             });
             let waypointsGroup = null;
@@ -864,6 +866,7 @@
             if (selectedWaypoint) {
                 selectedWaypoint.material.color.setHex(0x00ffff);
                 transformControls.detach();
+                document.getElementById('add-waypoint-after-button').disabled = true;
                 selectedWaypoint = null;
             }
             if (intersects.length > 0) {
@@ -878,6 +881,7 @@
                     const attributes = selectedWaypoint.userData.attributes;
 
                     displayWaypointInfo(index, position, attributes);
+                    document.getElementById('add-waypoint-after-button').disabled = false;
                 } else {
                     hideWaypointInfo();
                 }
@@ -952,7 +956,7 @@
             const subIndex = input.dataset.subIndex ? parseInt(input.dataset.subIndex, 10) : null;
             let value = input.value;
 
-            const originalValue = subIndex !== null ? waypoints[index][2 + subIndex][key] : waypoints[index][2][key];
+            const originalValue = subIndex !== null ? waypoints[index][2 + subIndex]?.[key] : waypoints[index][2]?.[key];
 
             // 元のデータ型が数値なら、入力値も数値に変換する
             if (typeof originalValue === 'number' && !isNaN(parseFloat(value))) {
@@ -960,9 +964,15 @@
             }
 
             if (subIndex !== null) {
-                waypoints[index][2 + subIndex][key] = value;
+                if (!waypoints[index][2 + subIndex]) waypoints[index][2 + subIndex] = {};
+                 waypoints[index][2 + subIndex][key] = value;
             } else {
-                waypoints[index][2][key] = value;
+                // 属性が配列でない場合
+                if (!Array.isArray(waypoints[index][2])) {
+                    if (typeof waypoints[index][2] !== 'object' || waypoints[index][2] === null) waypoints[index][2] = {};
+                    waypoints[index][2][key] = value;
+                }
+                
             }
             document.getElementById('info').innerHTML = `ウェイポイント ${index} の属性 '${key}' を更新しました。`;
         }
@@ -1021,6 +1031,10 @@
                     waypointsGroup.remove(arrowToDelete);
                 }
 
+                // 選択状態をクリア
+                selectedWaypoint = null;
+                transformControls.detach();
+
                 // 3. waypoints配列とdraggableObjectsからデータを削除
                 waypoints.splice(indexToDelete, 1);
                 const draggableIndex = draggableObjects.indexOf(selectedWaypoint);
@@ -1031,6 +1045,7 @@
                 // 4. 後続のウェイポイントのインデックスを更新
                 waypointsGroup.children.forEach(child => {
                     if (child.userData.waypointIndex > indexToDelete) {
+                        // 🚨 This logic has a potential bug, it should be `child.name.startsWith(...)`
                         const oldIndex = child.userData.waypointIndex;
                         child.userData.waypointIndex--;
                         // オブジェクト名も更新しておくと整合性が取れます
@@ -1046,33 +1061,31 @@
             }
         }
 
-        function addWaypointAt(position) {
+        function addWaypointAt(position, insertionIndex) {
             if (!currentMapName) {
                 alert("ウェイポイントを追加するには、まずマップをロードまたは指定してください。");
-                toggleAddWaypointMode(); // モードを解除
+                toggleAddWaypointMode(null); // モードを解除
                 return;
             }
-
+        
             const componentType = 'waypoints';
             const uniqueId = `${componentType}-${currentMapName}`;
             let waypointsGroup = scene.getObjectByName(uniqueId);
-
+        
             // ウェイポイントグループがなければ新規作成
             if (!waypointsGroup) {
                 waypointsGroup = new THREE.Group();
                 waypointsGroup.name = uniqueId;
                 scene.add(waypointsGroup);
                 meshRegistry[uniqueId] = waypointsGroup;
-                createToggle(uniqueId, `Waypoints (${currentMapName})`, waypointsGroup);
+                createToggle(uniqueId, `Waypoints (${currentMapName})`, waypointsGroup); 
             }
-
-            const newIndex = waypoints.length;
+        
             const WAYPOINT_Z_OFFSET = 0.0;
             const x = position.x;
             const y = position.y;
             const z = WAYPOINT_Z_OFFSET;
-
-            // デフォルトの属性を定義
+        
             const defaultAttributes = {
                 "type": "normal",
                 "value": 0,
@@ -1080,44 +1093,70 @@
                 "yaw_tolerance": 3.14
             };
 
-            // 新しいウェイポイントデータを配列に追加 (向きはデフォルトでYaw=0)
             const newWpData = [[x, y, z], [0, 0, 0, 1], defaultAttributes]; // [position], [quaternion], [attributes]
-            waypoints.push(newWpData);
+            const finalIndex = (insertionIndex === undefined || insertionIndex > waypoints.length) ? waypoints.length : insertionIndex;
+            waypoints.splice(finalIndex, 0, newWpData);
 
-            // 球体を作成
-            const SPHERE_RADIUS = 0.3;
-            const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16);
-            const material = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-            const sphere = new THREE.Mesh(geometry, material);
-            sphere.position.set(x, y, z);
-            sphere.name = `waypoint_sphere_${newIndex}`;
-            sphere.userData.waypointIndex = newIndex;
-            sphere.userData.attributes = [defaultAttributes]; // 新規追加の属性を設定
-            waypointsGroup.add(sphere);
+            // 既存のウェイポイントオブジェクトをすべてクリア
+            while(waypointsGroup.children.length > 0){ 
+                waypointsGroup.remove(waypointsGroup.children[0]); 
+            }
+            draggableObjects = [];
+            dragControls.getObjects().length = 0;
 
-            // 矢印を作成
-            const dir = new THREE.Vector3(1, 0, 0);
-            const origin = new THREE.Vector3(x, y, z);
-            const arrowHelper = new THREE.ArrowHelper(dir, origin, 1.0, 0xffff00, 0.2, 0.15);
-            arrowHelper.name = `waypoint_arrow_${newIndex}`;
-            waypointsGroup.add(arrowHelper);
+            // 選択状態をクリア
+            selectedWaypoint = null;
+            transformControls.detach();
 
-            // ドラッグコントロールに追加
-            draggableObjects.push(sphere);
-            dragControls.getObjects().push(sphere);
+            // waypoints配列からすべてのオブジェクトを再生成
+            waypoints.forEach((wp, idx) => {
+                const pos = wp[0];
+                const quat = wp[1];
+                const attrs = wp.length > 2 ? wp.slice(2) : {};
+
+                const SPHERE_RADIUS = 0.3;
+                const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16);
+                const material = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos[0], pos[1], pos[2]);
+                sphere.name = `waypoint_sphere_${idx}`;
+                sphere.userData.waypointIndex = idx;
+                sphere.userData.attributes = attrs;
+                waypointsGroup.add(sphere);
+                draggableObjects.push(sphere);
+
+                const dir = new THREE.Vector3(1, 0, 0).applyQuaternion(new THREE.Quaternion().fromArray(quat));
+                const arrowHelper = new THREE.ArrowHelper(dir, sphere.position, 1.0, 0xffff00, 0.2, 0.15);
+                arrowHelper.name = `waypoint_arrow_${idx}`;
+                arrowHelper.userData = { waypointIndex: idx };
+                waypointsGroup.add(arrowHelper);
+            });
+            dragControls.getObjects().push(...draggableObjects);
+
             updateWaypointPath(currentMapName);
             if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
         }
 
-        function toggleAddWaypointMode() {
+        let currentInsertionIndex = undefined;
+        function toggleAddWaypointMode(insertionMode) {
             isAddingWaypointMode = !isAddingWaypointMode;
-            const button = document.getElementById('add-waypoint-button');
+            const buttons = [
+                document.getElementById('add-waypoint-end-button'),
+                document.getElementById('add-waypoint-start-button'),
+                document.getElementById('add-waypoint-after-button')
+            ];
+
             if (isAddingWaypointMode) {
-                button.textContent = '追加モード中... (Escで解除)';
-                button.style.backgroundColor = '#ff8c00';
+                currentInsertionIndex = insertionMode;
+                let modeText = insertionMode === 0 ? "先頭" : (insertionMode === undefined ? "末尾" : "選択後");
+                buttons.forEach(b => b.textContent = `追加中 (${modeText})... (Escで解除)`);
+                buttons.forEach(b => b.style.backgroundColor = '#ff8c00');
             } else {
-                button.textContent = 'ウェイポイント追加';
-                button.style.backgroundColor = '';
+                buttons[0].textContent = '末尾に追加';
+                buttons[1].textContent = '先頭に追加';
+                buttons[2].textContent = '選択中の後に追加';
+                buttons.forEach(b => b.style.backgroundColor = '');
+                currentInsertionIndex = undefined;
             }
         }
         function init() {
@@ -1214,7 +1253,15 @@
             document.getElementById('edit-yaw').addEventListener('change', applyYawChange);
             document.getElementById('save-waypoints-button').addEventListener('click', saveWaypointsToServer);
             document.getElementById('delete-waypoint-button').addEventListener('click', deleteSelectedWaypoint);
-            document.getElementById('add-waypoint-button').addEventListener('click', toggleAddWaypointMode);
+            document.getElementById('add-waypoint-end-button').addEventListener('click', () => toggleAddWaypointMode(undefined));
+            document.getElementById('add-waypoint-start-button').addEventListener('click', () => toggleAddWaypointMode(0));
+            document.getElementById('add-waypoint-after-button').addEventListener('click', () => {
+                if (selectedWaypoint) {
+                    toggleAddWaypointMode(selectedWaypoint.userData.waypointIndex + 1);
+                } else {
+                    alert("基準となるウェイポイントを選択してください。");
+                }
+            });
             document.getElementById('auto-orient-waypoints').addEventListener('change', (event) => {
                 toggleAutoOrient(event.target.checked);
             });

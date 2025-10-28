@@ -959,17 +959,21 @@
             transformControls.addEventListener('objectChange', () => {
                 if (selectedWaypoint) {
                     const index = selectedWaypoint.userData.waypointIndex;
-                    const newYawRad = selectedWaypoint.rotation.z;
-                    const newQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, newYawRad));
+                    // TransformControlsはオブジェクトのquaternionを直接変更するため、
+                    // selectedWaypoint.quaternion から最新の回転情報を取得します。
+                    const newQuat = selectedWaypoint.quaternion;
                     
                     if (waypoints[index]) {
+                        // waypoints配列内のクォータニオンデータを更新
                         waypoints[index][1] = [newQuat.x, newQuat.y, newQuat.z, newQuat.w];
                     }
 
+                    // 矢印ヘルパーの向きも同期させます
                     const waypointsGroup = selectedWaypoint.parent;
                     const arrow = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${index}`);
                     if (arrow) {
-                        arrow.rotation.z = newYawRad;
+                        // 矢印の向きを球体の向きに合わせる
+                        arrow.setDirection(new THREE.Vector3(1, 0, 0).applyQuaternion(newQuat));
                     }
                     displayWaypointInfo(index, selectedWaypoint.position, selectedWaypoint.userData.attributes);
                 }

@@ -568,6 +568,40 @@
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointロード失敗: ${error.message}</span>`;
             }
         }
+        function updateWaypointPath(mapName) {
+            const componentType = 'waypoint-path';
+            const uniqueId = `${componentType}-${mapName}`;
+
+            // 既存の経路を削除
+            if (meshRegistry[uniqueId]) {
+                const oldPath = meshRegistry[uniqueId];
+                scene.remove(oldPath);
+                oldPath.geometry.dispose();
+                oldPath.material.dispose();
+                delete meshRegistry[uniqueId];
+            }
+
+            if (waypoints.length < 2) {
+                const toggleLabel = document.getElementById(uniqueId + '-label');
+                if (toggleLabel) toggleLabel.remove();
+                return;
+            }
+
+            const points = waypoints.map(wp => new THREE.Vector3(wp[0][0], wp[0][1], wp[0][2]));
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffaa00, linewidth: 2 }); // オレンジ色
+            const line = new THREE.Line(geometry, material);
+            line.name = uniqueId;
+
+            scene.add(line);
+            meshRegistry[uniqueId] = line;
+
+            const toggleLabel = document.getElementById(uniqueId + '-label');
+            if (!toggleLabel) {
+                createToggle(uniqueId, `Waypoint Path (${mapName})`, line);
+            }
+        }
         window.unloadMap = function(type, mapName) {
             const uniqueId = `${type}-${mapName}`;
             const mesh = meshRegistry[uniqueId];
@@ -577,6 +611,10 @@
                     selectedWaypoint = null;
                     transformControls.detach();
                     hideWaypointInfo();
+                }
+                // ウェイポイントが削除されたら、関連する経路も削除
+                if (meshRegistry[`waypoint-path-${mapName}`]) {
+                    unloadMap('waypoint-path', mapName);
                 }
             }
             if (mesh) {
@@ -608,6 +646,11 @@
                 if (type === 'pgm') {
                     mapData = null; 
                     document.getElementById('pgm-opacity-label').style.display = 'none'; // スライダーを非表示
+                }
+                // ウェイポイントがアンロードされたら、経路もアンロード
+                if (type === 'waypoints') {
+                    const pathId = `waypoint-path-${mapName}`;
+                    if (meshRegistry[pathId]) unloadMap('waypoint-path', mapName);
                 }
             }
             if (elementExists) {
@@ -1014,6 +1057,7 @@
             // ドラッグコントロールに追加
             draggableObjects.push(sphere);
             dragControls.getObjects().push(sphere);
+                updateWaypointPath(currentMapName);
         }
 
         function toggleAddWaypointMode() {
@@ -1103,6 +1147,7 @@
                     waypoints[index][0][1] = event.object.position.y;
                     waypoints[index][0][2] = event.object.position.z;
                 }
+                updateWaypointPath(currentMapName);
             });
 
 
@@ -1155,6 +1200,7 @@
                 const hasInitialWaypoints = "{{ waypoints_data|safe }}" !== "[]";
                 if (hasInitialPCD || hasInitialYAML || hasInitialWaypoints) {
                     executeMapLoading(initialMapName, hasInitialPCD, hasInitialYAML, hasInitialWaypoints);
+                    if (hasInitialWaypoints) updateWaypointPath(initialMapName);
                 } else {
                     document.getElementById('loading-message').textContent = `マップ: '${initialMapName}' のデータが見つかりません。ロードボタンから再試行してください。`;
                 }

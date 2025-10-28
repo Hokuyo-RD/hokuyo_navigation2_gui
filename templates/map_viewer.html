@@ -225,6 +225,16 @@
         </div>
     </div>
     <div id="controls">
+        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
+        <h4>グリッドとマップ設定:</h4>
+        <label for="grid-toggle">
+            <input type="checkbox" id="grid-toggle" checked> グリッド表示
+        </label>
+        <label for="pgm-opacity-slider" id="pgm-opacity-label" style="display: none;">
+            PGM透過度:
+            <input type="range" id="pgm-opacity-slider" min="0" max="1" step="0.1" value="1.0" style="width: 100px; margin-left: 5px;">
+        </label>
+        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
         <div style="display: flex; flex-direction: column; gap: 5px;">
             <label for="map-name-input">**現在の**マップ名:</label>
             <input type="text" id="map-name-input" value="{{ map_name }}" style="padding: 5px;" disabled title="ロードボタンで設定されます">
@@ -235,6 +245,8 @@
         <h4>表示/非表示:</h4>
         <div id="dynamic-toggles">
         </div>
+        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
+        <button id="save-waypoints-button" style="padding: 5px;">ウェイポイントを保存</button>
         <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
     </div>
     <script type="module">
@@ -254,6 +266,7 @@
         let mouse = new THREE.Vector2();
         let selectedWaypoint = null;
         let draggableObjects = [];
+        let gridHelper;
 
         function quaternionToYaw(qx, qy, qz, qw) {
             const siny_cosp = 2 * (qw * qz + qx * qy);
@@ -416,6 +429,8 @@
                 meshRegistry[uniqueId] = mesh; 
                 createToggle(uniqueId, `PGM/YAML (${mapName})`, mesh);
                 document.getElementById('info').innerHTML += `<br>PGM: ${pgmImageName} 配置完了`;
+                document.getElementById('pgm-opacity-label').style.display = 'flex'; // スライダーを表示
+                document.getElementById('pgm-opacity-slider').value = mesh.material.opacity;
                 console.log(`PGMマップを配置しました: ${mapName}`);
             } catch (error) {
                 console.error('PGMファイルのロード/パース中にエラーが発生しました:', pgmUrl, error);
@@ -588,6 +603,7 @@
                 }
                 if (type === 'pgm') {
                     mapData = null; 
+                    document.getElementById('pgm-opacity-label').style.display = 'none'; // スライダーを非表示
                 }
             }
             if (elementExists) {
@@ -870,6 +886,9 @@
             });
             dragControls.addEventListener('drag', function (event) {
                 const index = event.object.userData.waypointIndex;
+                // Z軸を固定
+                event.object.position.z = 0.0;
+
                 const arrow = event.object.parent.children.find(c => c.name === `waypoint_arrow_${index}`);
                 if (arrow) {
                     arrow.position.copy(event.object.position);
@@ -879,7 +898,15 @@
             dragControls.addEventListener('dragend', function (event) {
                 orbitControls.enabled = true;
                 transformControls.enabled = true;
+                // waypoints 配列の座標を更新
+                const index = event.object.userData.waypointIndex;
+                if (waypoints[index]) {
+                    waypoints[index][0][0] = event.object.position.x;
+                    waypoints[index][0][1] = event.object.position.y;
+                    waypoints[index][0][2] = event.object.position.z;
+                }
             });
+
 
             pcdLoader = new PCDLoader();
             raycaster = new THREE.Raycaster(); 
@@ -889,7 +916,31 @@
             document.getElementById('unload-map-button').addEventListener('click', startUnloadProcess);
             renderer.domElement.addEventListener('click', onWaypointClick, false);
             document.getElementById('edit-yaw').addEventListener('change', applyYawChange);
+            document.getElementById('save-waypoints-button').addEventListener('click', saveWaypointsToServer);
 
+            // グリッドヘルパーの追加
+            gridHelper = new THREE.GridHelper(200, 200, 0x888888, 0x444444);
+            gridHelper.rotation.x = Math.PI / 2;
+            scene.add(gridHelper);
+
+            // グリッド表示切替
+            document.getElementById('grid-toggle').addEventListener('change', (event) => {
+                gridHelper.visible = event.target.checked;
+            });
+
+            // PGM透過度スライダー
+            document.getElementById('pgm-opacity-slider').addEventListener('input', (event) => {
+                const opacity = parseFloat(event.target.value);
+                for (const key in meshRegistry) {
+                    if (key.startsWith('pgm-')) {
+                        const pgmMesh = meshRegistry[key];
+                        if (pgmMesh && pgmMesh.material) {
+                            pgmMesh.material.opacity = opacity;
+                        }
+                    }
+                }
+            });
+            
             const initialMapName = "{{ map_name }}"; 
             if (initialMapName) {
                 currentMapName = initialMapName;
@@ -918,6 +969,35 @@
             requestAnimationFrame(animate);
             orbitControls.update();
             renderer.render(scene, camera);
+        }
+
+        async function saveWaypointsToServer() {
+            if (!currentMapName) {
+                alert("マップがロードされていません。");
+                return;
+            }
+            if (waypoints.length === 0) {
+                alert("保存するウェイポイントがありません。");
+                return;
+            }
+
+            try {
+                const response = await fetch('/save_waypoints', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        map_name: currentMapName,
+                        waypoints: waypoints,
+                    }),
+                });
+                const result = await response.json();
+                alert(result.message); // サーバーからのメッセージを表示
+            } catch (error) {
+                console.error('ウェイポイントの保存中にエラーが発生しました:', error);
+                alert('ウェイポイントの保存に失敗しました。');
+            }
         }
         init();
     </script>

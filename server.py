@@ -979,10 +979,14 @@ def trigger_script():
             
     elif command == "execute_single_map_run":
         confirmation_field = request.form.get("confirm_check") 
+        arguments = request.form.get("arguments")
         if confirmation_field or request.form:
             script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
             command_list = [script_path]
-
+            if arguments:
+                # 引数をスペースで分割してリストに追加
+                command_list.extend(arguments.split())
+                
             Thread(target=run_subprocess, args=(command_list,)).start()
             current_mode = "running"
             return redirect('/navigation_executed')

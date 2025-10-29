@@ -12,7 +12,7 @@ hokuyo_nav2_gui
 <div class="index-page-container">
     <div id="status-display" style="font-size: 1.2em; margin-bottom: 20px;">現在のモード: 未設定</div>
     <form method="post" action="/gui" target="_blank">
-        <button type="submit" name="command" value="demo" id="demo" class="mode-control-btn">手動操作モード</button>
+        <button type="submit" name="command" value="ctrl" id="ctrl" class="mode-control-btn">手動操作モード</button>
     </form>
     <button id="mappingBtn" class="mode-control-btn">マッピング設定</button>
     <button id="indoorRunBtn" class="mode-control-btn">屋内自律走行設定</button>
@@ -72,7 +72,7 @@ hokuyo_nav2_gui
     const statusDisplay = document.getElementById('status-display');
     const modeControlBtns = document.querySelectorAll('.mode-control-btn');
     const stopBtn = document.getElementById('stop');
-    const demoBtn = document.getElementById('demo');
+    const ctrlBtn = document.getElementById('ctrl');
 
     function initializeCheckboxes(container) {
         const checkboxes = container.querySelectorAll('input[type="checkbox"]');
@@ -125,7 +125,7 @@ hokuyo_nav2_gui
     };
 
     function updateButtonState(mode) {
-        if (mode === 'running' || mode === 'demo' || mode === 'mapping') {
+        if (mode === 'running' || mode === 'ctrl' || mode === 'mapping') {
             // メイン画面のモード選択ボタンを無効化
             indoorRunBtn.disabled = true;
             indoorRunBtn.classList.add('inactive-button');
@@ -133,8 +133,8 @@ hokuyo_nav2_gui
             outdoorRunBtn.classList.add('inactive-button');
             mappingBtn.disabled = true;
             mappingBtn.classList.add('inactive-button');
-            demoBtn.disabled = true;
-            demoBtn.classList.add('inactive-button');
+            ctrlBtn.disabled = true;
+            ctrlBtn.classList.add('inactive-button');
 
             if (stopBtn) {
                 stopBtn.disabled = false;
@@ -148,8 +148,8 @@ hokuyo_nav2_gui
             outdoorRunBtn.classList.remove('inactive-button');
             mappingBtn.disabled = false;
             mappingBtn.classList.remove('inactive-button');
-            demoBtn.disabled = false;
-            demoBtn.classList.remove('inactive-button');
+            ctrlBtn.disabled = false;
+            ctrlBtn.classList.remove('inactive-button');
             
             if (stopBtn) {
                 stopBtn.disabled = false; 
@@ -164,7 +164,7 @@ hokuyo_nav2_gui
             case 'running':
                 message = "自律走行モード";
                 break;
-            case 'demo':
+            case 'ctrl':
                 message = "手動操作モード";
                 break;
             case 'mapping':

@@ -163,8 +163,13 @@
         <input type="hidden" id="is-sync-mode" value="{{ sync_mode | tojson }}">
         <input type="hidden" id="is-p2o-mode" value="{{ p2o_mode | tojson }}">
         <input type="hidden" id="is-lio-raw-mode" value="{{ lio_raw_mode | tojson }}"> <label for="output-filename">出力ファイル/マップ名:</label>
-        {% set default_name = input_bag_path.split('/')[-1].split('.')[:-1]|join('.') %}
-        <input type="text" id="output-filename" placeholder="例: {{ default_name }}_processed" value="{{ default_name }}_processed">
+        {% set basename = input_bag_path.split('/')[-1] %}
+        {% if '.' in basename %}
+            {% set default_name = basename.rsplit('.', 1)[0] %}
+        {% else %}
+            {% set default_name = basename %}
+        {% endif %}
+        <input type="text" id="output-filename" placeholder="例: {{ default_name }}_processed" value="{{ default_name }}_processed" required>
         
         <div id="filter-options" style="{% if sync_mode or p2o_mode or lio_raw_mode %}display: none;{% endif %}">
             <label>選択するトピック (フィルタリングモードのみ):</label>

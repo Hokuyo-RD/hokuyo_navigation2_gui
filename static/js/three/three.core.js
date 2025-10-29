@@ -40467,7 +40467,7 @@ class MeshDepthMaterial extends Material {
  *
  * Can also be used to customize the shadow casting of an object by assigning
  * an instance of `MeshDistanceMaterial` to {@link Object3D#customDistanceMaterial}.
- * The following examples demonstrates this approach in order to ensure
+ * The following examples ctrlnstrates this approach in order to ensure
  * transparent parts of objects do not cast shadows.
  *
  * @augments Material

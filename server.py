@@ -155,15 +155,15 @@ def stop_run():
 @app.route('/mapping_executed')
 def mapping_run():
     """マッピング実行後のメッセージ画面"""
-    return render_template('demo_executed.html', message="マッピングが開始されました。安全に注意し、周囲を走行してください。")
+    return render_template('ctrl_executed.html', message="マッピングが開始されました。安全に注意し、周囲を走行してください。")
 
 @app.route('/mapping_popup')
 def mapping_run_popup():
     return render_template('mapping_popup.html')
 
-@app.route('/demo_executed')
-def demo_run():
-    return render_template('demo_executed.html', message="手動操作モードに切り替わりました。Viewerでジョイスティックを使ってデモをしてください。")
+@app.route('/ctrl_executed')
+def ctrl_run():
+    return render_template('ctrl_executed.html', message="手動操作モードに切り替わりました。Viewerでジョイスティックを使ってデモをしてください。")
 
 @app.route('/program_executed')
 def program_executed():
@@ -915,7 +915,7 @@ def pcd_pgm_convert_page():
         flash('エラー: 変換元のPCDファイルが指定されていません。再度選択してください。', 'error')
         return redirect(url_for('index'))
     
-    default_output_name = input_pcd_filename.replace('.pcd', '_pgm') if input_pcd_filename.endswith('.pcd') else f'{input_pcd_filename}_pgm'
+    default_output_name = input_pcd_filename.replace('.pcd', '') if input_pcd_filename.endswith('.pcd') else f'{input_pcd_filename}'
     
     return render_template('pcd_pgm_convert.html', 
                            input_pcd_filename=input_pcd_filename, 
@@ -1029,11 +1029,11 @@ def trigger_script():
         current_mode = "stopped"
         return render_template('stop.html')
         
-    elif command == "demo":
+    elif command == "ctrl":
         script_path = os.path.join(BASE_PATH, "start_getting_rosbag.sh")
         Thread(target=run_subprocess, args=([script_path],)).start()
-        current_mode = "demo"
-        return redirect('/demo_executed')
+        current_mode = "ctrl"
+        return redirect('/ctrl_executed')
         
     elif command == "map":
         return redirect('/mapping_popup')

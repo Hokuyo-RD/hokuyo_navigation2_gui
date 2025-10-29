@@ -617,10 +617,7 @@
                     const yaw = quaternionToYaw(orientation[0], orientation[1], orientation[2], orientation[3]);
                     const SPHERE_RADIUS = 0.3; 
                     const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16); 
-                    const attributes = wp.length > 2 ? (Array.isArray(wp[2]) ? wp[2][0] : wp[2]) : {};
-                    const type = attributes.type || 'default';
-                    const colorValue = getColorByType(type);
-                    const material = new THREE.MeshBasicMaterial({ color: colorValue }); 
+                    const material = new THREE.MeshBasicMaterial({ color: 0x00ffff }); 
                     const sphere = new THREE.Mesh(geometry, material);
                     sphere.position.set(x, y, z);
                     sphere.name = `waypoint_sphere_${index}`;
@@ -647,7 +644,6 @@
                 }
                 document.getElementById('info').innerHTML += `<br>Waypointを ${waypoints.length} 個配置完了`;
                 if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
-                updateWaypointPath(mapName);
             } catch (error) {
                 console.error('Waypointファイルのロード中にエラーが発生しました:', error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointロード失敗: ${error.message}</span>`;
@@ -1275,11 +1271,6 @@
                 "yaw_tolerance": 3.14
             };
 
-            // 属性に基づいて色を決定
-            const attr = Array.isArray(attributes) ? attributes[0] : attributes;
-            const type = attr.type || 'default';
-            const color = getColorByType(type);
-
             const newWpData = [[x, y, z], [0, 0, 0, 1], defaultAttributes]; // [position], [quaternion], [attributes]
             const finalIndex = (insertionIndex === undefined || insertionIndex > waypoints.length) ? waypoints.length : insertionIndex;
             waypoints.splice(finalIndex, 0, newWpData);
@@ -1303,7 +1294,9 @@
 
                 const SPHERE_RADIUS = 0.3;
                 const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16);
-                const material = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+                const type = (attrs && attrs.length > 0 && attrs[0].type) ? attrs[0].type : 'default';
+                const color = getColorByType(type);
+                const material = new THREE.MeshBasicMaterial({ color: color });
                 const sphere = new THREE.Mesh(geometry, material);
                 sphere.position.set(pos[0], pos[1], pos[2]);
                 sphere.name = `waypoint_sphere_${idx}`;

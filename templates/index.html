@@ -16,7 +16,7 @@ hokuyo_nav2_gui
     </form>
     <button id="mappingBtn" class="mode-control-btn">マッピング設定</button>
     <button id="indoorRunBtn" class="mode-control-btn">屋内自律走行設定</button>
-    <button id="outdoorRunBtn" class="mode-control-btn">屋外自律走行設定</button>
+    <button id="single_mapRunBtn" class="mode-control-btn">屋外自律走行設定</button>
     
     <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
@@ -34,10 +34,10 @@ hokuyo_nav2_gui
             </div>
         </div>
     </div>
-    <div id="outdoorPopupContainer" class="popup-container" style="display: none;">
-        <div id="outdoorPopupContent" class="popup-content">
-            <button id="closeOutdoorPopupBtn" class="close-button">閉じる</button>
-            <div id="outdoorRunContent">
+    <div id="single_mapPopupContainer" class="popup-container" style="display: none;">
+        <div id="single_mapPopupContent" class="popup-content">
+            <button id="closesingle_mapPopupBtn" class="close-button">閉じる</button>
+            <div id="single_mapRunContent">
             </div>
         </div>
     </div>
@@ -54,16 +54,16 @@ hokuyo_nav2_gui
 <script>
     const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
     const indoorRunBtn = document.getElementById('indoorRunBtn');
-    const outdoorRunBtn = document.getElementById('outdoorRunBtn');
+    const single_mapRunBtn = document.getElementById('single_mapRunBtn');
     const mappingBtn = document.getElementById('mappingBtn');
 
     const indoorPopupContainer = document.getElementById('indoorPopupContainer');
     const indoorRunContent = document.getElementById('indoorRunContent');
     const closeIndoorPopupBtn = document.getElementById('closeIndoorPopupBtn');
     
-    const outdoorPopupContainer = document.getElementById('outdoorPopupContainer');
-    const outdoorRunContent = document.getElementById('outdoorRunContent');
-    const closeOutdoorPopupBtn = document.getElementById('closeOutdoorPopupBtn');
+    const single_mapPopupContainer = document.getElementById('single_mapPopupContainer');
+    const single_mapRunContent = document.getElementById('single_mapRunContent');
+    const closesingle_mapPopupBtn = document.getElementById('closesingle_mapPopupBtn');
     
     const mappingPopupContainer = document.getElementById('mappingPopupContainer');
     const mappingRunContent = document.getElementById('mappingRunContent');
@@ -129,8 +129,8 @@ hokuyo_nav2_gui
             // メイン画面のモード選択ボタンを無効化
             indoorRunBtn.disabled = true;
             indoorRunBtn.classList.add('inactive-button');
-            outdoorRunBtn.disabled = true;
-            outdoorRunBtn.classList.add('inactive-button');
+            single_mapRunBtn.disabled = true;
+            single_mapRunBtn.classList.add('inactive-button');
             mappingBtn.disabled = true;
             mappingBtn.classList.add('inactive-button');
             ctrlBtn.disabled = true;
@@ -144,8 +144,8 @@ hokuyo_nav2_gui
             // 停止モードの場合、すべてのボタンを有効化
             indoorRunBtn.disabled = false;
             indoorRunBtn.classList.remove('inactive-button');
-            outdoorRunBtn.disabled = false;
-            outdoorRunBtn.classList.remove('inactive-button');
+            single_mapRunBtn.disabled = false;
+            single_mapRunBtn.classList.remove('inactive-button');
             mappingBtn.disabled = false;
             mappingBtn.classList.remove('inactive-button');
             ctrlBtn.disabled = false;
@@ -211,16 +211,16 @@ hokuyo_nav2_gui
             });
     });
 
-    outdoorRunBtn.addEventListener('click', () => {
-        fetch('/outdoor_run_popup')
+    single_mapRunBtn.addEventListener('click', () => {
+        fetch('/single_map_run_popup')
             .then(response => response.text())
             .then(data => {
-                outdoorRunContent.innerHTML = data;
-                initializeCheckboxes(outdoorRunContent);
-                outdoorPopupContainer.style.display = 'flex';
+                single_mapRunContent.innerHTML = data;
+                initializeCheckboxes(single_mapRunContent);
+                single_mapPopupContainer.style.display = 'flex';
             })
             .catch(error => {
-                console.error('Error fetching outdoor_run_popup.html:', error);
+                console.error('Error fetching single_map_run_popup.html:', error);
                 alert('屋外自律走行設定の読み込みに失敗しました。');
             });
     });
@@ -244,9 +244,9 @@ hokuyo_nav2_gui
         indoorRunContent.innerHTML = '';
     });
 
-    closeOutdoorPopupBtn.addEventListener('click', () => {
-        outdoorPopupContainer.style.display = 'none';
-        outdoorRunContent.innerHTML = '';
+    closesingle_mapPopupBtn.addEventListener('click', () => {
+        single_mapPopupContainer.style.display = 'none';
+        single_mapRunContent.innerHTML = '';
     });
     
     closeMappingPopupBtn.addEventListener('click', () => {
@@ -261,10 +261,10 @@ hokuyo_nav2_gui
         }
     });
 
-    outdoorPopupContainer.addEventListener('click', (event) => {
-        if (event.target === outdoorPopupContainer) {
-            outdoorPopupContainer.style.display = 'none';
-            outdoorRunContent.innerHTML = '';
+    single_mapPopupContainer.addEventListener('click', (event) => {
+        if (event.target === single_mapPopupContainer) {
+            single_mapPopupContainer.style.display = 'none';
+            single_mapRunContent.innerHTML = '';
         }
     });
     

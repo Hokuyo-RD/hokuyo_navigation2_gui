@@ -1,32 +1,32 @@
-<div class="outdoor-run-popup-content">
+<div class="single_map-run-popup-content">
     <p>自律移動の開始前に設定を確認してください。</p>
-    <form id="outdoorRunForm" method="post" action="/gui" target="_blank">
+    <form id="single_mapRunForm" method="post" action="/gui" target="_blank">
         <div id="checklist-container">
-            <div><input type="checkbox" id="check1_outdoor" name="check1_outdoor" value="checked"><label for="check1_outdoor">一時停止スイッチをオンしていること</label></div>
-            <div><input type="checkbox" id="check2_outdoor" name="check2_outdoor" value="checked"><label for="check2_outdoor">オペレータが周りの安全を確認していること</label></div>
-            <div><input type="checkbox" id="check3_outdoor" name="check3_outdoor" value="checked"><label for="check3_outdoor">フリースイッチをオフしていること</label></div>
+            <div><input type="checkbox" id="check1_single_map" name="check1_single_map" value="checked"><label for="check1_single_map">一時停止スイッチをオンしていること</label></div>
+            <div><input type="checkbox" id="check2_single_map" name="check2_single_map" value="checked"><label for="check2_single_map">オペレータが周りの安全を確認していること</label></div>
+            <div><input type="checkbox" id="check3_single_map" name="check3_single_map" value="checked"><label for="check3_single_map">フリースイッチをオフしていること</label></div>
         </div>
         
         <div class="input-field">
             <label for="arguments">スクリプト引数:</label>
             <input type="text" id="arguments" name="arguments" placeholder="例: arg1 arg2">
         </div>
-        <input type="hidden" name="command" value="execute_outdoor_run">
+        <input type="hidden" name="command" value="execute_single_map_run">
         <div style="text-align: center; margin-top: 20px;">
-            <button type="submit" id="executeBtn_outdoor" class="special inactive-button" disabled style="font-size: 200%;">自律走行開始</button>
+            <button type="submit" id="executeBtn_single_map" class="special inactive-button" disabled style="font-size: 200%;">自律走行開始</button>
         </div>
     </form>
 </div>
 <style>
-    .outdoor-run-popup-content {
+    .single_map-run-popup-content {
         text-align: center;
         padding: 20px;
     }
-    .outdoor-run-popup-content div {
+    .single_map-run-popup-content div {
         margin-bottom: 30px;
         text-align: left;
     }
-    .outdoor-run-popup-content label {
+    .single_map-run-popup-content label {
         margin-left: 5px;
     }
     .input-field {
@@ -37,8 +37,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const checkboxes = document.querySelectorAll('#checklist-container input[type="checkbox"]');
-        const executeBtn = document.getElementById('executeBtn_outdoor');
-        const outdoorRunForm = document.getElementById('outdoorRunForm');
+        const executeBtn = document.getElementById('executeBtn_single_map');
+        const single_mapRunForm = document.getElementById('single_mapRunForm');
 
         function checkFormValidity() {
             const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);

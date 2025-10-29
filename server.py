@@ -144,9 +144,9 @@ def indoor_run():
 def indoor_run_popup():
     return render_template('indoor_run_popup.html')
 
-@app.route('/outdoor_run_popup')
-def outdoor_run_popup():
-    return render_template('outdoor_run_popup.html')
+@app.route('/single_map_run_popup')
+def single_map_run_popup():
+    return render_template('single_map_run_popup.html')
 
 @app.route('/stop')
 def stop_run():
@@ -977,7 +977,7 @@ def trigger_script():
         else:
             return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
             
-    elif command == "execute_outdoor_run":
+    elif command == "execute_single_map_run":
         confirmation_field = request.form.get("confirm_check") 
         if confirmation_field or request.form:
             script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
@@ -987,7 +987,7 @@ def trigger_script():
             current_mode = "running"
             return redirect('/program_executed')
         else:
-            return render_template('outdoor_run_popup.html', error="開始を確認してください。")
+            return render_template('single_map_run_popup.html', error="開始を確認してください。")
     elif command == "execute_mapping_sync":
         current_mode = "stopped"
         flash("トピック同期に使用するROS Bagを選択してください。", "info")

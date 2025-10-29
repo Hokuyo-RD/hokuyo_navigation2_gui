@@ -630,7 +630,10 @@
                     const yaw = quaternionToYaw(orientation[0], orientation[1], orientation[2], orientation[3]);
                     const SPHERE_RADIUS = 0.3; 
                     const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16); 
-                    const material = new THREE.MeshBasicMaterial({ color: 0x00ffff }); 
+                    const attributes = wp.length > 2 ? (Array.isArray(wp[2]) ? wp[2][0] : wp[2]) : {};
+                    const type = attributes.type || 'default';
+                    const colorValue = getColorByType(type);
+                    const material = new THREE.MeshBasicMaterial({ color: colorValue }); 
                     const sphere = new THREE.Mesh(geometry, material);
                     sphere.position.set(x, y, z);
                     sphere.name = `waypoint_sphere_${index}`;

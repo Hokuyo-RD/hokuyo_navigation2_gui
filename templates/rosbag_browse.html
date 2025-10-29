@@ -14,7 +14,12 @@
         li:hover { background-color: #f5f5f5; }
         .selected { background-color: #e9ecef !important; border: 1px solid #007bff; margin: -1px; }
         .folder a, .parent-link a { color: #007bff; text-decoration: none; font-weight: bold; }
-        .file a { color: #28a745; text-decoration: none; }
+        .file { color: #212529; }
+        .file.disabled {
+            color: #adb5bd; /* 薄いグレー */
+            cursor: not-allowed; /* カーソルを禁止マークに */
+            background-color: #f8f9fa;
+        }
     </style>
 </head>
 <body>
@@ -109,11 +114,24 @@
         const selectedFileNameSpan = document.getElementById('selected_file_name');
         const fileListItems = document.querySelectorAll('#file-list li');
         const ROS_BAG_EXTENSIONS = ['.db3', '.mcap', '.bag'];
+        
+        const isP2OMode = {{ p2o_mode | tojson }};
+        const isLioRawMode = {{ lio_raw_mode | tojson }};
+        const isMappingMode = isP2OMode || isLioRawMode;
 
         function isRosBag(name, isDir) {
-            if (isDir) return true; // ディレクトリは常に選択可能
+            // マッピングモード (P2O/LIO-RAW) の場合はディレクトリのみ許可
+            if (isMappingMode) {
+                return isDir;
+            }
+            // それ以外のモード (Filter/Sync) ではディレクトリと特定の拡張子を許可
+            if (isDir) return true;
             const lowerName = name.toLowerCase();
             return ROS_BAG_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+        }
+
+        function updateFileItemsAppearance() {
+            document.querySelectorAll('li.file').forEach(item => item.classList.toggle('disabled', isMappingMode));
         }
 
         function selectItem(relativePath, name, isDir, event) {
@@ -129,11 +147,11 @@
             // ボタンの有効/無効化とテキスト設定
             if (isSelectable) {
                 selectButton.disabled = false;
-                selectButton.textContent = `ROS Bagとして選択 (${name})`;
-                selectedFileNameSpan.textContent = isDir ? `(選択中: ${name} - ディレクトリ)` : `(選択中: ${name})`;
+                selectButton.textContent = isDir ? `ディレクトリを選択 (${name})` : `ファイルを選択 (${name})`;
+                selectedFileNameSpan.textContent = `選択中: ${name}`;
             } else {
                 selectButton.disabled = true;
-                selectButton.textContent = 'ROS Bagとして選択 (非対応)';
+                selectButton.textContent = isMappingMode ? 'ディレクトリを選択してください' : '選択できません';
                 selectedFileNameSpan.textContent = `選択ファイル: ${name} (非対応)`;
             }
 
@@ -142,6 +160,9 @@
                 window.location.href = event.currentTarget.querySelector('a').href;
             }
         }
+
+        // ページ読み込み時にマッピングモードならファイルの見た目を変更
+        document.addEventListener('DOMContentLoaded', updateFileItemsAppearance);
     </script>
 </body>
 </html>

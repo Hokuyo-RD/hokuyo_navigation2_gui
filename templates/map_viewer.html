@@ -313,9 +313,6 @@
                         <div style="display: flex; align-items: center; margin-bottom: 3px;">
                             <span style="width: 12px; height: 12px; background-color: #00ffff; margin-right: 5px; border: 1px solid #fff;"></span> Default
                         </div>
-                        <div style="display: flex; align-items: center;">
-                            <span style="width: 12px; height: 12px; background-color: #0000ff; margin-right: 5px; border: 1px solid #fff;"></span> Selected
-                        </div>
                     </div>
                 `;
                 document.body.appendChild(legendContainer);
@@ -1033,7 +1030,6 @@
                 const intersectedObject = intersects[0].object;
                 if (intersectedObject.isMesh && intersectedObject.name.startsWith('waypoint_sphere_')) {
                     selectedWaypoint = intersectedObject;
-                    selectedWaypoint.material.color.setHex(0x0000ff); // 選択時の色を青に変更
                     dragControls.enabled = true; // 選択されたらドラッグを有効化
                     transformControls.attach(selectedWaypoint);
 

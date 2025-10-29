@@ -177,6 +177,21 @@
             margin-top: 10px;
             padding: 5px;
         }
+        #waypoint-legend-container {
+            position: absolute; /* 絶対位置指定 */
+            bottom: 10px; /* 下からの距離 */
+            left: 10px; /* 左からの距離 */
+            color: #fff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            z-index: 10;
+        }
+        #waypoint-legend-container h4 {
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
     </style>
     <script type="importmap">
         {
@@ -277,6 +292,46 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
         import { DragControls } from 'three/addons/controls/DragControls.js';
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const waypointInfoPanel = document.getElementById('waypoint-info');
+            if (waypointInfoPanel) {
+                const legendContainer = document.createElement('div');
+                legendContainer.id = 'waypoint-legend-container';
+                legendContainer.innerHTML = `
+                    <h4>ウェイポイント凡例:</h4>
+                    <div id="waypoint-legend" style="font-size: 0.9em;">
+                        <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                            <span style="width: 12px; height: 12px; background-color: #00ff00; margin-right: 5px; border: 1px solid #fff;"></span> Normal: through 0.5 [m/s]
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                            <span style="width: 12px; height: 12px; background-color: #ffff00; margin-right: 5px; border: 1px solid #fff;"></span> Slow: 50% of Normal
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                            <span style="width: 12px; height: 12px; background-color: #ff0000; margin-right: 5px; border: 1px solid #fff;"></span> Stop: Set 0.0 [m/s] during [s]
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                            <span style="width: 12px; height: 12px; background-color: #00ffff; margin-right: 5px; border: 1px solid #fff;"></span> Default
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <span style="width: 12px; height: 12px; background-color: #0000ff; margin-right: 5px; border: 1px solid #fff;"></span> Selected
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(legendContainer);
+
+                // ウェイポイント情報パネルの表示状態と高さに応じて凡例の位置を調整
+                const mutationObserver = new MutationObserver(() => {
+                    if (waypointInfoPanel.style.display !== 'none') {
+                        const panelHeight = waypointInfoPanel.offsetHeight;
+                        legendContainer.style.bottom = `${panelHeight + 20}px`; // パネルの高さ + 20pxの余白
+                    } else {
+                        legendContainer.style.bottom = '10px'; // パネル非表示時はデフォルト位置
+                    }
+                });
+                mutationObserver.observe(waypointInfoPanel, { attributes: true, attributeFilter: ['style'] });
+            }
+        });
 
         let waypoints = []; 
         let mapData = null; 
@@ -1014,6 +1069,24 @@
                 X: ${position.x.toFixed(3)}, 
                 Y: ${position.y.toFixed(3)}, 
                 Z: ${position.z.toFixed(3)}</p>
+            `;
+
+            let distanceInfoHtml = '<p><strong>ウェイポイント間距離:</strong><br>';
+            if (index > 0) {
+                const prevPos = new THREE.Vector3().fromArray(waypoints[index - 1][0]);
+                const currentPosVec = new THREE.Vector3().copy(position);
+                const distToPrev = currentPosVec.distanceTo(prevPos);
+                distanceInfoHtml += `&nbsp;&nbsp;前まで: ${distToPrev.toFixed(2)} m<br>`;
+            }
+            if (index < waypoints.length - 1) {
+                const nextPos = new THREE.Vector3().fromArray(waypoints[index + 1][0]);
+                const currentPosVec = new THREE.Vector3().copy(position);
+                const distToNext = currentPosVec.distanceTo(nextPos);
+                distanceInfoHtml += `&nbsp;&nbsp;次まで: ${distToNext.toFixed(2)} m`;
+            }
+            detailsHtml += distanceInfoHtml + '</p>';
+
+            detailsHtml += `
                 <p><strong>現在の向き (Yaw):</strong> ${yawDeg.toFixed(1)}°</p>
             `;
 

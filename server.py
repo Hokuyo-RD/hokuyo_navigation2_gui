@@ -64,8 +64,19 @@ def zip_directory(path, zip_filename):
 def run_subprocess(command_list):
     """別スレッドでサブプロセスを実行するための関数"""
     try:
-        subprocess.run(command_list, check=True, capture_output=True, text=True)
-        print(f"Subprocess finished successfully: {command_list}")
+        # Popenを使い、新しいプロセスグループで実行する (preexec_fn=os.setsid)
+        # これにより、killall等が親プロセスに影響を与えるのを防ぐ
+        process = subprocess.Popen(
+            command_list,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            preexec_fn=os.setsid  # 新しいセッションでプロセスを開始
+        )
+        stdout, stderr = process.communicate()
+        print(f"Subprocess finished with code {process.returncode}: {command_list}")
+        if stdout: print(f"Stdout: {stdout}")
+        if stderr: print(f"Stderr: {stderr}")
     except subprocess.CalledProcessError as e:
         print(f"Subprocess failed: {e}")
         print(f"Stdout: {e.stdout}")
@@ -1013,13 +1024,13 @@ def trigger_script():
         return redirect('/mapping_executed')
 
     elif command == "stop":
-        script_path = os.path.join(BASE_PATH, "web_kill_all_rosnode.sh")
+        script_path = os.path.join(BASE_PATH, "ctrl/web_kill_all_rosnode.sh")
         Thread(target=run_subprocess, args=([script_path],)).start()
         current_mode = "stopped"
         return render_template('stop.html')
         
     elif command == "demo":
-        script_path = os.path.join(BASE_PATH, "get_data.sh")
+        script_path = os.path.join(BASE_PATH, "start_getting_rosbag.sh")
         Thread(target=run_subprocess, args=([script_path],)).start()
         current_mode = "demo"
         return redirect('/demo_executed')

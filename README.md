@@ -8,6 +8,8 @@ pip3 install websockets
 
 sudo ufw allow 5050
 sudo ufw allow 5050/tcp
+sudo ufw allow 5000
+sudo ufw allow 5000/tcp
 sudo ufw allow 5001
 sudo ufw allow 5001/tcp
 sudo ufw allow 8000

@@ -165,9 +165,9 @@ def mapping_run_popup():
 def ctrl_run():
     return render_template('ctrl_executed.html', message="手動操作モードに切り替わりました。Viewerでジョイスティックを使ってデモをしてください。")
 
-@app.route('/program_executed')
-def program_executed():
-    return render_template('program_executed.html', message="自律走行が開始されました。周囲の安全に気をつけて下さい。")
+@app.route('/navigation_executed')
+def navigation_executed():
+    return render_template('navigation_executed.html', message="自律走行が開始されました。周囲の安全に気をつけて下さい。")
 
 @app.route('/browse_rosbag', defaults={'path': ''}) 
 @app.route('/browse_rosbag/<path:path>')
@@ -973,7 +973,7 @@ def trigger_script():
             script_path = os.path.join(BASE_PATH, "expo_in")
             Thread(target=run_subprocess, args=([script_path],)).start()
             current_mode = "running"
-            return redirect('/program_executed')
+            return redirect('/navigation_executed')
         else:
             return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
             
@@ -985,7 +985,7 @@ def trigger_script():
 
             Thread(target=run_subprocess, args=(command_list,)).start()
             current_mode = "running"
-            return redirect('/program_executed')
+            return redirect('/navigation_executed')
         else:
             return render_template('single_map_run_popup.html', error="開始を確認してください。")
     elif command == "execute_mapping_sync":

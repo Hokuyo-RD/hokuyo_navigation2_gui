@@ -355,6 +355,19 @@
             const cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
             return Math.atan2(siny_cosp, cosy_cosp);
         }
+        function getColorByType(type) {
+            switch (type) {
+                case 'normal':
+                    return 0x00ff00; // 緑
+                case 'slow':
+                    return 0xffff00; // 黄
+                case 'stop':
+                    return 0xff0000; // 赤
+                default:
+                    return 0x00ffff; // 水色 (デフォルト)
+            }
+        }
+
         async function parsePGM(urlOrBuffer, mapData) {
             let buffer;
             if (typeof urlOrBuffer === 'string') {
@@ -644,6 +657,7 @@
                 }
                 document.getElementById('info').innerHTML += `<br>Waypointを ${waypoints.length} 個配置完了`;
                 if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
+                updateWaypointPath(mapName);
             } catch (error) {
                 console.error('Waypointファイルのロード中にエラーが発生しました:', error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointロード失敗: ${error.message}</span>`;
@@ -1031,19 +1045,6 @@
                 }
             } else {
                 hideWaypointInfo();
-            }
-        }
-
-        function getColorByType(type) {
-            switch (type) {
-                case 'normal':
-                    return 0x00ff00; // 緑
-                case 'slow':
-                    return 0xffff00; // 黄
-                case 'stop':
-                    return 0xff0000; // 赤
-                default:
-                    return 0x00ffff; // 水色 (デフォルト)
             }
         }
 

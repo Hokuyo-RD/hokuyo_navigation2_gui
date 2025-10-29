@@ -5,6 +5,7 @@ import shutil
 import zipfile 
 import subprocess
 from threading import Thread
+import sys
 import asyncio
 import yaml
 import pathlib
@@ -69,18 +70,24 @@ def run_subprocess(command_list):
         process = subprocess.Popen(
             command_list,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # 標準エラー出力を標準出力にリダイレクト
             text=True,
+            bufsize=1,  # 行バッファリングを有効化
             preexec_fn=os.setsid  # 新しいセッションでプロセスを開始
         )
-        stdout, stderr = process.communicate()
+        
+        # 標準出力をリアルタイムで読み込んで表示
+        if process.stdout:
+            for line in iter(process.stdout.readline, ''):
+                # [stdout]や[stderr]のプレフィックスを付けずにそのまま出力
+                print(line.strip())
+
+        process.wait() # プロセスの終了を待つ
+
         print(f"Subprocess finished with code {process.returncode}: {command_list}")
-        if stdout: print(f"Stdout: {stdout}")
-        if stderr: print(f"Stderr: {stderr}")
     except subprocess.CalledProcessError as e:
         print(f"Subprocess failed: {e}")
         print(f"Stdout: {e.stdout}")
-        print(f"Stderr: {e.stderr}")
     except FileNotFoundError:
         print(f"Subprocess failed: Command not found or script path error: {command_list}")
 
@@ -354,7 +361,6 @@ def convert():
     except NameError:
         return jsonify({'status': 'error', 'message': 'ROS Bagフィルタのコア機能がインポートされていません。ROS環境を確認してください。'}), 500
     except Exception as e:
-        print(f"ERROR: Conversion/Sync failed with exception: {e}")
         return jsonify({'status': 'error', 'message': f'処理中にエラーが発生しました: {e}'}), 500
 
 @app.route('/p2o_mapping', methods=['POST'])
@@ -981,7 +987,7 @@ def trigger_script():
         confirmation_field = request.form.get("confirm_check") 
         arguments = request.form.get("arguments")
         if confirmation_field or request.form:
-            script_path = os.path.join(BASE_PATH, "nav_single_map.sh")
+            script_path = os.path.join(BASE_PATH, "navigation/nav_single_map.sh")
             command_list = [script_path]
             if arguments:
                 # 引数をスペースで分割してリストに追加

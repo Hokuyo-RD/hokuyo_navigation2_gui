@@ -987,7 +987,7 @@ def trigger_script():
         confirmation_field = request.form.get("confirm_check") 
         arguments = request.form.get("arguments")
         if confirmation_field or request.form:
-            script_path = os.path.join(BASE_PATH, "navigation/nav_single_map.sh")
+            script_path = os.path.join(BASE_PATH, "start_navigation.sh")
             command_list = [script_path]
             if arguments:
                 # 引数をスペースで分割してリストに追加

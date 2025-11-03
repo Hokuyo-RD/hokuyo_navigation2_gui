@@ -55,6 +55,7 @@
             flex-direction: column;
             gap: 8px;
             max-height: 98vh;
+            width: 250px; /* パネルの幅を固定 */
             overflow-y: auto;
         }
         #controls label {
@@ -192,6 +193,31 @@
             margin: 0 0 5px 0;
             font-weight: bold;
         }
+
+        /* タブレット・スマートフォン向けのレスポンシブ対応 */
+        @media screen and (orientation: landscape) and (max-height: 800px) {
+            /* 横向きで高さが低いデバイスの場合 */
+            #controls {
+                max-height: 90vh; /* 高さをビューポートの90%に制限してスクロールを確実にする */
+                max-width: 60vh;
+            }
+        }
+
+        @media screen and (orientation: portrait) and (max-width: 768px) {
+            /* 縦向きのタブレットやスマートフォンの場合 */
+            #controls {
+                max-width: 90vh
+            }
+            #info, #waypoint-info, #waypoint-legend-container {
+                max-width: 90vh; /* 情報パネルの最大幅を制限 */
+            }
+        }
+
+        @media screen and (max-width: 1024px) {
+            .modal-content {
+                width: 90vw; /* タブレットではビューポート幅の90%に */
+            }
+        }
     </style>
     <script type="importmap">
         {
@@ -305,7 +331,7 @@
                             <span style="width: 12px; height: 12px; background-color: #00ff00; margin-right: 5px; border: 1px solid #fff;"></span> Normal: through 0.5 [m/s]
                         </div>
                         <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                            <span style="width: 12px; height: 12px; background-color: #ffff00; margin-right: 5px; border: 1px solid #fff;"></span> Slow: 50% of Normal
+                            <span style="width: 12px; height: 12px; background-color: #ffff00; margin-right: 5px; border: 1px solid #fff;"></span> Slow: Decelerate to designated Speed [m/s]
                         </div>
                         <div style="display: flex; align-items: center; margin-bottom: 3px;">
                             <span style="width: 12px; height: 12px; background-color: #ff0000; margin-right: 5px; border: 1px solid #fff;"></span> Stop: Set 0.0 [m/s] during [s]

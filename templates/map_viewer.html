@@ -375,45 +375,54 @@
     </div>
     <script type="module">
         import * as THREE from 'three';
-        import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'; 
+        import { PCDLoader } from 'three/addons/loaders/PCDLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
         import { DragControls } from 'three/addons/controls/DragControls.js';
 
         document.addEventListener('DOMContentLoaded', (event) => {
-            const waypointInfoPanel = document.getElementById('waypoint-info');
-            if (waypointInfoPanel) {
-                const legendContainer = document.createElement('div');
-                legendContainer.id = 'waypoint-legend-container';
-                legendContainer.innerHTML = `
-                    <h4>ウェイポイント凡例:</h4>
-                    <div id="waypoint-legend" style="font-size: 0.9em;">
-                        <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                            <span style="width: 12px; height: 12px; background-color: #00ff00; margin-right: 5px; border: 1px solid #fff;"></span> Normal: through 0.5 [m/s]
-                        </div>
-                        <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                            <span style="width: 12px; height: 12px; background-color: #ffff00; margin-right: 5px; border: 1px solid #fff;"></span> Slow: Decelerate to designated Speed [m/s]
-                        </div>
-                        <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                            <span style="width: 12px; height: 12px; background-color: #ff0000; margin-right: 5px; border: 1px solid #fff;"></span> Stop: Set 0.0 [m/s] during [s]
-                        </div>
-                        <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                            <span style="width: 12px; height: 12px; background-color: #00ffff; margin-right: 5px; border: 1px solid #fff;"></span> Default
-                        </div>
+            const legendContainer = document.createElement('div');
+            legendContainer.id = 'waypoint-legend-container';
+            legendContainer.innerHTML = `
+                <h4>ウェイポイント凡例:</h4>
+                <div id="waypoint-legend" style="font-size: 0.9em;">
+                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                        <span style="width: 12px; height: 12px; background-color: #00ff00; margin-right: 5px; border: 1px solid #fff;"></span> Normal: through 0.5 [m/s]
                     </div>
-                `;
-                document.body.appendChild(legendContainer);
+                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                        <span style="width: 12px; height: 12px; background-color: #ffff00; margin-right: 5px; border: 1px solid #fff;"></span> Slow: Decelerate to designated Speed [m/s]
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                        <span style="width: 12px; height: 12px; background-color: #ff0000; margin-right: 5px; border: 1px solid #fff;"></span> Stop: Set 0.0 [m/s] during [s]
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
+                        <span style="width: 12px; height: 12px; background-color: #00ffff; margin-right: 5px; border: 1px solid #fff;"></span> Default
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(legendContainer);
 
-                // ウェイポイント情報パネルの表示状態と高さに応じて凡例の位置を調整
-                const mutationObserver = new MutationObserver(() => {
-                    if (waypointInfoPanel.style.display !== 'none') {
-                        const panelHeight = waypointInfoPanel.offsetHeight;
-                        legendContainer.style.bottom = `${panelHeight + 20}px`; // パネルの高さ + 20pxの余白
-                    } else {
-                        legendContainer.style.bottom = '10px'; // パネル非表示時はデフォルト位置
-                    }
-                });
-                mutationObserver.observe(waypointInfoPanel, { attributes: true, attributeFilter: ['style'] });
+            const waypointInfoPanel = document.getElementById('waypoint-info');
+            const observer = new MutationObserver(() => {
+                const isDesktop = window.innerWidth > 768; // 画面幅でPC/モバイルを判定
+                if (waypointInfoPanel.style.display !== 'none' && isDesktop) {
+                    // PC表示: 凡例を情報パネルの右に移動
+                    const panelRect = waypointInfoPanel.getBoundingClientRect();
+                    legendContainer.style.left = `${panelRect.right + 10}px`;
+                    legendContainer.style.bottom = '10px';
+                } else if (waypointInfoPanel.style.display !== 'none' && !isDesktop) {
+                    // モバイル表示: 凡例を情報パネルの上に移動
+                    const panelRect = waypointInfoPanel.getBoundingClientRect();
+                    legendContainer.style.left = '10px';
+                    legendContainer.style.bottom = `${panelRect.height + 20}px`;
+                } else {
+                    // パネル非表示時はデフォルト位置に戻す
+                    legendContainer.style.left = '10px';
+                    legendContainer.style.bottom = '10px';
+                }
+            });
+            if (waypointInfoPanel) {
+                observer.observe(waypointInfoPanel, { attributes: true, attributeFilter: ['style'] });
             }
         });
 

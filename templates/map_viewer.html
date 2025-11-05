@@ -234,15 +234,28 @@
         <div class="modal-content">
             <span class="close-button" onclick="document.getElementById('load-modal').style.display='none';">&times;</span>
             <h3>マップのロード</h3>
-            <label for="modal-map-name-select">マップ名:</label>
-            <select id="modal-map-name-select" style="width: 100%; padding: 8px; margin-bottom: 15px;">
-                {% for map in available_maps %}
-                <option value="{{ map }}" {% if map == map_name %}selected{% endif %}>{{ map }}</option>
-                {% endfor %}
-            </select>
-            <h4>ロードする要素の選択:</h4>
-            <div id="map-list-container">
-                <p>マップ名を入力し、ロードボタンを押してください...</p>
+            <div id="load-options-container" style="display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label for="pcd-select">PCDファイル:</label>
+                    <select id="pcd-select" style="width: 100%; padding: 8px;">
+                        <option value="">-- ロードしない --</option>
+                        {% for pcd in available_pcds %}<option value="{{ pcd }}">{{ pcd }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="pgm-select">PGM/YAMLファイル:</label>
+                    <select id="pgm-select" style="width: 100%; padding: 8px;">
+                        <option value="">-- ロードしない --</option>
+                        {% for yaml in available_yamls %}<option value="{{ yaml }}">{{ yaml }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="wp-select">ウェイポイントファイル:</label>
+                    <select id="wp-select" style="width: 100%; padding: 8px;">
+                        <option value="">-- ロードしない --</option>
+                        {% for wp in available_wps %}<option value="{{ wp }}">{{ wp }}</option>{% endfor %}
+                    </select>
+                </div>
             </div>
             <button id="confirm-load-button" style="padding: 8px 15px;">選択した要素をロード</button>
         </div>
@@ -897,44 +910,25 @@
         }
         window.startLoadProcess = async function() {
             const loadModal = document.getElementById('load-modal');
-            const mapNameSelect = document.getElementById('modal-map-name-select');
             const loadMapButton = document.getElementById('confirm-load-button');
-            const listContainer = document.getElementById('map-list-container');
-
-            function updateLoadOptions() {
-                const selectedMap = mapNameSelect.value;
-                listContainer.innerHTML = `
-                    <label>
-                        <input type="checkbox" id="modal-select-pcd" checked> 
-                        PCD (${selectedMap}.pcd)
-                    </label>
-                    <label>
-                        <input type="checkbox" id="modal-select-pgm" checked> 
-                        PGM/YAML (${selectedMap}.yaml/.pgm)
-                    </label>
-                    <label>
-                        <input type="checkbox" id="modal-select-waypoints" checked> 
-                        Waypoints (${selectedMap}.json)
-                    </label>
-                `;
-            }
-
-            mapNameSelect.addEventListener('change', updateLoadOptions);
-            updateLoadOptions(); // 初期表示
 
             loadModal.style.display = 'block';
             loadMapButton.onclick = async () => {
-                const newMapName = mapNameSelect.value;
-                if (!newMapName) {
-                    alert("マップ名を入力してください。");
-                    return;
-                }
+                const pcdToLoad = document.getElementById('pcd-select').value;
+                const pgmToLoad = document.getElementById('pgm-select').value;
+                const wpToLoad = document.getElementById('wp-select').value;
+
                 loadModal.style.display = 'none';
-                const loadPCDFlag = document.getElementById('modal-select-pcd')?.checked || false;
-                const loadPGMFlag = document.getElementById('modal-select-pgm')?.checked || false;
-                const loadWaypointsFlag = document.getElementById('modal-select-waypoints')?.checked || false;
-                await executeMapLoading(newMapName, loadPCDFlag, loadPGMFlag, loadWaypointsFlag);
-                document.getElementById('map-name-input').value = newMapName;
+
+                if (pcdToLoad) {
+                    await executeMapLoading(pcdToLoad, true, false, false);
+                }
+                if (pgmToLoad) {
+                    await executeMapLoading(pgmToLoad, false, true, false);
+                }
+                if (wpToLoad) {
+                    await executeMapLoading(wpToLoad, false, false, true);
+                }
             };
         }
         window.startUnloadProcess = function() {

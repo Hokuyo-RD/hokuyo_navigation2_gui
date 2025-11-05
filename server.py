@@ -608,12 +608,26 @@ def open_empty_viewer():
     
     # 利用可能なマップファイルリストを取得
     try:
-        available_maps = sorted([
+        available_pcds = sorted([
             os.path.splitext(f)[0] for f in os.listdir(MAP_DIR) if f.endswith('.pcd')
         ])
     except FileNotFoundError:
-        available_maps = []
+        available_pcds = []
         print(f"Warning: MAP_DIR not found at {MAP_DIR}")
+
+    try:
+        available_yamls = sorted([
+            os.path.splitext(f)[0] for f in os.listdir(MAP_DIR) if f.endswith('.yaml')
+        ])
+    except FileNotFoundError:
+        available_yamls = []
+
+    try:
+        available_wps = sorted([
+            os.path.splitext(f)[0] for f in os.listdir(WP_DIR) if f.endswith('.json')
+        ])
+    except FileNotFoundError:
+        available_wps = []
 
     # マップ名: 空
     map_name = request.args.get('map_name', '')
@@ -666,7 +680,9 @@ def open_empty_viewer():
         map_name=map_name, 
         yaml_data=yaml_data_string, 
         waypoints_data=waypoints_data_string,
-        available_maps=available_maps
+        available_pcds=available_pcds,
+        available_yamls=available_yamls,
+        available_wps=available_wps
     )
 
 @app.route('/view_map/<map_name>')

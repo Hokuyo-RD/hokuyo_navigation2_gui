@@ -234,8 +234,12 @@
         <div class="modal-content">
             <span class="close-button" onclick="document.getElementById('load-modal').style.display='none';">&times;</span>
             <h3>マップのロード</h3>
-            <label for="modal-map-name-input">マップ名:</label>
-            <input type="text" id="modal-map-name-input" placeholder="例: my_map">
+            <label for="modal-map-name-select">マップ名:</label>
+            <select id="modal-map-name-select" style="width: 100%; padding: 8px; margin-bottom: 15px;">
+                {% for map in available_maps %}
+                <option value="{{ map }}" {% if map == map_name %}selected{% endif %}>{{ map }}</option>
+                {% endfor %}
+            </select>
             <h4>ロードする要素の選択:</h4>
             <div id="map-list-container">
                 <p>マップ名を入力し、ロードボタンを押してください...</p>
@@ -893,28 +897,34 @@
         }
         window.startLoadProcess = async function() {
             const loadModal = document.getElementById('load-modal');
-            const mapNameInput = document.getElementById('modal-map-name-input');
+            const mapNameSelect = document.getElementById('modal-map-name-select');
             const loadMapButton = document.getElementById('confirm-load-button');
             const listContainer = document.getElementById('map-list-container');
-            mapNameInput.value = currentMapName;
-            const mapNameForDisplay = currentMapName || mapNameInput.placeholder; 
-            listContainer.innerHTML = `
-                <label>
-                    <input type="checkbox" id="modal-select-pcd" checked> 
-                    PCD (${mapNameForDisplay}.pcd)
-                </label>
-                <label>
-                    <input type="checkbox" id="modal-select-pgm" checked> 
-                    PGM/YAML (${mapNameForDisplay}.yaml/.pgm)
-                </label>
-                <label>
-                    <input type="checkbox" id="modal-select-waypoints" checked> 
-                    Waypoints (${mapNameForDisplay}.json)
-                </label>
-            `;
+
+            function updateLoadOptions() {
+                const selectedMap = mapNameSelect.value;
+                listContainer.innerHTML = `
+                    <label>
+                        <input type="checkbox" id="modal-select-pcd" checked> 
+                        PCD (${selectedMap}.pcd)
+                    </label>
+                    <label>
+                        <input type="checkbox" id="modal-select-pgm" checked> 
+                        PGM/YAML (${selectedMap}.yaml/.pgm)
+                    </label>
+                    <label>
+                        <input type="checkbox" id="modal-select-waypoints" checked> 
+                        Waypoints (${selectedMap}.json)
+                    </label>
+                `;
+            }
+
+            mapNameSelect.addEventListener('change', updateLoadOptions);
+            updateLoadOptions(); // 初期表示
+
             loadModal.style.display = 'block';
             loadMapButton.onclick = async () => {
-                const newMapName = mapNameInput.value.trim();
+                const newMapName = mapNameSelect.value;
                 if (!newMapName) {
                     alert("マップ名を入力してください。");
                     return;

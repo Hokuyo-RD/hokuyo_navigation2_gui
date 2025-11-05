@@ -606,6 +606,15 @@ def open_empty_viewer():
     # 既存の view_map エンドポイントと同じテンプレートを使用しますが、
     # データを空（またはデフォルト値）で渡します。
     
+    # 利用可能なマップファイルリストを取得
+    try:
+        available_maps = sorted([
+            os.path.splitext(f)[0] for f in os.listdir(MAP_DIR) if f.endswith('.pcd')
+        ])
+    except FileNotFoundError:
+        available_maps = []
+        print(f"Warning: MAP_DIR not found at {MAP_DIR}")
+
     # マップ名: 空
     map_name = request.args.get('map_name', '')
     # YAMLデータ: 空の文字列
@@ -656,7 +665,8 @@ def open_empty_viewer():
         'map_viewer.html', # パラメータがなければ ""
         map_name=map_name, 
         yaml_data=yaml_data_string, 
-        waypoints_data=waypoints_data_string
+        waypoints_data=waypoints_data_string,
+        available_maps=available_maps
     )
 
 @app.route('/view_map/<map_name>')

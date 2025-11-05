@@ -213,7 +213,7 @@ button[value="map_viewer"]:hover {
 .close-button {
     position: static;
     align-self: center;
-    margin-top: 20px;
+    margin-top: 10px;
     padding: 5px 10px;
     font-size: 0.8em;
     cursor: pointer;
@@ -221,7 +221,7 @@ button[value="map_viewer"]:hover {
     color: white;
     border: 1px solid #007bff;
     border-radius: 4px;
-    width: 80px;
+    width: 50px;
     text-align: center;
     order: 2;
 }

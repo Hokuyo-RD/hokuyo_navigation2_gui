@@ -216,7 +216,33 @@ hokuyo_nav2_gui
             .then(response => response.text())
             .then(data => {
                 single_mapRunContent.innerHTML = data;
-                initializeCheckboxes(single_mapRunContent);
+                
+                // ポップアップ内の要素を取得してイベントリスナーを設定
+                const container = single_mapRunContent;
+                const argumentsSelect = container.querySelector('#arguments');
+                const additionalFields = container.querySelector('#additional-fields');
+                const multiMapField = container.querySelector('#multi-map-field');
+
+                function toggleAdditionalFields() {
+                    if (!argumentsSelect || !additionalFields || !multiMapField) return;
+                    const selectedValue = argumentsSelect.value;
+                    if (selectedValue === 'single_map_gnss' || selectedValue === 'single_map_loc') {
+                        additionalFields.style.display = 'block';
+                        multiMapField.style.display = 'none';
+                    } else if (selectedValue === 'multi_map') {
+                        additionalFields.style.display = 'none';
+                        multiMapField.style.display = 'block';
+                    } else {
+                        additionalFields.style.display = 'none';
+                        multiMapField.style.display = 'none';
+                    }
+                }
+
+                if (argumentsSelect) {
+                    argumentsSelect.addEventListener('change', toggleAdditionalFields);
+                    toggleAdditionalFields(); // 初期表示を更新
+                }
+                initializeCheckboxes(container); // 既存のチェックボックス初期化
                 single_mapPopupContainer.style.display = 'flex';
             })
             .catch(error => {

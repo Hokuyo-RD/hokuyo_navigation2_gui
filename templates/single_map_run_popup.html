@@ -9,7 +9,39 @@
         
         <div class="input-field">
             <label for="arguments">スクリプト引数:</label>
-            <input type="text" id="arguments" name="arguments" placeholder="例: <SINGLE_MULTI>_map<_NAVTYPE> <MAPFILE> <WPFILE>">
+            <select id="arguments" name="arguments">
+                <option value="single_map_gnss">single_map_gnss</option>
+                <option value="single_map_loc">single_map_loc</option>
+                <option value="multi_map">multi_map</option>
+            </select>
+        </div>
+        <div id="additional-fields" style="display: none;">
+            <div class="input-field">
+                <label for="mapfile">MAPFILE:</label>
+                <select id="mapfile" name="mapfile">
+                    {% for map in map_files %}
+                    <option value="{{ map }}">{{ map }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="input-field">
+                <label for="wpfile">WPFILE:</label>
+                <select id="wpfile" name="wpfile">
+                    {% for wp in wp_files %}
+                    <option value="{{ wp }}">{{ wp }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div id="multi-map-field" style="display: none;">
+            <div class="input-field">
+                <label for="csvfile">CSVファイル:</label>
+                <select id="csvfile" name="csvfile">
+                    {% for file in csv_files %}
+                    <option value="{{ file }}">{{ file }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
         <input type="hidden" name="command" value="execute_single_map_run">
         <div style="text-align: center; margin-top: 20px;">
@@ -20,42 +52,27 @@
 <style>
     .single_map-run-popup-content {
         text-align: center;
-        padding: 20px;
+        padding: 10px;
     }
     .single_map-run-popup-content div {
-        margin-bottom: 30px;
+        margin-bottom: 10px;
         text-align: left;
     }
     .single_map-run-popup-content label {
-        margin-left: 5px;
+        margin-left: 10px;
     }
     .input-field {
-        margin-top: 20px; /* ✅ 新しい入力フィールドの間隔 */
+        margin-top: 5px; /* プルダウン同士の間隔を狭くしました */
         text-align: center;
     }
+    .input-field select {
+        padding: 12px;
+        font-size: 1em; /* フォントサイズを小さくしました */
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 400px;
+        box-sizing: border-box;
+        background-color: white;
+    }
 </style>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const checkboxes = document.querySelectorAll('#checklist-container input[type="checkbox"]');
-        const executeBtn = document.getElementById('executeBtn_single_map');
-        const single_mapRunForm = document.getElementById('single_mapRunForm');
-
-        function checkFormValidity() {
-            const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
-            if (allChecked) {
-                executeBtn.disabled = false;
-                executeBtn.classList.remove('inactive-button');
-            } else {
-                executeBtn.disabled = true;
-                executeBtn.classList.add('inactive-button');
-            }
-        }
-
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', checkFormValidity);
-        });
-
-        // ページ読み込み時に初期状態を確認
-        checkFormValidity();
-    });
-</script>

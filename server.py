@@ -36,6 +36,7 @@ ALLOWED_EXTENSIONS = {'bag', 'db3', 'mcap'}
 
 MAP_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'map')
 WP_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'waypoints')
+CONFIG_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'config')
 
 ROSBRIDGE_URI = "ws://localhost:9090"
 SERVER_HOST = '0.0.0.0'
@@ -153,7 +154,38 @@ def indoor_run_popup():
 
 @app.route('/single_map_run_popup')
 def single_map_run_popup():
-    return render_template('single_map_run_popup.html')
+    try:
+        # MAP_DIRから.yamlファイルのベース名を取得
+        map_files = sorted([
+            os.path.splitext(f)[0] for f in os.listdir(MAP_DIR) if f.endswith('.yaml')
+        ])
+    except FileNotFoundError:
+        map_files = []
+        print(f"Warning: MAP_DIR not found at {MAP_DIR}")
+
+    try:
+        # WP_DIRから.jsonファイルのベース名を取得
+        wp_files = sorted([os.path.splitext(f)[0] for f in os.listdir(WP_DIR) if f.endswith('.json')])
+    except FileNotFoundError:
+        wp_files = []
+        print(f"Warning: WP_DIR not found at {WP_DIR}")
+
+    try:
+        # CONFIG_DIRから特定のヘッダーを持つ.csvファイル名を取得
+        csv_files = []
+        expected_header = "map_file,waypoint_file,nav_type"
+        for filename in os.listdir(CONFIG_DIR):
+            if filename.endswith('.csv'):
+                filepath = os.path.join(CONFIG_DIR, filename)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    header = f.readline().strip()
+                    if header == expected_header:
+                        csv_files.append(filename)
+        csv_files.sort()
+    except FileNotFoundError:
+        csv_files = []
+        print(f"Warning: CONFIG_DIR not found at {CONFIG_DIR}")
+    return render_template('single_map_run_popup.html', map_files=map_files, wp_files=wp_files, csv_files=csv_files)
 
 @app.route('/stop')
 def stop_run():
@@ -986,12 +1018,20 @@ def trigger_script():
     elif command == "execute_single_map_run":
         confirmation_field = request.form.get("confirm_check") 
         arguments = request.form.get("arguments")
+        mapfile = request.form.get("mapfile")
+        wpfile = request.form.get("wpfile")
+        csvfile = request.form.get("csvfile")
         if confirmation_field or request.form:
             script_path = os.path.join(BASE_PATH, "start_navigation.sh")
             command_list = [script_path]
             if arguments:
-                # 引数をスペースで分割してリストに追加
-                command_list.extend(arguments.split())
+                command_list.append(arguments)
+                if arguments == 'multi_map' and csvfile:
+                    command_list.append(csvfile)
+                elif mapfile:
+                    command_list.append(mapfile)
+                if wpfile:
+                    command_list.append(wpfile)
                 
             Thread(target=run_subprocess, args=(command_list,)).start()
             current_mode = "running"

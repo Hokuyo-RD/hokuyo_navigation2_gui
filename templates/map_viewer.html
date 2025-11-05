@@ -179,22 +179,34 @@
             display: none; /* 初期状態では非表示 */
             flex-direction: column;
             gap: 5px;
+            border: 1px solid #555;
         }
         #waypoint-info h4 {
             margin: 0 0 5px 0;
             font-weight: bold;
             color: #ffcc00; /* 強調色 */
-            border-bottom: 1px solid #555;
-            padding-bottom: 5px;
+        }
+        #waypoint-info fieldset {
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 5px 0;
+        }
+        #waypoint-info legend {
+            padding: 0 5px;
+            font-weight: bold;
+            color: #bbb;
         }
         #waypoint-info .coord-input {
             display: flex;
             justify-content: space-between; /* ラベルと入力ボックスを両端に配置 */
             align-items: center;
+            margin-bottom: 5px;
         }
         #waypoint-info .coord-input label {
             flex-shrink: 0; /* ラベルが縮まないようにする */
             margin-right: 10px; /* ラベルと入力ボックスの間に余白を追加 */
+            font-size: 0.95em;
         }
         #waypoint-info .coord-input input {
             width: 70px; /* 入力フィールドの幅 */
@@ -202,6 +214,7 @@
             border: 1px solid #777;
             background-color: #444;
             color: #fff;
+            border-radius: 3px;
         }
         #waypoint-legend-container {
             position: absolute; /* 絶対位置指定 */
@@ -220,21 +233,16 @@
         }
 
         /* タブレット・スマートフォン向けのレスポンシブ対応 */
-        @media screen and (orientation: landscape) and (max-height: 800px) {
+        @media screen and (orientation: landscape) and (max-height: 600px), (orientation: portrait) and (max-width: 480px) {
             /* 横向きで高さが低いデバイスの場合 */
             #controls {
                 max-height: 90vh; /* 高さをビューポートの90%に制限してスクロールを確実にする */
-                max-width: 60vh;
+                width: 220px;
             }
-        }
-
-        @media screen and (orientation: portrait) and (max-width: 768px) {
-            /* 縦向きのタブレットやスマートフォンの場合 */
-            #controls {
-                max-width: 90vh
-            }
-            #info, #waypoint-info, #waypoint-legend-container {
-                max-width: 90vh; /* 情報パネルの最大幅を制限 */
+            #waypoint-info {
+                max-width: 220px;
+                max-height: 45vh;
+                overflow-y: auto;
             }
         }
 
@@ -302,25 +310,32 @@
     <div id="grid-info">Grid: 10m</div>
     <div id="waypoint-info">
         <h4>選択中のウェイポイント</h4>
-        <div id="wp-details">
-            <p>クリックしてウェイポイントを選択してください。</p>
-        </div>
-        <div id="wp-edit-controls" style="margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
-            **位置と向き:**
-            <div class="coord-input">
-                <label for="edit-x">X:</label>
-                <input type="number" id="edit-x" step="0.01" disabled>
+        <fieldset>
+            <legend>基本情報</legend>
+            <div id="wp-details">
+                <p>クリックしてウェイポイントを選択してください。</p>
             </div>
-            <div class="coord-input">
-                <label for="edit-y">Y:</label>
-                <input type="number" id="edit-y" step="0.01">
-            </div>
-            <div class="coord-input">
-                <label for="edit-yaw">Yaw:</label>
-                <input type="number" id="edit-yaw" step="1.0" title="Yaw角 (度)">
-            </div>
-            <button id="delete-waypoint-button" disabled>選択中のウェイポイントを削除</button>
-        </div>
+        </fieldset>
+        <fieldset id="wp-edit-controls">
+            <legend>位置と向きの編集</legend>
+                <div class="coord-input">
+                    <label for="edit-x">X:</label>
+                    <input type="number" id="edit-x" step="0.01" disabled>
+                </div>
+                <div class="coord-input">
+                    <label for="edit-y">Y:</label>
+                    <input type="number" id="edit-y" step="0.01" disabled>
+                </div>
+                <div class="coord-input">
+                    <label for="edit-yaw">Yaw (度):</label>
+                    <input type="number" id="edit-yaw" step="1.0" title="Yaw角 (度)" disabled>
+                </div>
+        </fieldset>
+        <fieldset id="wp-attributes-controls">
+            <legend>属性の編集</legend>
+            <div id="wp-attributes-details"></div>
+        </fieldset>
+        <button id="delete-waypoint-button" disabled>選択中のウェイポイントを削除</button>
     </div>
     <div id="controls">
         <fieldset>
@@ -1102,6 +1117,7 @@
             const editX = document.getElementById('edit-x');
             const editY = document.getElementById('edit-y');
             const editYaw = document.getElementById('edit-yaw');
+            const attributesDiv = document.getElementById('wp-attributes-details');
             const deleteButton = document.getElementById('delete-waypoint-button'); // 修正：このボタンはwaypoint-infoパネル内にあります
 
             const waypointsGroup = selectedWaypoint.parent;
@@ -1109,67 +1125,65 @@
             const yawRad = arrow ? arrow.rotation.z : 0;
             const yawDeg = THREE.MathUtils.radToDeg(yawRad);
 
-            let detailsHtml = `
+            let basicInfoHtml = `
                 <p><strong>インデックス:</strong> ${index}</p>
-                <p><strong>現在の位置:</strong><br>
-                X: ${position.x.toFixed(3)}, 
-                Y: ${position.y.toFixed(3)}, 
-                Z: ${position.z.toFixed(3)}</p>
+                <p><strong>位置:</strong> X: ${position.x.toFixed(3)}, Y: ${position.y.toFixed(3)}</p>
+                <p><strong>向き (Yaw):</strong> ${yawDeg.toFixed(1)}°</p>
             `;
 
-            let distanceInfoHtml = '<p><strong>ウェイポイント間距離:</strong><br>';
+            let distanceInfoHtml = '<p><strong>距離:</strong> ';
             if (index > 0) {
                 const prevPos = new THREE.Vector3().fromArray(waypoints[index - 1][0]);
                 const currentPosVec = new THREE.Vector3().copy(position);
                 const distToPrev = currentPosVec.distanceTo(prevPos);
-                distanceInfoHtml += `&nbsp;&nbsp;前まで: ${distToPrev.toFixed(2)} m<br>`;
+                distanceInfoHtml += `前まで: ${distToPrev.toFixed(2)}m`;
             }
             if (index < waypoints.length - 1) {
                 const nextPos = new THREE.Vector3().fromArray(waypoints[index + 1][0]);
                 const currentPosVec = new THREE.Vector3().copy(position);
                 const distToNext = currentPosVec.distanceTo(nextPos);
-                distanceInfoHtml += `&nbsp;&nbsp;次まで: ${distToNext.toFixed(2)} m`;
+                if (index > 0) distanceInfoHtml += ', ';
+                distanceInfoHtml += `次まで: ${distToNext.toFixed(2)}m`;
             }
-            detailsHtml += distanceInfoHtml + '</p>';
-
-            detailsHtml += `
-                <p><strong>現在の向き (Yaw):</strong> ${yawDeg.toFixed(1)}°</p>
-            `;
+            basicInfoHtml += distanceInfoHtml + '</p>';
 
             // 属性を編集可能なテキストボックスとして表示
+            let attributesHtml = '';
             const processAttribute = (attr, subIndex = null) => {
                 if (typeof attr === 'object' && attr !== null) {
                     for (const key in attr) {
                         const inputId = `edit-attr-${index}-${key}` + (subIndex !== null ? `-${subIndex}` : '');
-                        detailsHtml += `
+                        attributesHtml += `
                             <div class="coord-input">
                                 <label for="${inputId}" style="width: auto; min-width: 60px;">${key}:</label>
-                                <input type="text" id="${inputId}" value="${attr[key]}" 
+                                <input type="text" id="${inputId}" value="${attr[key]}" placeholder="${key}"
                                        data-index="${index}" data-key="${key}" ${subIndex !== null ? `data-sub-index="${subIndex}"` : ''}>
                             </div>
                         `;
                     }
                 }
             };
-
             if (Array.isArray(attributes)) { // 属性が配列の場合
                 attributes.forEach((attr, i) => processAttribute(attr, i));
             } else if (typeof attributes === 'object' && attributes !== null) { // 属性が単一オブジェクトの場合
                 processAttribute(attributes);
             }
 
-            infoDiv.innerHTML = detailsHtml;
+            infoDiv.innerHTML = basicInfoHtml;
+            attributesDiv.innerHTML = attributesHtml;
+
             editX.value = position.x.toFixed(3);
             editY.value = position.y.toFixed(3);
             editX.disabled = false; // 編集可能にする
             editY.disabled = false; // 編集可能にする
+            editYaw.disabled = false; // 編集可能にする
             editYaw.value = yawDeg.toFixed(1);
             deleteButton.disabled = false;
 
             infoPanel.style.display = 'flex';
 
             // 生成されたinput要素にイベントリスナーを追加
-            infoDiv.querySelectorAll('input[type="text"]').forEach(input => {
+            attributesDiv.querySelectorAll('input[type="text"]').forEach(input => {
                 input.addEventListener('change', handleAttributeChange);
             });
         }
@@ -1295,8 +1309,6 @@
                 // 選択状態をクリア
                 selectedWaypoint = null;
                 transformControls.detach();
-                const addAfterButton = document.getElementById('add-waypoint-after-button');
-                if (addAfterButton) addAfterButton.disabled = true;
 
                 // 3. waypoints配列とdraggableObjectsからデータを削除
                 waypoints.splice(indexToDelete, 1);

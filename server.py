@@ -273,7 +273,7 @@ def select_rosbag():
     if is_rosbag:
         try:
             topics_info = get_topic_list(full_path)
-            topic_list = sorted(topics_info.keys())
+            sorted_topics = sorted(topics_info.items())
             bag_duration_sec = 0
             command_list = ["ros2", "bag", "info", full_path]
             try:
@@ -317,7 +317,7 @@ def select_rosbag():
             flash(f'ROS Bag "{file_path}" を読み込みました。', 'success')
             
             return render_template('rosbag_select_topics.html', 
-                                   topic_list=topic_list, 
+                                   topics_info=sorted_topics, 
                                    input_bag_path=full_path,
                                    sync_mode=is_sync_mode,
                                    p2o_mode=is_p2o_mode, 

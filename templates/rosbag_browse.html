@@ -3,28 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <title>ROS Bag ファイルブラウザ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
-        .message { padding: 10px; margin-bottom: 10px; border-radius: 5px; }
-        .error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
-        .success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
-        ul { list-style-type: none; padding: 0; border: 1px solid #ccc; max-height: 500px; overflow-y: auto; }
-        li { margin-bottom: 0; padding: 8px 10px; border-bottom: 1px dotted #eee; cursor: pointer; }
-        li:hover { background-color: #f5f5f5; }
-        .selected { background-color: #e9ecef !important; border: 1px solid #007bff; margin: -1px; }
-        .folder a, .parent-link a { color: #007bff; text-decoration: none; font-weight: bold; }
-        .file { color: #212529; }
-        .file.disabled {
-            color: #adb5bd; /* 薄いグレー */
-            cursor: not-allowed; /* カーソルを禁止マークに */
+        body { 
+            font-family: sans-serif; 
+            padding: 20px; 
+            background-color: #f4f7f9; 
+            color: #333;
+        }
+        .container {
+            max-width: 750px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .message {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        .message li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            border: 1px solid;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
+
+        #file-list { 
+            list-style-type: none; 
+            padding: 0; 
+            border: 1px solid #ddd; 
+            max-height: 400px; 
+            overflow-y: auto;
+            border-radius: 8px;
             background-color: #f8f9fa;
+        }
+        #file-list li { 
+            margin-bottom: 0; 
+            padding: 10px 15px; 
+            border-bottom: 1px solid #eee; 
+            cursor: pointer; 
+            transition: background-color 0.2s, color 0.2s;
+        }
+        #file-list li:last-child {
+            border-bottom: none;
+        }
+        #file-list li:hover {
+            background-color: #e9ecef;
+        }
+        .selected { 
+            background-color: #007bff !important; 
+            color: white;
+            font-weight: bold;
+        }
+        .selected:hover {
+            background-color: #007bff !important;
+        }
+        .folder a, .parent-link a { 
+            color: black; 
+            text-decoration: none;
+        }
+        .file { color: #37474f; }
+        .file.disabled {
+            color: #90a4ae;
+            cursor: not-allowed;
+            background-color: #f1f1f1;
+        }
+        .file.disabled:hover {
+            background-color: #f1f1f1;
+        }
+
+        .selection-form {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.2s, opacity 0.2s;
+            display: inline-block;
+            text-align: center;
+        }
+        .button:disabled {
+            background-color: #bdbdbd;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .primary {
+            background-color: #28a745;
+            color: white;
+        }
+        .primary:hover:not(:disabled) {
+            background-color: #388e3c;
+        }
+        .secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .secondary:hover {
+            background-color: #5a6268;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ROS Bag ファイルブラウザ 
+        <h1>ROS Bag ファイルブラウザ
             {% if sync_mode %}
             (トピック同期用)
             {% elif p2o_mode %}
@@ -33,8 +160,8 @@
             (LIO-RAW マッピング用) {% else %}
             (フィルタリング用)
             {% endif %}
-        </h1>
-        <p><a href="#" onclick="closeCurrentTabAndReloadOpener(); return false;">← メインGUI (自律走行) に戻る</a></p>
+        </h1>        
+        <a href="#" class="back-link" onclick="closeCurrentTabAndReloadOpener(); return false;">← メインGUIに戻る</a>
         <script>
             function closeCurrentTabAndReloadOpener() {
                 if (window.opener && !window.opener.closed) {
@@ -50,7 +177,7 @@
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <ul style="list-style: none; padding: 0;">
+            <ul class="message">
             {% for category, message in messages %}
               <li class="message {{ category }}">{{ message }}</li>
             {% endfor %}
@@ -60,10 +187,7 @@
 
         <p>現在のディレクトリ (ROOT: <code>{{ root_dir }}</code>): <code>/{{ current_path }}</code></p>
 
-        <form action="{{ url_for('select_rosbag') }}" 
-              method="POST" 
-              style="margin-bottom: 20px; padding: 10px; border: 1px solid #007bff;">
-            
+        <form action="{{ url_for('select_rosbag') }}" method="POST" class="selection-form">
             <input type="hidden" id="file_path_input" name="file_path">
             
             {% if sync_mode %}
@@ -74,8 +198,8 @@
             <input type="hidden" name="mode" value="lio_raw">
             {% endif %}
 
-            <button type="submit" id="select_button" disabled>ROS Bagとして選択</button>
-            <span id="selected_file_name" style="margin-left: 20px; font-weight: bold;"></span>
+            <button type="submit" id="select_button" class="button primary" disabled>ROS Bagとして選択</button>
+            <span id="selected_file_name" style="font-weight: bold; color: #555; flex-grow: 1; text-align: left;"></span>
         </form>
 
         <ul id="file-list">
@@ -105,6 +229,7 @@
                 </li>
             {% endfor %}
         </ul>
+        <button type="button" class="button secondary" onclick="window.close()" style="margin-top: 20px;">キャンセル</button>
 
     </div>
 
@@ -151,7 +276,7 @@
                 selectedFileNameSpan.textContent = `選択中: ${name}`;
             } else {
                 selectButton.disabled = true;
-                selectButton.textContent = isMappingMode ? 'ディレクトリを選択してください' : '選択できません';
+                selectButton.textContent = '選択';
                 selectedFileNameSpan.textContent = `選択ファイル: ${name} (非対応)`;
             }
 

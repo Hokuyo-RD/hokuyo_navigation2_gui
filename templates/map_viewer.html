@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>PCD / PGM Map / Waypoint Viewer</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #222; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #1e1e1e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; color: #e0e0e0; }
         #viewer-container { width: 100vw; height: 100vh; position: relative; }
         #loading-message {
             position: absolute;
@@ -17,6 +17,10 @@
             padding: 10px 20px;
             border-radius: 5px;
             z-index: 100;
+            transition: opacity 0.3s;
+        }
+        .add-waypoint-mode {
+            cursor: crosshair;
         }
         #info {
             position: absolute;
@@ -49,25 +53,48 @@
             background: rgba(0, 0, 0, 0.5);
             padding: 10px 15px;
             border-radius: 3px;
-            font-size: 0.9em;
             z-index: 10;
             display: flex;
             flex-direction: column;
             gap: 8px;
             max-height: 98vh;
-            width: 250px; /* パネルの幅を固定 */
+            width: 260px; /* パネルの幅を固定 */
             overflow-y: auto;
+            font-size: 14px;
+        }
+        #controls fieldset {
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        #controls legend {
+            padding: 0 5px;
+            color: #00aaff;
+            font-weight: bold;
+        }
+        #controls button, .modal button {
+            background-color: #444;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        #controls button:hover:not(:disabled), .modal button:hover:not(:disabled) {
+            background-color: #555;
+            border-color: #888;
+        }
+        #controls button:disabled, .modal button:disabled {
+            background-color: #333;
+            color: #777;
+            cursor: not-allowed;
         }
         #controls label {
             display: flex;
             align-items: center;
             cursor: pointer;
-        }
-        #load-controls {
-             display: flex; 
-             flex-direction: column; 
-             gap: 5px;
-             margin-top: 5px;
         }
         #load-controls h4 {
             margin: 0;
@@ -92,12 +119,12 @@
             background-color: rgba(0, 0, 0, 0.7);
         }
         .modal-content {
-            background-color: #333;
+            background-color: #2a2a2a;
             margin: 10% auto; /* 上部の余白を調整 */
             padding: 20px;
             border: 1px solid #888;
             width: 80%;
-            max-width: 500px;
+            max-width: 550px;
             border-radius: 5px;
             color: #fff;
         }
@@ -129,12 +156,14 @@
             padding: 10px;
             margin-top: 10px;
             margin-bottom: 15px;
+            background-color: #222;
         }
-        #modal-map-name-input {
+        .modal-content input[type="text"], .modal-content select {
             width: 100%;
             padding: 8px;
             margin-bottom: 15px;
             box-sizing: border-box;
+            background-color: #444; color: #fff; border: 1px solid #666; border-radius: 4px;
         }
         #waypoint-info {
             position: absolute;
@@ -168,15 +197,11 @@
             margin-right: 10px; /* ラベルと入力ボックスの間に余白を追加 */
         }
         #waypoint-info .coord-input input {
-            width: 60px; /* 入力フィールドの幅 */
+            width: 70px; /* 入力フィールドの幅 */
             padding: 2px 5px;
             border: 1px solid #777;
             background-color: #444;
             color: #fff;
-        }
-        #waypoint-info button {
-            margin-top: 10px;
-            padding: 5px;
         }
         #waypoint-legend-container {
             position: absolute; /* 絶対位置指定 */
@@ -298,36 +323,40 @@
         </div>
     </div>
     <div id="controls">
-        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
-        <h4>グリッドとマップ設定:</h4>
-        <label for="grid-toggle">
-            <input type="checkbox" id="grid-toggle" checked> グリッド表示
-        </label>
-        <label for="pgm-opacity-slider" id="pgm-opacity-label" style="display: none;">
-            PGM透過度:
-            <input type="range" id="pgm-opacity-slider" min="0" max="1" step="0.1" value="1.0" style="width: 100px; margin-left: 5px;">
-        </label>
-        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
-        <div style="display: flex; flex-direction: column; gap: 5px;">
-            <label for="map-name-input">**現在の**マップ名:</label>
-            <input type="text" id="map-name-input" value="{{ map_name }}" style="padding: 5px;" disabled title="ロードボタンで設定されます">
-            <button id="load-map-button" style="padding: 5px; margin-top: 5px;">ロード</button>
-            <button id="unload-map-button" style="padding: 5px;">アンロード</button>
-        </div>
-        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
-        <h4>表示/非表示:</h4>
-        <div id="dynamic-toggles">
-        </div>
-        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
-        <div style="display: flex; flex-direction: column; gap: 5px;">
-            <label><input type="checkbox" id="auto-orient-waypoints"> 次のWPを指す</label>
-        </div>
-        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
-        <button id="add-waypoint-end-button" style="padding: 5px;">末尾に追加</button>
-        <button id="add-waypoint-start-button" style="padding: 5px;">先頭に追加</button>
-        <button id="add-waypoint-after-button" style="padding: 5px;" disabled>選択中の後に追加</button>
-        <button id="save-waypoints-button" style="padding: 5px;">ウェイポイントを保存</button>
-        <hr style="border: 0; border-top: 1px solid #444; margin: 10px 0;">
+        <fieldset>
+            <legend>Grid & Map Settings</legend>
+            <label for="grid-toggle">
+                <input type="checkbox" id="grid-toggle" checked> グリッド表示
+            </label>
+            <label for="pgm-opacity-slider" id="pgm-opacity-label" style="display: none;">
+                PGM透過度:
+                <input type="range" id="pgm-opacity-slider" min="0" max="1" step="0.1" value="1.0" style="width: 100px; margin-left: 5px;">
+            </label>
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
+                <label for="map-name-input">現在のマップ名:</label>
+                <input type="text" id="map-name-input" value="{{ map_name }}" style="padding: 5px; background-color: #333; border: 1px solid #555;" disabled title="ロードボタンで設定されます">
+                <button id="load-map-button">ロード</button>
+                <button id="unload-map-button">アンロード</button>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Visibility</legend>
+            <div id="dynamic-toggles">
+                <!-- 動的トグルがここに追加されます -->
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Waypoint Editing</legend>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <label><input type="checkbox" id="auto-orient-waypoints"> 次のWPを指す</label>
+                <button id="add-waypoint-end-button">末尾に追加</button>
+                <button id="add-waypoint-start-button">先頭に追加</button>
+                <button id="add-waypoint-after-button" disabled>選択中の後に追加</button>
+                <button id="save-waypoints-button">ウェイポイントを保存</button>
+            </div>
+        </fieldset>
     </div>
     <script type="module">
         import * as THREE from 'three';
@@ -1073,7 +1102,7 @@
             const editX = document.getElementById('edit-x');
             const editY = document.getElementById('edit-y');
             const editYaw = document.getElementById('edit-yaw');
-            const deleteButton = document.getElementById('delete-waypoint-button');
+            const deleteButton = document.getElementById('delete-waypoint-button'); // 修正：このボタンはwaypoint-infoパネル内にあります
 
             const waypointsGroup = selectedWaypoint.parent;
             const arrow = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${index}`);
@@ -1132,6 +1161,8 @@
             infoDiv.innerHTML = detailsHtml;
             editX.value = position.x.toFixed(3);
             editY.value = position.y.toFixed(3);
+            editX.disabled = false; // 編集可能にする
+            editY.disabled = false; // 編集可能にする
             editYaw.value = yawDeg.toFixed(1);
             deleteButton.disabled = false;
 
@@ -1175,6 +1206,40 @@
         function hideWaypointInfo() {
             document.getElementById('waypoint-info').style.display = 'none';
             document.getElementById('delete-waypoint-button').disabled = true;
+            document.getElementById('add-waypoint-after-button').disabled = true;
+        }
+
+        function applyPositionChange() {
+            if (!selectedWaypoint) return;
+
+            const index = selectedWaypoint.userData.waypointIndex;
+            const newX = parseFloat(document.getElementById('edit-x').value);
+            const newY = parseFloat(document.getElementById('edit-y').value);
+
+            if (isNaN(newX) || isNaN(newY)) {
+                alert("無効な座標です。数値で入力してください。");
+                // 元の値に戻す
+                document.getElementById('edit-x').value = selectedWaypoint.position.x.toFixed(3);
+                document.getElementById('edit-y').value = selectedWaypoint.position.y.toFixed(3);
+                return;
+            }
+
+            // 3Dオブジェクトの位置を更新
+            selectedWaypoint.position.set(newX, newY, 0.0);
+
+            // 矢印の位置も更新
+            const waypointsGroup = selectedWaypoint.parent;
+            const arrow = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${index}`);
+            if (arrow) {
+                arrow.position.copy(selectedWaypoint.position);
+            }
+
+            // データ配列を更新
+            waypoints[index][0] = [newX, newY, 0.0];
+
+            // 経路と向きを再計算
+            updateWaypointPath(currentMapName);
+            if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
         }
 
         function applyYawChange() {
@@ -1340,18 +1405,25 @@
         let currentInsertionIndex = undefined;
         function toggleAddWaypointMode(insertionMode) {
             isAddingWaypointMode = !isAddingWaypointMode;
+            const container = document.getElementById('viewer-container');
             const buttons = [
                 document.getElementById('add-waypoint-end-button'),
                 document.getElementById('add-waypoint-start-button'),
                 document.getElementById('add-waypoint-after-button')
             ];
+            const infoDiv = document.getElementById('info');
 
             if (isAddingWaypointMode) {
+                container.classList.add('add-waypoint-mode');
                 currentInsertionIndex = insertionMode;
                 let modeText = insertionMode === 0 ? "先頭" : (insertionMode === undefined ? "末尾" : "選択後");
+                infoDiv.innerHTML += `<br><span id="add-wp-msg" style="color: #ffcc00;">マップ上をクリックしてウェイポイントを${modeText}に追加... (Escでキャンセル)</span>`;
                 buttons.forEach(b => b.textContent = `追加中 (${modeText})... (Escで解除)`);
                 buttons.forEach(b => b.style.backgroundColor = '#ff8c00');
             } else {
+                container.classList.remove('add-waypoint-mode');
+                const msg = document.getElementById('add-wp-msg');
+                if (msg) msg.remove();
                 buttons[0].textContent = '末尾に追加';
                 buttons[1].textContent = '先頭に追加';
                 buttons[2].textContent = '選択中の後に追加';
@@ -1483,6 +1555,8 @@
             renderer.domElement.addEventListener('click', onWaypointClick, false);
             document.getElementById('edit-yaw').addEventListener('change', applyYawChange);
             document.getElementById('save-waypoints-button').addEventListener('click', saveWaypointsToServer);
+            document.getElementById('edit-x').addEventListener('change', applyPositionChange);
+            document.getElementById('edit-y').addEventListener('change', applyPositionChange);
             document.getElementById('delete-waypoint-button').addEventListener('click', deleteSelectedWaypoint);
             document.getElementById('add-waypoint-end-button').addEventListener('click', () => toggleAddWaypointMode(undefined));
             document.getElementById('add-waypoint-start-button').addEventListener('click', () => toggleAddWaypointMode(0));

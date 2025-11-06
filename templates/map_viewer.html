@@ -253,12 +253,12 @@
         }
     </style>
     <script type="importmap">
-        {
-          "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-          }
+      {
+        "imports": {
+          "three": "{{ url_for('static', filename='js/three/three.module.js') }}",
+          "three/addons/": "{{ url_for('static', filename='js/three/addons/') }}"
         }
+      }
     </script>
     <script src="{{ url_for('static', filename='js/yaml/yaml.min.js') }}"></script>
     </head>

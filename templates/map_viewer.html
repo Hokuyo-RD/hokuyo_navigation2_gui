@@ -991,8 +991,9 @@
             unloadListContainer.innerHTML = ''; 
             let hasVisibleElements = false;
             for (const uniqueId in meshRegistry) {
-                const [type, mapName] = uniqueId.split('-');
-                const labelText = `${type.toUpperCase()} (${mapName})`;
+                const type = uniqueId.substring(0, uniqueId.indexOf('-'));
+                const mapName = uniqueId.substring(uniqueId.indexOf('-') + 1);
+                const labelText = `${type.toUpperCase()} (${mapName})`; 
                 const label = document.createElement('label');
                 label.innerHTML = `<input type="checkbox" name="unload_item" value="${uniqueId}" checked> ${labelText}`;
                 unloadListContainer.appendChild(label);
@@ -1010,9 +1011,9 @@
                                              .map(input => input.value);
                 let unloadedCount = 0;
                 selectedItems.forEach(uniqueId => {
-                    const [type, mapName] = uniqueId.split('-');
-                    
-                    if (unloadMap(type, mapName)) {
+                    const type = uniqueId.substring(0, uniqueId.indexOf('-'));
+                    const mapName = uniqueId.substring(uniqueId.indexOf('-') + 1);
+                    if (unloadMap(type, mapName)) { 
                         unloadedCount++;
                     }
                 });

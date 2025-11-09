@@ -158,7 +158,9 @@ def websocket_handler(ws):
 @app.route('/gui')
 def main_gui():
     """メインGUIページ (index.html)"""
-    return render_template('index.html') 
+    # request.host は 'hostname:port' 形式なので、ホスト名(IPアドレス)だけを抽出
+    viewer_host = request.host.split(':')[0]
+    return render_template('index.html', viewer_host=viewer_host)
 
 @app.route('/get_mode')
 def get_mode():

@@ -176,8 +176,8 @@ def indoor_run():
 def indoor_run_popup():
     return render_template('indoor_run_popup.html')
 
-@app.route('/single_map_run_popup')
-def single_map_run_popup():
+@app.route('/navigation_run_popup')
+def navigation_run_popup():
     try:
         # MAP_DIRから.yamlファイルのベース名を取得
         map_files = sorted([
@@ -209,7 +209,7 @@ def single_map_run_popup():
     except FileNotFoundError:
         csv_files = []
         print(f"Warning: CONFIG_DIR not found at {CONFIG_DIR}")
-    return render_template('single_map_run_popup.html', map_files=map_files, wp_files=wp_files, csv_files=csv_files)
+    return render_template('navigation_run_popup.html', map_files=map_files, wp_files=wp_files, csv_files=csv_files)
 
 @app.route('/stop')
 def stop_run():
@@ -1065,7 +1065,7 @@ def trigger_script():
         else:
             return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
             
-    elif command == "execute_single_map_run":
+    elif command == "execute_navigation_run":
         confirmation_field = request.form.get("confirm_check") 
         arguments = request.form.get("arguments")
         mapfile = request.form.get("mapfile")
@@ -1087,7 +1087,7 @@ def trigger_script():
             current_mode = "running"
             return redirect('/navigation_executed')
         else:
-            return render_template('single_map_run_popup.html', error="開始を確認してください。")
+            return render_template('navigation_run_popup.html', error="開始を確認してください。")
     elif command == "execute_mapping_sync":
         current_mode = "stopped"
         flash("トピック同期に使用するROS Bagを選択してください。", "info")

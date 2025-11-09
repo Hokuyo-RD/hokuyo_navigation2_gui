@@ -256,7 +256,7 @@ button[value="map_viewer"]:hover {
 
 /* --- 屋内・屋外自律走行設定ポップアップコンテンツスタイル --- */
 .indoor-run-popup-content,
-.single_map-run-popup-content {
+.navigation-run-popup-content {
     text-align: center;
     padding: 20px;
     margin-bottom: 20px;
@@ -266,14 +266,14 @@ button[value="map_viewer"]:hover {
 
 /* チェックボックスの親要素のスタイル */
 .indoor-run-popup-content div,
-.single_map-run-popup-content div {
+.navigation-run-popup-content div {
     margin-bottom: 10px;
     text-align: left;
 }
 
 /* チェックボックスのスタイル */
 .indoor-run-popup-content div input[type="checkbox"],
-.single_map-run-popup-content div input[type="checkbox"] {
+.navigation-run-popup-content div input[type="checkbox"] {
     margin-right: 8px;
     vertical-align: middle;
     transform: scale(2.0);
@@ -282,7 +282,7 @@ button[value="map_viewer"]:hover {
 
 /* チェックボックスに隣接するラベルのスタイル */
 .indoor-run-popup-content div label,
-.single_map-run-popup-content div label {
+.navigation-run-popup-content div label {
     margin-left: 15px;
     vertical-align: middle;
     font-size: 0.9em;
@@ -344,7 +344,7 @@ input[type="checkbox"]:checked + label {
 
 /* --- マッピング設定ポップアップコンテンツスタイル (屋外設定のスタイルを流用) --- */
 .mapping-popup-content {
-    /* single_map-run-popup-content と同じスタイルを適用 */
+    /* navigation-run-popup-content と同じスタイルを適用 */
     text-align: center;
     padding: 20px;
     margin-bottom: 20px;

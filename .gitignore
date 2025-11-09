@@ -22,3 +22,4 @@ test/e2e/output-screenshots
 
 __pycache__/
 .vscode/
+__pycache__/rosbag2_filter_core.cpython-310.pyc

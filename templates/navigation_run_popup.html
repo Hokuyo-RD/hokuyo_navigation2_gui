@@ -1,10 +1,10 @@
-<div class="single_map-run-popup-content">
+<div class="navigation-run-popup-content">
     <p>自律移動の開始前に設定を確認してください。</p>
-    <form id="single_mapRunForm" method="post" action="/gui" target="_blank">
+    <form id="navigationRunForm" method="post" action="/gui" target="_blank">
         <div id="checklist-container">
-            <div><input type="checkbox" id="check1_single_map" name="check1_single_map" value="checked"><label for="check1_single_map">一時停止スイッチをオンしていること</label></div>
-            <div><input type="checkbox" id="check2_single_map" name="check2_single_map" value="checked"><label for="check2_single_map">オペレータが周りの安全を確認していること</label></div>
-            <div><input type="checkbox" id="check3_single_map" name="check3_single_map" value="checked"><label for="check3_single_map">フリースイッチをオフしていること</label></div>
+            <div><input type="checkbox" id="check1_navigation" name="check1_navigation" value="checked"><label for="check1_navigation">一時停止スイッチをオンしていること</label></div>
+            <div><input type="checkbox" id="check2_navigation" name="check2_navigation" value="checked"><label for="check2_navigation">オペレータが周りの安全を確認していること</label></div>
+            <div><input type="checkbox" id="check3_navigation" name="check3_navigation" value="checked"><label for="check3_navigation">フリースイッチをオフしていること</label></div>
         </div>
         
         <div class="input-field">
@@ -43,22 +43,22 @@
                 </select>
             </div>
         </div>
-        <input type="hidden" name="command" value="execute_single_map_run">
+        <input type="hidden" name="command" value="execute_navigation_run">
         <div style="text-align: center; margin-top: 20px;">
-            <button type="submit" id="executeBtn_single_map" class="special inactive-button" disabled style="font-size: 200%;">自律走行開始</button>
+            <button type="submit" id="executeBtn_navigation" class="special inactive-button" disabled style="font-size: 200%;">自律走行開始</button>
         </div>
     </form>
 </div>
 <style>
-    .single_map-run-popup-content {
+    .navigation-run-popup-content {
         text-align: center;
         padding: 10px;
     }
-    .single_map-run-popup-content div {
+    .navigation-run-popup-content div {
         margin-bottom: 10px;
         text-align: left;
     }
-    .single_map-run-popup-content label {
+    .navigation-run-popup-content label {
         margin-left: 10px;
     }
     .input-field {

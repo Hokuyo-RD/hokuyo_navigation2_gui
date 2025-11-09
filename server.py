@@ -18,17 +18,39 @@ from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 from geventwebsocket.websocket import WebSocket
 
+from ament_index_python.packages import get_package_prefix, PackageNotFoundError
+
 try:
     from rosbag2_filter_core import get_topic_list, filter_rosbag
 except ImportError as e:
     print(f"Error: Core logic file (rosbag2_filter_core.py) or ROS 2 libraries not found/sourced: {e}")
 
-if 'DOCKER_ENV' in os.environ:
-    BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
-    HOKUYO_NAV2_PKG_PATH = "/home/colcon_ws/src/hokuyo_navigation2" 
-else:
-    BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/"
-    HOKUYO_NAV2_PKG_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2"
+try:
+    # ament_index_python を使って 'hokuyo_navigation2' パッケージのインストールプレフィックスを取得
+    package_install_prefix = get_package_prefix('hokuyo_navigation2')
+    
+    # インストールプレフィックスからソースパスを堅牢に導出
+    # 例: /path/to/ws/install/pkg -> /path/to/ws/src/pkg
+    install_base_dir = os.path.dirname(package_install_prefix) # /path/to/ws/install
+    workspace_root = os.path.dirname(install_base_dir) # /path/to/ws
+    package_name = os.path.basename(package_install_prefix) # pkg
+    
+    HOKUYO_NAV2_PKG_PATH = os.path.join(workspace_root, 'src', package_name)
+    BASE_PATH = os.path.join(HOKUYO_NAV2_PKG_PATH, 'scripts')
+
+    if os.path.isdir(HOKUYO_NAV2_PKG_PATH) and 'src' in HOKUYO_NAV2_PKG_PATH:
+        print(f"Successfully derived source path for 'hokuyo_navigation2' package at: {HOKUYO_NAV2_PKG_PATH}")
+    else:
+        print(f"Warning: Could not derive source path. Using install path: {HOKUYO_NAV2_PKG_PATH}")
+except PackageNotFoundError:
+    print("Warning: Could not find 'hokuyo_navigation2' package through ament. Falling back to hardcoded paths.")
+    # フォールバックとして、元のハードコードされたパスを使用
+    if 'DOCKER_ENV' in os.environ:
+        BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
+        HOKUYO_NAV2_PKG_PATH = "/home/colcon_ws/src/hokuyo_navigation2" 
+    else:
+        BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/"
+        HOKUYO_NAV2_PKG_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2"
 
 ROSBAG_ROOT_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'rosbag')
 DOWNLOAD_FOLDER = ROSBAG_ROOT_DIR 

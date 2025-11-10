@@ -168,14 +168,6 @@ def get_mode():
     global current_mode
     return jsonify(mode=current_mode)
 
-@app.route('/indoor_run')
-def indoor_run():
-    return render_template('indoor_run.html')
-
-@app.route('/indoor_run_popup')
-def indoor_run_popup():
-    return render_template('indoor_run_popup.html')
-
 @app.route('/navigation_run_popup')
 def navigation_run_popup():
     try:
@@ -1055,17 +1047,7 @@ def trigger_script():
     
     command = request.form.get("command") or request.get_json().get("command")
 
-    if command == "execute_indoor_run":
-        map_name = request.form.get("map_name")
-        if map_name:
-            script_path = os.path.join(BASE_PATH, "expo_in")
-            Thread(target=run_subprocess, args=([script_path],)).start()
-            current_mode = "running"
-            return redirect('/navigation_executed')
-        else:
-            return render_template('indoor_run_popup.html', error="すべてのチェック項目にチェックを入れてください。")
-            
-    elif command == "execute_navigation_run":
+    if command == "execute_navigation_run":
         confirmation_field = request.form.get("confirm_check") 
         arguments = request.form.get("arguments")
         mapfile = request.form.get("mapfile")

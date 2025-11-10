@@ -12,11 +12,10 @@ hokuyo_nav2_gui
 <div class="index-page-container">
     <div id="status-display" style="font-size: 1.2em; margin-bottom: 20px;">現在のモード: 未設定</div>
     <form method="post" action="/gui" target="_blank">
-        <button type="submit" name="command" value="ctrl" id="ctrl" class="mode-control-btn">手動操作モード</button>
+        <button type="submit" name="command" value="ctrl" id="ctrl" class="mode-control-btn">データ取得</button>
     </form>
-    <button id="mappingBtn" class="mode-control-btn">マッピング設定</button>
-    <button id="indoorRunBtn" class="mode-control-btn">屋内自律走行設定</button>
-    <button id="navigationRunBtn" class="mode-control-btn">屋外自律走行設定</button>
+    <button id="mappingBtn" class="mode-control-btn">マッピング</button>
+    <button id="navigationRunBtn" class="mode-control-btn">自律走行</button>
     
     <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
@@ -27,13 +26,6 @@ hokuyo_nav2_gui
     <br>
     <a href="http://{{ viewer_host }}:5000/" target="_blank" >自律走行経路確認Viewer</a>
 
-    <div id="indoorPopupContainer" class="popup-container">
-        <div id="indoorPopupContent" class="popup-content">
-            <button id="closeIndoorPopupBtn" class="close-button">閉じる</button>
-            <div id="indoorRunContent">
-            </div>
-        </div>
-    </div>
     <div id="navigationPopupContainer" class="popup-container" style="display: none;">
         <div id="navigationPopupContent" class="popup-content">
             <button id="closenavigationPopupBtn" class="close-button">閉じる</button>
@@ -53,14 +45,9 @@ hokuyo_nav2_gui
 
 <script>
     const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
-    const indoorRunBtn = document.getElementById('indoorRunBtn');
     const navigationRunBtn = document.getElementById('navigationRunBtn');
     const mappingBtn = document.getElementById('mappingBtn');
 
-    const indoorPopupContainer = document.getElementById('indoorPopupContainer');
-    const indoorRunContent = document.getElementById('indoorRunContent');
-    const closeIndoorPopupBtn = document.getElementById('closeIndoorPopupBtn');
-    
     const navigationPopupContainer = document.getElementById('navigationPopupContainer');
     const navigationRunContent = document.getElementById('navigationRunContent');
     const closenavigationPopupBtn = document.getElementById('closenavigationPopupBtn');
@@ -127,8 +114,6 @@ hokuyo_nav2_gui
     function updateButtonState(mode) {
         if (mode === 'running' || mode === 'ctrl' || mode === 'mapping') {
             // メイン画面のモード選択ボタンを無効化
-            indoorRunBtn.disabled = true;
-            indoorRunBtn.classList.add('inactive-button');
             navigationRunBtn.disabled = true;
             navigationRunBtn.classList.add('inactive-button');
             mappingBtn.disabled = true;
@@ -142,8 +127,6 @@ hokuyo_nav2_gui
             }
         } else {
             // 停止モードの場合、すべてのボタンを有効化
-            indoorRunBtn.disabled = false;
-            indoorRunBtn.classList.remove('inactive-button');
             navigationRunBtn.disabled = false;
             navigationRunBtn.classList.remove('inactive-button');
             mappingBtn.disabled = false;
@@ -196,20 +179,6 @@ hokuyo_nav2_gui
         refreshModeStatus();
         setInterval(refreshModeStatus, 5000);
     };
-
-    indoorRunBtn.addEventListener('click', () => {
-        fetch('/indoor_run_popup')
-            .then(response => response.text())
-            .then(data => {
-                indoorRunContent.innerHTML = data;
-                initializeCheckboxes(indoorRunContent);
-                indoorPopupContainer.style.display = 'flex';
-            })
-            .catch(error => {
-                console.error('Error fetching indoor_run_popup.html:', error);
-                alert('屋内自律走行設定の読み込みに失敗しました。');
-            });
-    });
 
     navigationRunBtn.addEventListener('click', () => {
         fetch('/navigation_run_popup')
@@ -265,11 +234,6 @@ hokuyo_nav2_gui
             });
     });
 
-    closeIndoorPopupBtn.addEventListener('click', () => {
-        indoorPopupContainer.style.display = 'none';
-        indoorRunContent.innerHTML = '';
-    });
-
     closenavigationPopupBtn.addEventListener('click', () => {
         navigationPopupContainer.style.display = 'none';
         navigationRunContent.innerHTML = '';
@@ -278,13 +242,6 @@ hokuyo_nav2_gui
     closeMappingPopupBtn.addEventListener('click', () => {
         mappingPopupContainer.style.display = 'none';
         mappingRunContent.innerHTML = '';
-    });
-
-    indoorPopupContainer.addEventListener('click', (event) => {
-        if (event.target === indoorPopupContainer) {
-            indoorPopupContainer.style.display = 'none';
-            indoorRunContent.innerHTML = '';
-        }
     });
 
     navigationPopupContainer.addEventListener('click', (event) => {

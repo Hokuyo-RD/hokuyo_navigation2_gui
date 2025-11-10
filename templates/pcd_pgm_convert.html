@@ -374,12 +374,13 @@
                                 clearInterval(pollingInterval);
                                 $('#loading_spinner').hide();
                                 
+                                var viewerLink = '<a href="/map_viewer" target="_blank" class="button secondary">3Dビューアで確認</a>';
                                 var downloadLink = '<a href="' + response.download_url + '" class="button primary" style="margin-top: 10px;">PGM/YAMLマップをダウンロード</a>';
                                 var backLink = '<button type="button" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">他のPCDを選択/メインGUIに戻る</button>';
 
                                 $('#status_message').append(
                                     '<p style="color: green; font-weight: bold; margin-top: 10px;">✅ 変換完了！</p>' + 
-                                    '<div style="margin-top: 15px;">' + downloadLink + backLink + '</div>'
+                                    '<div style="margin-top: 15px;">' + viewerLink + downloadLink + backLink + '</div>'
                                 );
                                 
                             } else if (response.status === 'error') {

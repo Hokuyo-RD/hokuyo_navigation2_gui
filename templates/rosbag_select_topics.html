@@ -171,12 +171,12 @@
         /* ステータスとローディング */
         /* ---------------------------------------------------------------------- */
         #progress-area {
-            padding: 15px;
-            border-left: 6px solid #1e88e5;
-            background-color: #e3f2fd;
+            padding: 15px; /* pcd_pgm_convert.htmlからコピー */
+            border-left: 6px solid #1e88e5; /* 青い強調線 */
+            background-color: #e3f2fd; /* 薄い水色の背景 */
             border-radius: 8px;
             margin-top: 30px !important;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* pcd_pgm_convert.htmlからコピー */
             display: none;
         }
         #progress-message, #message-area {
@@ -184,36 +184,19 @@
             line-height: 1.5;
             font-weight: 500;
         }
-        #progress-bar {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            margin-top: 15px;
-            overflow: hidden;
-        }
-        #progress-bar-fill {
-            height: 25px;
-            width: 0%;
-            background-color: #007bff;
-            border-radius: 5px;
-            text-align: center;
-            line-height: 25px;
-            color: white;
-            transition: width 0.5s, background-color 0.5s;
-        }
         #loading_spinner {
-            font-style: normal;
-            color: #ff9800;
-            margin-top: 15px !important;
+            font-style: normal; /* pcd_pgm_convert.htmlからコピー */
+            color: #ff9800; /* pcd_pgm_convert.htmlからコピー */
+            margin-top: 15px !important; /* pcd_pgm_convert.htmlからコピー */
             font-weight: bold;
-            animation: pulse 1.5s infinite;
+            animation: pulse 1.5s infinite; /* pcd_pgm_convert.htmlからコピー */
             display: flex;
             align-items: center;
         }
         #loading_spinner::before {
-            content: '🔄';
-            margin-right: 10px;
-            animation: spin 1.5s linear infinite;
+            content: '🔄'; /* pcd_pgm_convert.htmlからコピー */
+            margin-right: 10px; /* pcd_pgm_convert.htmlからコピー */
+            animation: spin 1.5s linear infinite; /* pcd_pgm_convert.htmlからコピー */
         }
         @keyframes spin {
             from { transform: rotate(0deg); }
@@ -223,6 +206,17 @@
             0% { opacity: 1; }
             50% { opacity: 0.7; }
             100% { opacity: 1; }
+        }
+        /* 完了/エラーメッセージのスタイル (pcd_pgm_convert.htmlからコピー) */
+        #progress-message.finished {
+            color: #2e7d32 !important; 
+            font-weight: 700 !important;
+            font-size: 1.1em;
+        }
+        #progress-message.error {
+            color: #d32f2f !important; 
+            font-weight: 700 !important;
+            font-size: 1.1em;
         }
     </style>
     <script src="{{ url_for('static', filename='js/jquery/jquery-3.6.0.min.js') }}"></script>
@@ -302,18 +296,15 @@
     </form>
 
     <div id="progress-area">
-        <div id="loading_spinner" style="display:none;">処理中...</div>
         <p id="progress-message"></p>
-        <div id="progress-bar">
-            <div id="progress-bar-fill"></div>
-        </div>
         <div id="message-area"></div>
         <div id="result-links" style="margin-top: 15px; display: none;">
-            <a id="download-link" class="button primary" style="display: none;">ダウンロード</a>
+            <a id="download-link" class="button primary" style="display: none; margin-top: 10px;">ダウンロード</a>
             <a id="viewer-link" class="button primary" style="display: none;" target="_blank">3Dビューアで確認</a>
             <button id="reset-button" class="button secondary" style="display: none;" onclick="location.reload()">再設定</button>
         </div>
     </div>
+    <div id="loading_spinner" style="display:none;">処理中...</div>
 </div>
 
 <script>
@@ -321,7 +312,6 @@
     const startButton = document.getElementById('start-button');
     const cancelButton = document.getElementById('cancel_button');
     const progressArea = document.getElementById('progress-area');
-    const progressBarFill = document.getElementById('progress-bar-fill');
     const progressMessage = document.getElementById('progress-message');
     const messageArea = document.getElementById('message-area');
     const downloadLink = document.getElementById('download-link');
@@ -351,11 +341,11 @@
         const modeName = mode.toUpperCase();
 
         progressMessage.textContent = status === 'finished' ? `✅ ${modeName} 処理が完了しました。` : '処理が失敗しました。';
-        progressMessage.style.color = status === 'finished' ? '#2e7d32' : '#d32f2f';
+        progressMessage.className = status === 'finished' ? 'finished' : 'error';
         messageArea.textContent = status === 'finished' ? '' : '❌ エラーが発生しました。ログを確認してください。';
         
-        progressBarFill.style.width = '100%';
-        progressBarFill.style.backgroundColor = status === 'finished' ? '#28a745' : '#dc3545';
+        loadingSpinner.style.display = 'none';
+        
         resultLinks.style.display = 'block';
         document.getElementById('reset-button').style.display = 'inline-block';
         downloadLink.style.display = 'none';
@@ -369,7 +359,7 @@
                 
                 if (downloadUrl) {
                     // 1. ダウンロードリンク (PCDファイルとしてダウンロード)
-                    downloadLink.href = downloadUrl; 
+                    downloadLink.href = downloadUrl;
                     downloadLink.textContent = `PCDマップをダウンロード`;
                     downloadLink.style.display = 'block'; 
                     downloadLink.style.backgroundColor = '#28a745';
@@ -377,7 +367,7 @@
 
                     // 2. ビューアリンク (新しいウィンドウで開く)
                     viewerLink.href = `/map_viewer`;
-                    viewerLink.style.display = 'block'; 
+                    viewerLink.style.display = 'inline-block'; 
                     viewerLink.classList.remove('primary'); viewerLink.classList.add('secondary');
                 } else {
                     progressMessage.textContent += ' (警告: ダウンロードURLがありません)';
@@ -401,11 +391,8 @@
         progressArea.style.display = 'block';
         startButton.style.display = 'none';
         cancelButton.style.display = 'none';
-        loadingSpinner.style.display = 'flex';
         
         totalPollingTime = 0;
-        progressBarFill.style.backgroundColor = '#007bff'; // 初期色は青
-        progressBarFill.textContent = '';
 
         let endpoint;
         if (mode === 'p2o') {
@@ -418,6 +405,10 @@
             console.error("Unknown mode for polling:", mode);
             return;
         }
+
+        // progress-areaの直後にスピナーを挿入
+        progressArea.insertAdjacentElement('afterend', loadingSpinner);
+        loadingSpinner.style.display = 'flex';
 
         // ポーリングの実行ロジック (約1秒間隔)
         pollingTimer = setInterval(async () => {
@@ -435,6 +426,7 @@
                 const data = await response.json();
 
                 if (data.status === 'finished' || data.status === 'error') {
+                    loadingSpinner.style.display = 'none';
                     showDownloadResult(data.status, outputFilename, mode, data.download_url);
                     return;
                 }
@@ -445,16 +437,12 @@
                 const multiplier = isMapping ? 2 : 1.5; 
                 const maxExpectedTime = bagDurationSec * 1000 * multiplier; 
                 
-                let progress = Math.min(99, Math.round((totalPollingTime / maxExpectedTime) * 90)); // 99%で停止
-                
-                progressBarFill.style.width = `${progress}%`;
-                progressBarFill.textContent = `${progress}%`;
-
                 // プログレスメッセージの更新
                 progressMessage.textContent = `処理を続行中です... (経過時間: ${Math.round(totalPollingTime / 1000)}秒)`;
 
             } catch (error) {
                 console.error('Polling error:', error);
+                loadingSpinner.style.display = 'none';
                 progressMessage.textContent = 'サーバーとの通信中にエラーが発生しました。';
                 messageArea.textContent = '処理に失敗しました。';
                 showDownloadResult('error', outputFilename, mode);
@@ -474,12 +462,10 @@
         }
 
         messageArea.textContent = '';
-        loadingSpinner.style.display = 'flex';
         progressArea.style.display = 'block';
         startButton.style.display = 'none';
         cancelButton.style.display = 'none';
         progressMessage.textContent = '処理を開始しています...';
-        progressBarFill.style.backgroundColor = '#007bff';
 
         let apiUrl = '/convert';
         let mode = 'filter'; // デフォルト
@@ -533,7 +519,6 @@
                 // 処理スクリプトは開始されたが、完了はしていない。ポーリングを開始する。
                 startPolling(outputFilename, mode);
                 progressMessage.textContent = data.message;
-                progressBarFill.style.width = '2%';
             } else {
                 progressMessage.textContent = 'エラー: ' + data.message;
                 messageArea.textContent = '処理の開始に失敗しました。';

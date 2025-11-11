@@ -233,18 +233,28 @@
         }
 
         /* タブレット・スマートフォン向けのレスポンシブ対応 */
-        @media screen and (orientation: landscape) and (max-height: 600px), (orientation: portrait) and (max-width: 480px) {
-            /* 横向きで高さが低いデバイスの場合 */
+        @media screen and (max-width: 768px) {
             #controls {
-                max-height: 90vh; /* 高さをビューポートの90%に制限してスクロールを確実にする */
-                width: 220px;
+                width: 240px; /* 少し幅を狭くする */
             }
+        }
+
+        @media screen and (max-width: 480px) {
+            #controls {
+                width: auto; /* 幅を自動調整 */
+                left: 10px; /* 左にも配置 */
+                max-width: calc(100vw - 20px); /* 画面幅いっぱいに広がらないように */
+                max-height: 25vh; /* 高さを制限してマップが見えるように */
+            }
+
             #waypoint-info {
                 max-width: 220px;
                 max-height: 45vh;
                 overflow-y: auto;
             }
         }
+
+
 
         @media screen and (max-width: 1024px) {
             .modal-content {
@@ -1048,7 +1058,7 @@
                     intersects = raycaster.intersectObjects(pgmObjects);
                 } else {
                     // PGMマップがない、または非表示の場合はグリッドを判定対象にする
-                    intersects = raycaster.intersectObject(gridHelper);
+                    intersects = raycaster.intersectObject(groundPlane);
                 }
 
                 if (intersects.length > 0) {
@@ -1163,13 +1173,24 @@
                 if (typeof attr === 'object' && attr !== null) {
                     for (const key in attr) {
                         const inputId = `edit-attr-${index}-${key}` + (subIndex !== null ? `-${subIndex}` : '');
-                        attributesHtml += `
-                            <div class="coord-input">
-                                <label for="${inputId}" style="width: auto; min-width: 60px;">${key}:</label>
+                        attributesHtml += `<div class="coord-input">`;
+                        attributesHtml += `<label for="${inputId}" style="width: auto; min-width: 60px;">${key}:</label>`;
+
+                        if (key === 'type') {
+                            attributesHtml += `
+                                <select id="${inputId}" data-index="${index}" data-key="${key}" ${subIndex !== null ? `data-sub-index="${subIndex}"` : ''} style="width: 100px; padding: 2px 5px; border: 1px solid #777; background-color: #444; color: #fff; border-radius: 3px;">
+                                    <option value="normal" ${attr[key] === 'normal' ? 'selected' : ''}>normal</option>
+                                    <option value="slow" ${attr[key] === 'slow' ? 'selected' : ''}>slow</option>
+                                    <option value="stop" ${attr[key] === 'stop' ? 'selected' : ''}>stop</option>
+                                </select>
+                            `;
+                        } else {
+                            attributesHtml += `
                                 <input type="text" id="${inputId}" value="${attr[key]}" placeholder="${key}"
                                        data-index="${index}" data-key="${key}" ${subIndex !== null ? `data-sub-index="${subIndex}"` : ''}>
-                            </div>
-                        `;
+                            `;
+                        }
+                        attributesHtml += `</div>`;
                     }
                 }
             };
@@ -1193,7 +1214,7 @@
             infoPanel.style.display = 'flex';
 
             // 生成されたinput要素にイベントリスナーを追加
-            attributesDiv.querySelectorAll('input[type="text"]').forEach(input => {
+            attributesDiv.querySelectorAll('input[type="text"], select').forEach(input => {
                 input.addEventListener('change', handleAttributeChange);
             });
         }
@@ -1224,6 +1245,12 @@
                     waypoints[index][2][key] = value;
                 }
                 
+            }
+
+            // typeが変更されたら、球体の色も更新する
+            if (key === 'type') {
+                const newColor = getColorByType(value);
+                selectedWaypoint.material.color.setHex(newColor);
             }
             document.getElementById('info').innerHTML = `ウェイポイント ${index} の属性 '${key}' を更新しました。`;
         }
@@ -1610,6 +1637,10 @@
 
             // 地面判定用の透明な平面を作成
             const planeGeometry = new THREE.PlaneGeometry(2000, 2000); // 十分大きな平面
+            const planeMaterial = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
+            groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            groundPlane.position.set(0, 0, 0); // Z=0平面に配置
+            scene.add(groundPlane);
 
             // グリッド表示切替
             document.getElementById('grid-toggle').addEventListener('change', (event) => {

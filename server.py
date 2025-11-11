@@ -1044,6 +1044,59 @@ def download_pgm_map(basename):
         if os.path.exists(zip_path):
             os.remove(zip_path)
 
+@app.route('/rename_file', methods=['POST'])
+def rename_file():
+    """ファイル名を変更するAPI"""
+    dir_type = request.form.get('dir_type')
+    old_filename = request.form.get('old_filename')
+    new_filename = request.form.get('new_filename')
+
+    dir_map = {'map': MAP_DIR, 'wp': WP_DIR, 'config': CONFIG_DIR}
+    if dir_type not in dir_map:
+        return jsonify({'status': 'error', 'message': '無効なディレクトリタイプです。'}), 400
+
+    target_dir = dir_map[dir_type]
+
+    if not old_filename or not new_filename:
+        return jsonify({'status': 'error', 'message': 'ファイル名が指定されていません。'}), 400
+
+    if old_filename == new_filename:
+        return jsonify({'status': 'success', 'message': 'ファイル名は変更されませんでした。'})
+
+    old_path = os.path.join(target_dir, old_filename)
+    new_path = os.path.join(target_dir, new_filename)
+
+    if not _is_safe_path(old_path, target_dir) or not _is_safe_path(new_path, target_dir):
+        return jsonify({'status': 'error', 'message': '不正なファイルパスです。'}), 400
+
+    if os.path.exists(new_path):
+        return jsonify({'status': 'error', 'message': f'ファイル "{new_filename}" は既に存在します。'}), 400
+
+    try:
+        # マップファイルの場合、関連ファイルもリネーム
+        if dir_type == 'map':
+            old_base, old_ext = os.path.splitext(old_filename)
+            new_base, new_ext = os.path.splitext(new_filename)
+            
+            # 拡張子が変更されていないことを確認
+            if old_ext != new_ext:
+                return jsonify({'status': 'error', 'message': '拡張子の変更はサポートされていません。'}), 400
+
+            related_exts = ['.pcd', '.yaml', '.pgm']
+            for ext in related_exts:
+                old_rel_path = os.path.join(target_dir, old_base + ext)
+                new_rel_path = os.path.join(target_dir, new_base + ext)
+                if os.path.exists(old_rel_path):
+                    if os.path.exists(new_rel_path):
+                         return jsonify({'status': 'error', 'message': f'関連ファイル "{os.path.basename(new_rel_path)}" が既に存在します。'}), 400
+                    os.rename(old_rel_path, new_rel_path)
+        else:
+            os.rename(old_path, new_path)
+
+        return jsonify({'status': 'success', 'message': f'"{old_filename}" を "{new_filename}" に変更しました。'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'ファイル名の変更中にエラーが発生しました: {e}'}), 500
+
 # Helper to get available files for dropdowns
 def _get_available_files(directory, extension):
     """指定されたディレクトリから特定の拡張子のファイル名（拡張子なし）のリストを取得する"""
@@ -1079,16 +1132,31 @@ def browse_files(dir_type):
         return redirect(url_for('main_gui'))
 
     try:
-        files = sorted(os.listdir(target_dir))
+        all_files = sorted(os.listdir(target_dir))
         if dir_type == 'config':
-            # configディレクトリの場合はCSVファイルのみをリストアップ
-            files = [f for f in files if f.lower().endswith('.csv')]
+            # configディレクトリの場合、ヘッダーをチェックして構造化編集可能か判定
+            files_with_info = []
+            expected_header = "map_file,waypoint_file,nav_type"
+            csv_files = [f for f in all_files if f.lower().endswith('.csv')]
+            for filename in csv_files:
+                file_path = os.path.join(target_dir, filename)
+                is_structured = False
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        header = f.readline().strip()
+                        if header == expected_header:
+                            is_structured = True
+                except Exception:
+                    pass # ファイルが読めない場合は構造化不可とする
+                files_with_info.append({'name': filename, 'is_structured': is_structured})
+            files = files_with_info
+        else:
+            files = all_files
 
         return render_template('file_browser.html', 
                                files=files, 
                                dir_type=dir_type, 
                                title=title)
-
     except (FileNotFoundError, PermissionError) as e:
         flash(f"ディレクトリの操作中にエラーが発生しました: {e}", "error")
         return redirect(url_for('main_gui'))
@@ -1165,6 +1233,57 @@ def create_csv():
         flash(f'ファイルの作成中にエラーが発生しました: {e}', 'error')
 
     return redirect(url_for('browse_files', dir_type='config'))
+
+@app.route('/create_plain_text')
+def create_plain_text():
+    """プレーンテキストエディタで新規CSVファイルを作成するページを表示"""
+    return render_template('plain_text_editor.html', filename='', content='map_file,waypoint_file,nav_type\n', is_new=True)
+
+@app.route('/edit_plain_text/<dir_type>/<path:filename>')
+def edit_plain_text(dir_type, filename):
+    """プレーンテキストエディタで既存のファイルを編集するページを表示"""
+    dir_map = {'map': MAP_DIR, 'wp': WP_DIR, 'config': CONFIG_DIR}
+    if dir_type not in dir_map:
+        flash('無効なディレクトリタイプです。', 'error')
+        return redirect(url_for('main_gui'))
+
+    target_dir = dir_map[dir_type]
+    file_path = os.path.join(target_dir, filename)
+
+    if not _is_safe_path(file_path, target_dir):
+        flash('不正なファイルパスです。', 'error')
+        return redirect(url_for('browse_files', dir_type=dir_type))
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return render_template('plain_text_editor.html', filename=filename, content=content, is_new=False, dir_type=dir_type)
+    except Exception as e:
+        flash(f'ファイルの読み込み中にエラーが発生しました: {e}', 'error')
+        return redirect(url_for('browse_files', dir_type=dir_type))
+
+@app.route('/save_plain_text', methods=['POST'])
+def save_plain_text():
+    """プレーンテキストエディタから送信された内容を保存"""
+    dir_type = request.form.get('dir_type', 'config') # デフォルトはconfig
+    filename = request.form.get('filename')
+    content = request.form.get('content')
+
+    dir_map = {'map': MAP_DIR, 'wp': WP_DIR, 'config': CONFIG_DIR}
+    target_dir = dir_map.get(dir_type, CONFIG_DIR)
+    file_path = os.path.join(target_dir, filename)
+
+    if not _is_safe_path(file_path, target_dir):
+        flash('不正なファイルパスです。', 'error')
+        return redirect(url_for('browse_files', dir_type=dir_type))
+
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content.replace('\r\n', '\n')) # 改行コードをLFに統一
+        flash(f'ファイル "{filename}" を保存しました。', 'success')
+    except Exception as e:
+        flash(f'ファイルの保存中にエラーが発生しました: {e}', 'error')
+    return redirect(url_for('browse_files', dir_type=dir_type))
 
 @app.route('/edit_csv/<filename>')
 def edit_csv(filename):

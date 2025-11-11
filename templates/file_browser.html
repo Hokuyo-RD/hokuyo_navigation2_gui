@@ -60,6 +60,9 @@
                                 <span class="file-name" style="flex-grow: 1;">{{ file }}</span>
                             </label>
                             <div class="actions">
+                                {% if dir_type == 'map' and file.lower().endswith('.yaml') or dir_type == 'wp' and file.lower().endswith('.json') %}
+                                    <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=file) }}" class="edit-btn" style="background-color: #5a6268;">テキスト編集</a>
+                                {% endif %}
                                 <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file }}」を削除しますか？');">
                                     <input type="hidden" name="dir_type" value="{{ dir_type }}">
                                     <input type="hidden" name="filenames" value="{{ file }}">
@@ -77,13 +80,16 @@
             {% else %}
                 <ul>
                     {% for file in files %}
-                    <li>
-                        <span class="file-name">{{ file }}</span>
+                    <li style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="file-name" style="flex-grow: 1;">{{ file.name }}</span>
                         <div class="actions">
-                            <a href="{{ url_for('edit_csv', filename=file) }}" class="edit-btn">編集</a>
-                            <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file }}」を削除しますか？');">
+                            {% if file.is_structured %}
+                                <a href="{{ url_for('edit_csv', filename=file.name) }}" class="edit-btn">編集</a>
+                            {% endif %}
+                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=file.name) }}" class="edit-btn" style="background-color: #5a6268;">テキスト編集</a>
+                            <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file.name }}」を削除しますか？');">
                                 <input type="hidden" name="dir_type" value="{{ dir_type }}">
-                                <input type="hidden" name="filenames" value="{{ file }}">
+                                <input type="hidden" name="filenames" value="{{ file.name }}">
                                 <button type="submit">削除</button>
                             </form>
                         </div>
@@ -102,6 +108,9 @@
                 <input type="text" name="filename" placeholder="新しいファイル名 (.csv)" style="flex-grow: 1; padding: 8px;" required>
                 <button type="submit" class="edit-btn" style="background-color: #28a745;">作成</button>
             </form>
+            <a href="{{ url_for('create_plain_text') }}" class="edit-btn" style="display: block; text-align: center; margin-top: 10px; background-color: #5a6268;">
+                テキストモードで新規作成
+            </a>
         </div>
         {% endif %}
 
@@ -115,6 +124,66 @@
             selectAllCheckbox.addEventListener('change', function(e) {
                 document.querySelectorAll('input[name="filenames"]').forEach(checkbox => {
                     checkbox.checked = e.target.checked;
+                });
+            });
+        }
+
+        if ("{{ dir_type }}" === 'map' || "{{ dir_type }}" === 'wp' || "{{ dir_type }}" === 'config') {
+            document.querySelectorAll('.file-name').forEach(span => {
+                span.addEventListener('click', function() {
+                    const originalName = this.textContent;
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = originalName;
+                    input.style.width = '40%';
+                    input.style.boxSizing = 'border-box';
+
+                    this.style.display = 'none';
+                    this.parentNode.insertBefore(input, this);
+                    input.focus();
+                    input.select();
+
+                    const finishEditing = () => {
+                        const newName = input.value.trim();
+                        this.style.display = '';
+                        if (input.parentNode) {
+                            input.parentNode.removeChild(input);
+                        }
+
+                        if (newName && newName !== originalName) {
+                            // AJAXでサーバーにリネームをリクエスト
+                            fetch("{{ url_for('rename_file') }}", {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: new URLSearchParams({
+                                    'dir_type': "{{ dir_type }}",
+                                    'old_filename': originalName,
+                                    'new_filename': newName
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    // 成功したらページをリロードして変更を反映
+                                    window.location.reload();
+                                } else {
+                                    alert('エラー: ' + data.message);
+                                    this.textContent = originalName; // 失敗したら元に戻す
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('ファイル名の変更中にエラーが発生しました。');
+                                this.textContent = originalName;
+                            });
+                        } else {
+                            this.textContent = originalName;
+                        }
+                    };
+                    input.addEventListener('blur', finishEditing);
+                    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finishEditing(); });
                 });
             });
         }

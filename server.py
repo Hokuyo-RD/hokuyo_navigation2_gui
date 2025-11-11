@@ -9,6 +9,8 @@ import sys
 import asyncio
 import yaml
 import pathlib
+import csv # Added for CSV handling
+import json # Added for JSON handling
 import re
 
 from flask import Flask, request, render_template, redirect, jsonify, url_for, flash, send_from_directory
@@ -1042,6 +1044,17 @@ def download_pgm_map(basename):
         if os.path.exists(zip_path):
             os.remove(zip_path)
 
+# Helper to get available files for dropdowns
+def _get_available_files(directory, extension):
+    """指定されたディレクトリから特定の拡張子のファイル名（拡張子なし）のリストを取得する"""
+    try:
+        files = sorted([
+            os.path.splitext(f)[0] for f in os.listdir(directory) if f.endswith(extension)
+        ])
+        return files
+    except FileNotFoundError:
+        return []
+
 @app.route('/browse_files/<dir_type>')
 def browse_files(dir_type):
     """
@@ -1070,7 +1083,7 @@ def browse_files(dir_type):
         if dir_type == 'config':
             # configディレクトリの場合はCSVファイルのみをリストアップ
             files = [f for f in files if f.lower().endswith('.csv')]
-        
+
         return render_template('file_browser.html', 
                                files=files, 
                                dir_type=dir_type, 
@@ -1083,28 +1096,75 @@ def browse_files(dir_type):
 @app.route('/delete_file', methods=['POST'])
 def delete_file():
     """ファイルを削除するAPI"""
-    dir_type = request.form.get('dir_type')
-    filename = request.form.get('filename')
+    dir_type = request.form.get('dir_type') 
+    filenames = request.form.getlist('filenames') # 複数ファイルに対応
 
     dir_map = {'map': MAP_DIR, 'wp': WP_DIR, 'config': CONFIG_DIR}
     if dir_type not in dir_map:
         flash('無効なディレクトリタイプです。', 'error')
         return redirect(url_for('main_gui'))
 
-    target_dir = dir_map[dir_type]
-    file_path = os.path.join(target_dir, filename)
-
-    if not _is_safe_path(file_path, target_dir):
-        flash('不正なファイルパスです。', 'error')
+    if not filenames:
+        flash('削除するファイルが選択されていません。', 'error')
         return redirect(url_for('browse_files', dir_type=dir_type))
 
-    try:
-        os.remove(file_path)
-        flash(f'ファイル "{filename}" を削除しました。', 'success')
-    except Exception as e:
-        flash(f'ファイルの削除中にエラーが発生しました: {e}', 'error')
-    
+    target_dir = dir_map[dir_type]
+    deleted_count = 0
+    error_count = 0
+
+    for filename in filenames:
+        file_path = os.path.join(target_dir, filename)
+
+        if not _is_safe_path(file_path, target_dir):
+            flash(f'不正なファイルパスです: {filename}', 'error')
+            error_count += 1
+            continue
+
+        try:
+            os.remove(file_path)
+            deleted_count += 1
+        except Exception as e:
+            flash(f'ファイル "{filename}" の削除中にエラーが発生しました: {e}', 'error')
+            error_count += 1
+
+    if deleted_count > 0:
+        flash(f'{deleted_count}個のファイルを削除しました。', 'success')
+    if error_count == 0 and deleted_count == 0:
+        flash('削除対象のファイルが見つかりませんでした。', 'warning')
+
     return redirect(url_for('browse_files', dir_type=dir_type))
+
+@app.route('/create_csv', methods=['POST'])
+def create_csv():
+    """新規CSVファイルを作成する"""
+    filename = request.form.get('filename')
+    if not filename:
+        flash('ファイル名が入力されていません。', 'error')
+        return redirect(url_for('browse_files', dir_type='config'))
+
+    if not filename.lower().endswith('.csv'):
+        filename += '.csv'
+
+    file_path = os.path.join(CONFIG_DIR, filename)
+
+    if not _is_safe_path(file_path, CONFIG_DIR):
+        flash('不正なファイルパスです。', 'error')
+        return redirect(url_for('browse_files', dir_type='config'))
+
+    if os.path.exists(file_path):
+        flash(f'ファイル "{filename}" は既に存在します。', 'error')
+        return redirect(url_for('browse_files', dir_type='config'))
+
+    try:
+        # デフォルトのヘッダーを持つ空のCSVファイルを作成
+        default_header = "map_file,waypoint_file,nav_type\n"
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(default_header)
+        flash(f'新規ファイル "{filename}" を作成しました。', 'success')
+    except Exception as e:
+        flash(f'ファイルの作成中にエラーが発生しました: {e}', 'error')
+
+    return redirect(url_for('browse_files', dir_type='config'))
 
 @app.route('/edit_csv/<filename>')
 def edit_csv(filename):
@@ -1116,18 +1176,31 @@ def edit_csv(filename):
         return redirect(url_for('browse_files', dir_type='config'))
 
     try:
+        # CSVをパースして構造化データとして渡す
+        csv_data = []
         with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        return render_template('edit_csv.html', filename=filename, content=content)
+            reader = csv.DictReader(f)
+            for row in reader:
+                csv_data.append(row)
+
+        # プルダウン用のファイルリストを取得
+        available_map_files = _get_available_files(MAP_DIR, '.yaml')
+        available_wp_files = _get_available_files(WP_DIR, '.json')
+
+        return render_template('csv_editor.html', 
+                               filename=filename, 
+                               csv_data=csv_data,
+                               available_map_files=available_map_files,
+                               available_wp_files=available_wp_files)
     except Exception as e:
         flash(f'ファイルの読み込み中にエラーが発生しました: {e}', 'error')
         return redirect(url_for('browse_files', dir_type='config'))
 
-@app.route('/save_csv', methods=['POST'])
-def save_csv():
+@app.route('/save_structured_csv', methods=['POST'])
+def save_structured_csv():
     """編集されたCSVファイルの内容を保存"""
     filename = request.form.get('filename')
-    content = request.form.get('content')
+    rows_data_json = request.form.get('rows_data')
     file_path = os.path.join(CONFIG_DIR, filename)
 
     if not _is_safe_path(file_path, CONFIG_DIR):
@@ -1135,8 +1208,18 @@ def save_csv():
         return redirect(url_for('browse_files', dir_type='config'))
 
     try:
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+        rows = json.loads(rows_data_json)
+        
+        if not rows:
+            # 空の場合はヘッダーのみ書き込む
+            with open(file_path, 'w', encoding='utf-8', newline='') as f:
+                f.write("map_file,waypoint_file,nav_type\n")
+        else:
+            with open(file_path, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=["map_file", "waypoint_file", "nav_type"])
+                writer.writeheader()
+                writer.writerows(rows)
+
         flash(f'ファイル "{filename}" を保存しました。', 'success')
     except Exception as e:
         flash(f'ファイルの保存中にエラーが発生しました: {e}', 'error')

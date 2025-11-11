@@ -12,6 +12,10 @@
         li:first-child { border-radius: 4px 4px 0 0; }
         li:last-child { border-radius: 0 0 4px 4px; }
         .file-name { font-weight: bold; }
+        .file-item { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
+        .file-item input[type="checkbox"] { margin-right: 5px; }
+        .bulk-actions { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .new-file-form { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; }
         .actions form { display: inline; }
         .actions button, .actions a {
             background-color: #dc3545;
@@ -45,28 +49,75 @@
         {% endwith %}
 
         {% if files %}
-            <ul>
-                {% for file in files %}
-                <li>
-                    <span class="file-name">{{ file }}</span>
-                    <div class="actions">
-                        {% if dir_type == 'config' %}
-                            <a href="{{ url_for('edit_csv', filename=file) }}" class="edit-btn">編集</a>
-                        {% endif %}
-                        <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file }}」を削除しますか？');">
-                            <input type="hidden" name="dir_type" value="{{ dir_type }}">
-                            <input type="hidden" name="filename" value="{{ file }}">
-                            <button type="submit">削除</button>
-                        </form>
+            {% if dir_type == 'map' or dir_type == 'wp' %}
+                <form action="{{ url_for('delete_file') }}" method="post" id="delete-form" onsubmit="return confirm('選択したファイルを本当に削除しますか？');">
+                    <input type="hidden" name="dir_type" value="{{ dir_type }}">
+                    <ul>
+                        {% for file in files %}
+                        <li style="display: flex; justify-content: space-between; align-items: center;">
+                            <label class="file-item" style="flex-grow: 1;">
+                                <input type="checkbox" name="filenames" value="{{ file }}" style="margin-right: 5px;">
+                                <span class="file-name" style="flex-grow: 1;">{{ file }}</span>
+                            </label>
+                            <div class="actions">
+                                <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file }}」を削除しますか？');">
+                                    <input type="hidden" name="dir_type" value="{{ dir_type }}">
+                                    <input type="hidden" name="filenames" value="{{ file }}">
+                                    <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em; margin-left: 10px;">削除</button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="bulk-actions">
+                        <label><input type="checkbox" id="select-all"> すべて選択/解除</label>
+                        <button type="submit">選択したファイルを削除</button>
                     </div>
-                </li>
-                {% endfor %}
-            </ul>
+                </form>
+            {% else %}
+                <ul>
+                    {% for file in files %}
+                    <li>
+                        <span class="file-name">{{ file }}</span>
+                        <div class="actions">
+                            <a href="{{ url_for('edit_csv', filename=file) }}" class="edit-btn">編集</a>
+                            <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file }}」を削除しますか？');">
+                                <input type="hidden" name="dir_type" value="{{ dir_type }}">
+                                <input type="hidden" name="filenames" value="{{ file }}">
+                                <button type="submit">削除</button>
+                            </form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
         {% else %}
             <p>ファイルが見つかりません。</p>
         {% endif %}
+
+        {% if dir_type == 'config' %}
+        <div class="new-file-form">
+            <h3>新規CSVファイル作成</h3>
+            <form action="{{ url_for('create_csv') }}" method="post" style="display: flex; gap: 10px;">
+                <input type="text" name="filename" placeholder="新しいファイル名 (.csv)" style="flex-grow: 1; padding: 8px;" required>
+                <button type="submit" class="edit-btn" style="background-color: #28a745;">作成</button>
+            </form>
+        </div>
+        {% endif %}
+
         <br>
         <button onclick="window.close()">閉じる</button>
     </div>
+
+    <script>
+        const selectAllCheckbox = document.getElementById('select-all');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function(e) {
+                document.querySelectorAll('input[name="filenames"]').forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
+            });
+        }
+    </script>
 </body>
 </html>

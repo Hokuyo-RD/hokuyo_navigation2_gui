@@ -216,6 +216,10 @@ def mapping_run():
 def mapping_run_popup():
     return render_template('mapping_popup.html')
 
+@app.route('/file_management_popup')
+def file_management_popup():
+    return render_template('file_management_popup.html')
+
 @app.route('/ctrl_executed')
 def ctrl_run():
     return render_template('ctrl_executed.html', message="手動操作モードに切り替わりました。Viewerでジョイスティックを使ってデモをしてください。")
@@ -1037,6 +1041,107 @@ def download_pgm_map(basename):
             shutil.rmtree(temp_dir)
         if os.path.exists(zip_path):
             os.remove(zip_path)
+
+@app.route('/browse_files/<dir_type>')
+def browse_files(dir_type):
+    """
+    指定されたタイプのディレクトリ内のファイルを表示する。
+    dir_type: 'map', 'wp', 'config'
+    """
+    dir_map = {
+        'map': {'path': MAP_DIR, 'title': 'マップファイル管理'},
+        'wp': {'path': WP_DIR, 'title': 'ウェイポイントファイル管理'},
+        'config': {'path': CONFIG_DIR, 'title': '設定ファイル管理'}
+    }
+
+    if dir_type not in dir_map:
+        flash('無効なディレクトリタイプです。', 'error')
+        return redirect(url_for('main_gui'))
+
+    target_dir = dir_map[dir_type]['path']
+    title = dir_map[dir_type]['title']
+
+    if not _is_safe_path(target_dir, HOKUYO_NAV2_PKG_PATH):
+        flash("セキュリティ上の理由により、このディレクトリにはアクセスできません。", "error")
+        return redirect(url_for('main_gui'))
+
+    try:
+        files = sorted(os.listdir(target_dir))
+        if dir_type == 'config':
+            # configディレクトリの場合はCSVファイルのみをリストアップ
+            files = [f for f in files if f.lower().endswith('.csv')]
+        
+        return render_template('file_browser.html', 
+                               files=files, 
+                               dir_type=dir_type, 
+                               title=title)
+
+    except (FileNotFoundError, PermissionError) as e:
+        flash(f"ディレクトリの操作中にエラーが発生しました: {e}", "error")
+        return redirect(url_for('main_gui'))
+
+@app.route('/delete_file', methods=['POST'])
+def delete_file():
+    """ファイルを削除するAPI"""
+    dir_type = request.form.get('dir_type')
+    filename = request.form.get('filename')
+
+    dir_map = {'map': MAP_DIR, 'wp': WP_DIR, 'config': CONFIG_DIR}
+    if dir_type not in dir_map:
+        flash('無効なディレクトリタイプです。', 'error')
+        return redirect(url_for('main_gui'))
+
+    target_dir = dir_map[dir_type]
+    file_path = os.path.join(target_dir, filename)
+
+    if not _is_safe_path(file_path, target_dir):
+        flash('不正なファイルパスです。', 'error')
+        return redirect(url_for('browse_files', dir_type=dir_type))
+
+    try:
+        os.remove(file_path)
+        flash(f'ファイル "{filename}" を削除しました。', 'success')
+    except Exception as e:
+        flash(f'ファイルの削除中にエラーが発生しました: {e}', 'error')
+    
+    return redirect(url_for('browse_files', dir_type=dir_type))
+
+@app.route('/edit_csv/<filename>')
+def edit_csv(filename):
+    """CSVファイルを編集するページを表示"""
+    file_path = os.path.join(CONFIG_DIR, filename)
+
+    if not _is_safe_path(file_path, CONFIG_DIR):
+        flash('不正なファイルパスです。', 'error')
+        return redirect(url_for('browse_files', dir_type='config'))
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return render_template('edit_csv.html', filename=filename, content=content)
+    except Exception as e:
+        flash(f'ファイルの読み込み中にエラーが発生しました: {e}', 'error')
+        return redirect(url_for('browse_files', dir_type='config'))
+
+@app.route('/save_csv', methods=['POST'])
+def save_csv():
+    """編集されたCSVファイルの内容を保存"""
+    filename = request.form.get('filename')
+    content = request.form.get('content')
+    file_path = os.path.join(CONFIG_DIR, filename)
+
+    if not _is_safe_path(file_path, CONFIG_DIR):
+        flash('不正なファイルパスです。', 'error')
+        return redirect(url_for('browse_files', dir_type='config'))
+
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        flash(f'ファイル "{filename}" を保存しました。', 'success')
+    except Exception as e:
+        flash(f'ファイルの保存中にエラーが発生しました: {e}', 'error')
+
+    return redirect(url_for('browse_files', dir_type='config'))
 
 @app.route('/gui', methods=['GET', 'POST'])
 def trigger_script():

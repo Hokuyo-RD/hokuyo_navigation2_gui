@@ -1,0 +1,19 @@
+<div class="popup-form-container">
+    <h3>ファイル管理</h3>
+    <p>管理したいファイルの種類を選択してください。</p>
+    <div class="form-actions" style="flex-direction: column; align-items: stretch;">
+        <a href="{{ url_for('browse_files', dir_type='map') }}" class="button-link" target="_blank">
+            マップ管理
+        </a>
+        <a href="{{ url_for('browse_files', dir_type='wp') }}" class="button-link" target="_blank">
+            ウェイポイント管理
+        </a>
+        <a href="{{ url_for('browse_files', dir_type='config') }}" class="button-link" target="_blank">
+            設定ファイル管理
+        </a>
+    </div>
+</div>
+<style>
+    .button-link { display: block; padding: 12px 15px; margin-top: 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; text-align: center; }
+    .button-link:hover { background-color: #0056b3; }
+</style>

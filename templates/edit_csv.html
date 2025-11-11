@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV編集: {{ filename }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 90%; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        textarea {
+            width: 100%;
+            height: 60vh;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        .actions { margin-top: 15px; }
+        .actions button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        .save-btn { background-color: #28a745; color: white; }
+        .save-btn:hover { background-color: #218838; }
+        .cancel-btn { background-color: #6c757d; color: white; margin-left: 10px; }
+        .cancel-btn:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV編集: {{ filename }}</h1>
+        <form action="{{ url_for('save_csv') }}" method="post">
+            <input type="hidden" name="filename" value="{{ filename }}">
+            <textarea name="content">{{ content }}</textarea>
+            <div class="actions">
+                <button type="submit" class="save-btn">保存</button>
+                <button type="button" class="cancel-btn" onclick="window.location.href='{{ url_for('browse_files', dir_type='config') }}'">キャンセル</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

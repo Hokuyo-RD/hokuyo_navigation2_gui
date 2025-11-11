@@ -16,6 +16,7 @@ hokuyo_nav2_gui
     </form>
     <button id="mappingBtn" class="mode-control-btn">マッピング</button>
     <button id="navigationRunBtn" class="mode-control-btn">自律走行</button>
+    <button id="fileManagementBtn" class="mode-control-btn">ファイル管理</button>
     
     <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
@@ -41,12 +42,21 @@ hokuyo_nav2_gui
             </div>
         </div>
     </div>
+
+    <div id="fileManagementPopupContainer" class="popup-container" style="display: none;">
+        <div id="fileManagementPopupContent" class="popup-content">
+            <button id="closeFileManagementPopupBtn" class="close-button">閉じる</button>
+            <div id="fileManagementRunContent">
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
     const navigationRunBtn = document.getElementById('navigationRunBtn');
     const mappingBtn = document.getElementById('mappingBtn');
+    const fileManagementBtn = document.getElementById('fileManagementBtn');
 
     const navigationPopupContainer = document.getElementById('navigationPopupContainer');
     const navigationRunContent = document.getElementById('navigationRunContent');
@@ -55,6 +65,10 @@ hokuyo_nav2_gui
     const mappingPopupContainer = document.getElementById('mappingPopupContainer');
     const mappingRunContent = document.getElementById('mappingRunContent');
     const closeMappingPopupBtn = document.getElementById('closeMappingPopupBtn');
+
+    const fileManagementPopupContainer = document.getElementById('fileManagementPopupContainer');
+    const fileManagementRunContent = document.getElementById('fileManagementRunContent');
+    const closeFileManagementPopupBtn = document.getElementById('closeFileManagementPopupBtn');
     
     const statusDisplay = document.getElementById('status-display');
     const modeControlBtns = document.querySelectorAll('.mode-control-btn');
@@ -118,6 +132,8 @@ hokuyo_nav2_gui
             navigationRunBtn.classList.add('inactive-button');
             mappingBtn.disabled = true;
             mappingBtn.classList.add('inactive-button');
+            fileManagementBtn.disabled = true;
+            fileManagementBtn.classList.add('inactive-button');
             ctrlBtn.disabled = true;
             ctrlBtn.classList.add('inactive-button');
 
@@ -131,6 +147,8 @@ hokuyo_nav2_gui
             navigationRunBtn.classList.remove('inactive-button');
             mappingBtn.disabled = false;
             mappingBtn.classList.remove('inactive-button');
+            fileManagementBtn.disabled = false;
+            fileManagementBtn.classList.remove('inactive-button');
             ctrlBtn.disabled = false;
             ctrlBtn.classList.remove('inactive-button');
             
@@ -244,6 +262,20 @@ hokuyo_nav2_gui
             });
     });
 
+    fileManagementBtn.addEventListener('click', () => {
+        fetch('/file_management_popup')
+            .then(response => response.text())
+            .then(data => {
+                fileManagementRunContent.innerHTML = data;
+                fileManagementPopupContainer.style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Error fetching file_management_popup.html:', error);
+                alert('ファイル管理設定の読み込みに失敗しました。');
+            });
+    });
+
+
     closenavigationPopupBtn.addEventListener('click', () => {
         navigationPopupContainer.style.display = 'none';
         navigationRunContent.innerHTML = '';
@@ -252,6 +284,11 @@ hokuyo_nav2_gui
     closeMappingPopupBtn.addEventListener('click', () => {
         mappingPopupContainer.style.display = 'none';
         mappingRunContent.innerHTML = '';
+    });
+
+    closeFileManagementPopupBtn.addEventListener('click', () => {
+        fileManagementPopupContainer.style.display = 'none';
+        fileManagementRunContent.innerHTML = '';
     });
 
     navigationPopupContainer.addEventListener('click', (event) => {
@@ -265,6 +302,13 @@ hokuyo_nav2_gui
         if (event.target === mappingPopupContainer) {
             mappingPopupContainer.style.display = 'none';
             mappingRunContent.innerHTML = '';
+        }
+    });
+
+    fileManagementPopupContainer.addEventListener('click', (event) => {
+        if (event.target === fileManagementPopupContainer) {
+            fileManagementPopupContainer.style.display = 'none';
+            fileManagementRunContent.innerHTML = '';
         }
     });
 </script>

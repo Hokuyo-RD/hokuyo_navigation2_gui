@@ -308,7 +308,16 @@
                     </select>
                 </div>
             </div>
-            <button id="confirm-load-button" style="padding: 8px 15px;">選択した要素をロード</button>
+            <div id="load-modal-info" style="margin-top: 15px; color: #ffcc00; font-size: 0.9em;">
+                <!-- ロード済みコンポーネントに関する情報がここに表示されます -->
+            </div>
+            <div style="margin-top: 25px; border-top: 1px solid #444; padding-top: 15px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="font-size: 0.5em; color: #bbb; max-width: 65%;">
+                    <p style="margin: 0 0 5px 0; white-space: nowrap;">※ 各タイプのデータは1つずつしかロードできません。</p>
+                    <p style="margin: 0;">※ 別のデータをロードするには、先にアンロードしてください。</p>
+                </div>
+                <button id="confirm-load-button" style="padding: 10px 20px; font-size: 0.9em; white-space: nowrap;">選択した要素をロード</button>
+            </div>
         </div>
     </div>
     <div id="unload-modal" class="modal">
@@ -982,12 +991,34 @@
         window.startLoadProcess = async function() {
             const loadModal = document.getElementById('load-modal');
             const loadMapButton = document.getElementById('confirm-load-button');
+            const pcdSelect = document.getElementById('pcd-select');
+            const pgmSelect = document.getElementById('pgm-select');
+            const wpSelect = document.getElementById('wp-select');
+            const infoDiv = document.getElementById('load-modal-info');
+
+            // 既にロードされているコンポーネントをチェック
+            const isPcdLoaded = Object.keys(meshRegistry).some(key => key.startsWith('pcd-'));
+            const isPgmLoaded = Object.keys(meshRegistry).some(key => key.startsWith('pgm-'));
+            const isWpLoaded = Object.keys(meshRegistry).some(key => key.startsWith('waypoints-'));
+
+            pcdSelect.disabled = isPcdLoaded;
+            pgmSelect.disabled = isPgmLoaded;
+            wpSelect.disabled = isWpLoaded;
+
+            let infoMessages = [];
+            if (isPcdLoaded) infoMessages.push('PCDはロード済みです。');
+            if (isPgmLoaded) infoMessages.push('PGM/YAMLはロード済みです。');
+            if (isWpLoaded) infoMessages.push('ウェイポイントはロード済みです。');
+
+            infoDiv.innerHTML = infoMessages.join('<br>');
+            loadMapButton.disabled = isPcdLoaded && isPgmLoaded && isWpLoaded;
 
             loadModal.style.display = 'block';
+
             loadMapButton.onclick = async () => {
-                const pcdToLoad = document.getElementById('pcd-select').value;
-                const pgmToLoad = document.getElementById('pgm-select').value;
-                const wpToLoad = document.getElementById('wp-select').value;
+                const pcdToLoad = pcdSelect.value;
+                const pgmToLoad = pgmSelect.value;
+                const wpToLoad = wpSelect.value;
 
                 loadModal.style.display = 'none';
 

@@ -1371,40 +1371,61 @@
             const indexToDelete = selectedWaypoint.userData.waypointIndex;
             if (confirm(`ウェイポイント ${indexToDelete} を削除しますか？`)) {
                 const waypointsGroup = selectedWaypoint.parent;
-
                 // 1. TransformControlsからデタッチ
                 transformControls.detach();
-
                 // 2. シーンから球体と矢印を削除
                 const arrowToDelete = waypointsGroup.children.find(c => c.name === `waypoint_arrow_${indexToDelete}`);
                 waypointsGroup.remove(selectedWaypoint);
                 if (arrowToDelete) {
                     waypointsGroup.remove(arrowToDelete);
                 }
-
-                // 選択状態をクリア
-                selectedWaypoint = null;
-                transformControls.detach();
-
                 // 3. waypoints配列とdraggableObjectsからデータを削除
                 waypoints.splice(indexToDelete, 1);
                 const draggableIndex = draggableObjects.indexOf(selectedWaypoint);
                 if (draggableIndex > -1) {
                     draggableObjects.splice(draggableIndex, 1);
                 }
-
-                // 4. 後続のウェイポイントのインデックスを更新
-                waypointsGroup.children.forEach(child => {
-                    if (child.userData.waypointIndex > indexToDelete) {
-                        // 🚨 This logic has a potential bug, it should be `child.name.startsWith(...)`
-                        const oldIndex = child.userData.waypointIndex;
-                        child.userData.waypointIndex--;
-                        // オブジェクト名も更新しておくと整合性が取れます
-                        if (child.name.startsWith('waypoint_sphere_')) child.name = `waypoint_sphere_${child.userData.waypointIndex}`;
-                        if (child.name.startsWith('waypoint_arrow_')) child.name = `waypoint_arrow_${child.userData.waypointIndex}`;
+                // 4. ウェイポイントグループの子供をすべてクリアし、waypoints配列に基づいて再構築
+                while(waypointsGroup.children.length > 0){
+                    const child = waypointsGroup.children[0];
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                        else if (child.material.dispose) child.material.dispose();
                     }
-                });
+                    waypointsGroup.remove(child);
+                };
+                draggableObjects.length = 0; // draggableObjectsもクリア
+                dragControls.getObjects().length = 0; // DragControlsのオブジェクトもクリア
+                // waypoints配列に基づいて、すべてのウェイポイントオブジェクトを再作成
+                waypoints.forEach((wp, idx) => {
+                    const pos = wp[0];
+                    const quat = wp[1];
+                    const attrs = wp.length > 2 ? wp.slice(2) : {};
 
+                    const SPHERE_RADIUS = 0.3;
+                    const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 16, 16);
+                    const type = (attrs && attrs.length > 0 && attrs[0].type) ? attrs[0].type : 'default';
+                    const color = getColorByType(type);
+                    const material = new THREE.MeshBasicMaterial({ color: color });
+                    const sphere = new THREE.Mesh(geometry, material);
+                    sphere.position.set(pos[0], pos[1], pos[2]);
+                    sphere.name = `waypoint_sphere_${idx}`;
+                    sphere.userData.waypointIndex = idx;
+                    sphere.userData.attributes = attrs;
+                    waypointsGroup.add(sphere);
+                    draggableObjects.push(sphere);
+
+                    const dir = new THREE.Vector3(1, 0, 0).applyQuaternion(new THREE.Quaternion().fromArray(quat));
+                    const arrowHelper = new THREE.ArrowHelper(dir, sphere.position, 1.0, 0xffff00, 0.2, 0.15);
+                    arrowHelper.name = `waypoint_arrow_${idx}`;
+                    arrowHelper.userData = { waypointIndex: idx };
+                    waypointsGroup.add(arrowHelper);
+                });
+                dragControls.getObjects().push(...draggableObjects);
+
+                // 選択状態をクリア
+                selectedWaypoint = null;
                 hideWaypointInfo();
                 document.getElementById('info').innerHTML = `ウェイポイント ${indexToDelete} を削除しました。`;
                 updateWaypointPath(currentMapName);

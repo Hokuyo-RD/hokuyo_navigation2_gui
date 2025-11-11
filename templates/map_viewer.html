@@ -1598,8 +1598,8 @@
             transformControls.addEventListener('dragging-changed', function (event) {
                 orbitControls.enabled = !event.value;
             });
-            transformControls.addEventListener('mouseUp', () => { if (selectedWaypoint) dragControls.enabled = true; });
-            transformControls.addEventListener('objectChange', () => {
+            transformControls.addEventListener('mouseUp', () => { if (selectedWaypoint) dragControls.enabled = true; }); // この行は変更なし
+            transformControls.addEventListener('objectChange', (event) => {
                 if (selectedWaypoint) {
                     const index = selectedWaypoint.userData.waypointIndex;
                     // TransformControlsはオブジェクトのquaternionを直接変更するため、
@@ -1618,7 +1618,18 @@
                         // 矢印の向きを球体の向きに合わせる
                         arrow.setDirection(new THREE.Vector3(1, 0, 0).applyQuaternion(newQuat));
                     }
-                    displayWaypointInfo(index, selectedWaypoint.position, selectedWaypoint.userData.attributes);
+                    // ドラッグ中のみウェイポイント情報をリアルタイムで更新
+                    if (transformControls.dragging) {
+                        displayWaypointInfo(index, selectedWaypoint.position, selectedWaypoint.userData.attributes);
+                    }
+                }
+            });
+            transformControls.addEventListener('dragging-changed', function (event) {
+                orbitControls.enabled = !event.value;
+                if (!event.value) { // ドラッグが終了した時
+                    if (selectedWaypoint) {
+                        displayWaypointInfo(selectedWaypoint.userData.waypointIndex, selectedWaypoint.position, selectedWaypoint.userData.attributes);
+                    }
                 }
             });
             scene.add(transformControls);

@@ -1077,10 +1077,6 @@ def rename_file():
         if dir_type == 'map':
             old_base, old_ext = os.path.splitext(old_filename)
             new_base, new_ext = os.path.splitext(new_filename)
-            
-            # 拡張子が変更されていないことを確認
-            if old_ext != new_ext:
-                return jsonify({'status': 'error', 'message': '拡張子の変更はサポートされていません。'}), 400
 
             related_exts = ['.pcd', '.yaml', '.pgm']
             for ext in related_exts:
@@ -1088,9 +1084,15 @@ def rename_file():
                 new_rel_path = os.path.join(target_dir, new_base + ext)
                 if os.path.exists(old_rel_path):
                     if os.path.exists(new_rel_path):
-                         return jsonify({'status': 'error', 'message': f'関連ファイル "{os.path.basename(new_rel_path)}" が既に存在します。'}), 400
+                         return jsonify({'status': 'error', 'message': '拡張子の変更はできません。ファイル名のみ変更してください。'}), 400
                     os.rename(old_rel_path, new_rel_path)
         else:
+            # wp と config の場合も拡張子変更を禁止
+            if dir_type == 'wp' or dir_type == 'config':
+                old_ext = os.path.splitext(old_filename)[1]
+                new_ext = os.path.splitext(new_filename)[1]
+                if old_ext != new_ext:
+                    return jsonify({'status': 'error', 'message': '拡張子の変更はできません。ファイル名のみ変更してください。'}), 400
             os.rename(old_path, new_path)
 
         return jsonify({'status': 'success', 'message': f'"{old_filename}" を "{new_filename}" に変更しました。'})

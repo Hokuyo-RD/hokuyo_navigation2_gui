@@ -3,37 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
-        ul { list-style-type: none; padding: 0; }
-        li { background: #fff; border: 1px solid #ddd; margin-top: -1px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-        li:first-child { border-radius: 4px 4px 0 0; }
-        li:last-child { border-radius: 0 0 4px 4px; }
+        body { 
+            font-family: sans-serif; 
+            padding: 20px; 
+            background-color: #f4f7f9; 
+            color: #333;
+        }
+        .container {
+            max-width: 750px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        #file-list { 
+            list-style-type: none; 
+            padding: 0; 
+            border: 1px solid #ddd; 
+            max-height: 400px; 
+            overflow-y: auto;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        #file-list li { 
+            margin-bottom: 0; 
+            padding: 12px 15px; 
+            border-bottom: 1px solid #eee; 
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #file-list li:last-child { border-bottom: none; }
+        #file-list li:hover { background-color: #e9ecef; }
+
         .file-name { font-weight: bold; }
         .file-item { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
         .file-item input[type="checkbox"] { margin-right: 5px; }
+
         .bulk-actions { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
         .new-file-form { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; }
-        .actions form { display: inline; }
-        .actions button, .actions a {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 0.9em;
-            margin-left: 10px;
-        }
-        .actions .edit-btn { background-color: #007bff; }
-        .actions .edit-btn:hover { background-color: #0056b3; }
-        .actions button:hover { background-color: #c82333; }
+        .actions { display: flex; gap: 8px; align-items: center; }
+        .actions form { display: inline; margin: 0; }
+
+        .button { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; transition: background-color 0.2s; display: inline-block; text-align: center; font-size: 0.9em; }
+        .button-delete { background-color: #dc3545; color: white; }
+        .button-delete:hover { background-color: #c82333; }
+        .button-edit { background-color: #007bff; color: white; }
+        .button-edit:hover { background-color: #0056b3; }
+        .button-secondary { background-color: #6c757d; color: white; }
+        .button-secondary:hover { background-color: #5a6268; }
+        .button-create { background-color: #28a745; color: white; }
+        .button-create:hover { background-color: #218838; }
+
         .flash-message { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
         .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .flash-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
@@ -52,21 +98,21 @@
             {% if dir_type == 'map' or dir_type == 'wp' %}
                 <form action="{{ url_for('delete_file') }}" method="post" id="delete-form" onsubmit="return confirm('選択したファイルを本当に削除しますか？');">
                     <input type="hidden" name="dir_type" value="{{ dir_type }}">
-                    <ul>
+                    <ul id="file-list">
                         {% for file in files %}
-                        <li style="display: flex; justify-content: space-between; align-items: center;">
-                            <label class="file-item" style="flex-grow: 1;">
+                        <li>
+                            <label class="file-item">
                                 <input type="checkbox" name="filenames" value="{{ file }}" style="margin-right: 5px;">
                                 <span class="file-name" style="flex-grow: 1;">{{ file }}</span>
                             </label>
                             <div class="actions">
                                 {% if dir_type == 'map' and file.lower().endswith('.yaml') or dir_type == 'wp' and file.lower().endswith('.json') %}
-                                    <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=file) }}" class="edit-btn" style="background-color: #5a6268;">テキスト編集</a>
+                                    <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=file) }}" class="button button-secondary">テキスト編集</a>
                                 {% endif %}
                                 <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file }}」を削除しますか？');">
                                     <input type="hidden" name="dir_type" value="{{ dir_type }}">
                                     <input type="hidden" name="filenames" value="{{ file }}">
-                                    <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em; margin-left: 10px;">削除</button>
+                                    <button type="submit" class="button button-delete">削除</button>
                                 </form>
                             </div>
                         </li>
@@ -74,23 +120,23 @@
                     </ul>
                     <div class="bulk-actions">
                         <label><input type="checkbox" id="select-all"> すべて選択/解除</label>
-                        <button type="submit">選択したファイルを削除</button>
+                        <button type="submit" class="button button-delete">選択したファイルを削除</button>
                     </div>
                 </form>
             {% else %}
-                <ul>
+                <ul id="file-list">
                     {% for file in files %}
-                    <li style="display: flex; justify-content: space-between; align-items: center;">
+                    <li>
                         <span class="file-name" style="flex-grow: 1;">{{ file.name }}</span>
                         <div class="actions">
                             {% if file.is_structured %}
-                                <a href="{{ url_for('edit_csv', filename=file.name) }}" class="edit-btn">編集</a>
+                                <a href="{{ url_for('edit_csv', filename=file.name) }}" class="button button-edit">編集</a>
                             {% endif %}
-                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=file.name) }}" class="edit-btn" style="background-color: #5a6268;">テキスト編集</a>
+                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=file.name) }}" class="button button-secondary">テキスト編集</a>
                             <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file.name }}」を削除しますか？');">
                                 <input type="hidden" name="dir_type" value="{{ dir_type }}">
                                 <input type="hidden" name="filenames" value="{{ file.name }}">
-                                <button type="submit">削除</button>
+                                <button type="submit" class="button button-delete">削除</button>
                             </form>
                         </div>
                     </li>
@@ -105,17 +151,18 @@
         <div class="new-file-form">
             <h3>新規CSVファイル作成</h3>
             <form action="{{ url_for('create_csv') }}" method="post" style="display: flex; gap: 10px;">
-                <input type="text" name="filename" placeholder="新しいファイル名 (.csv)" style="flex-grow: 1; padding: 8px;" required>
-                <button type="submit" class="edit-btn" style="background-color: #28a745;">作成</button>
+                <input type="text" name="filename" placeholder="新しいファイル名 (.csv)" style="flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;" required>
+                <button type="submit" class="button button-create">作成</button>
             </form>
-            <a href="{{ url_for('create_plain_text') }}" class="edit-btn" style="display: block; text-align: center; margin-top: 10px; background-color: #5a6268;">
+            <a href="{{ url_for('create_plain_text') }}" class="button button-secondary" style="display: block; text-align: center; margin-top: 10px;">
                 テキストモードで新規作成
             </a>
         </div>
         {% endif %}
 
-        <br>
-        <button onclick="window.close()">閉じる</button>
+        <div style="margin-top: 30px; text-align: right;">
+            <button onclick="window.close()" class="button button-secondary">閉じる</button>
+        </div>
     </div>
 
     <script>
@@ -135,7 +182,7 @@
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.value = originalName;
-                    input.style.width = '40%';
+                    input.style.width = '70%';
                     input.style.boxSizing = 'border-box';
 
                     this.style.display = 'none';

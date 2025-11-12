@@ -41,7 +41,7 @@
             <textarea name="content">{{ content }}</textarea>
             <div class="actions">
                 <button type="submit" class="save-btn">保存</button>
-                <button type="button" class="cancel-btn" onclick="window.location.href='{{ url_for('browse_files', dir_type=dir_type) }}'">キャンセル</button>
+                <button type="button" class="cancel-btn" onclick="window.location.href='{{ url_for('browse_files', dir_type='config') }}'">キャンセル</button>
             </div>
         </form>
     </div>

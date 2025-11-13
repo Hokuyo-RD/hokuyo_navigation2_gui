@@ -37,7 +37,7 @@ try:
     workspace_root = os.path.dirname(install_base_dir) # /path/to/ws
     package_name = os.path.basename(package_install_prefix) # pkg
     
-    HOKUYO_NAV2_PKG_PATH = os.path.join(workspace_root, 'src', package_name)
+    HOKUYO_NAV2_PKG_PATH = os.path.join(workspace_root, 'src', package_name, package_name)
     BASE_PATH = os.path.join(HOKUYO_NAV2_PKG_PATH, 'scripts')
 
     if os.path.isdir(HOKUYO_NAV2_PKG_PATH) and 'src' in HOKUYO_NAV2_PKG_PATH:
@@ -48,11 +48,11 @@ except PackageNotFoundError:
     print("Warning: Could not find 'hokuyo_navigation2' package through ament. Falling back to hardcoded paths.")
     # フォールバックとして、元のハードコードされたパスを使用
     if 'DOCKER_ENV' in os.environ:
-        BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/scripts/"
-        HOKUYO_NAV2_PKG_PATH = "/home/colcon_ws/src/hokuyo_navigation2" 
+        BASE_PATH = "/home/colcon_ws/src/hokuyo_navigation2/hokuyo_navigation2/scripts/"
+        HOKUYO_NAV2_PKG_PATH = "/home/colcon_ws/src/hokuyo_navigation2/hokuyo_navigation2" 
     else:
-        BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/scripts/"
-        HOKUYO_NAV2_PKG_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2"
+        BASE_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/hokuyo_navigation2/scripts/"
+        HOKUYO_NAV2_PKG_PATH = "/home/hokuyo/colcon_ws/src/hokuyo_navigation2/hokuyo_navigation2/"
 
 ROSBAG_ROOT_DIR = os.path.join(HOKUYO_NAV2_PKG_PATH, 'rosbag')
 DOWNLOAD_FOLDER = ROSBAG_ROOT_DIR 

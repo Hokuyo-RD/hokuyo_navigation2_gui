@@ -66,6 +66,9 @@ ROSBRIDGE_URI = "ws://localhost:9090"
 SERVER_HOST = '0.0.0.0'
 SERVER_PORT = 5050
 
+# 環境変数からSPEL PCのIPアドレスを取得。未設定の場合はデフォルト値を使用。
+SPEL_IP = os.environ.get('SPEL_IP', '192.168.1.23')
+
 app = Flask(__name__)
 sockets = Sockets(app)
 app.secret_key = 'your_secret_key_here' 
@@ -162,7 +165,7 @@ def main_gui():
     """メインGUIページ (index.html)"""
     # request.host は 'hostname:port' 形式なので、ホスト名(IPアドレス)だけを抽出
     viewer_host = request.host.split(':')[0]
-    return render_template('index.html', viewer_host=viewer_host)
+    return render_template('index.html', viewer_host=viewer_host, spel_ip=SPEL_IP)
 
 @app.route('/get_mode')
 def get_mode():
@@ -217,6 +220,10 @@ def mapping_run():
 @app.route('/mapping_popup')
 def mapping_run_popup():
     return render_template('mapping_popup.html')
+
+@app.route('/ctrl_popup')
+def ctrl_popup():
+    return render_template('ctrl_popup.html')
 
 @app.route('/file_management_popup')
 def file_management_popup():

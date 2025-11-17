@@ -1,0 +1,20 @@
+<div class="navigation-run-popup-content">
+    <h3>データ取得モードの開始</h3>
+    <p>開始前に以下の項目を確認してください。</p>
+    <form id="ctrlRunForm" action="{{ url_for('trigger_script') }}" method="post" target="_blank">
+        <div id="checklist-container">
+            <div><input type="checkbox" id="check1_ctrl" name="check1_ctrl" value="checked"><label for="check1_ctrl">ロボット周辺に障害物がないこと</label></div>
+            <div><input type="checkbox" id="check2_ctrl" name="check2_ctrl" value="checked"><label for="check2_ctrl">オペレータが操作の準備ができていること</label></div>
+        </div>
+        <div class="button-container-vertical" style="margin-top: 20px;">
+            <!-- データ取得開始（ロボット起動）ボタン -->
+            <button type="submit" name="command" value="ctrl" id="executeBtn_ctrl" class="special inactive-button" disabled>ロボット起動</button>
+            <!-- SPEL起動ボタン -->
+            <button type="button" onclick="start_spel()" id="startSpelBtn" class="special active-button">SPEL起動</button>
+        </div>
+    </form>
+</div>
+<style>
+    .button-container-vertical { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+    #executeBtn_ctrl, #startSpelBtn { font-size: 1.2em !important; padding: 8px 30px !important; width: 100%; max-width: 400px; }
+</style>

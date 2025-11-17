@@ -11,15 +11,13 @@ hokuyo_nav2_gui
 {% block content %}
 <div class="index-page-container">
     <div id="status-display" style="font-size: 1.2em; margin-bottom: 20px;">現在のモード: 未設定</div>
-    <form method="post" action="/gui" target="_blank">
-        <button type="submit" name="command" value="ctrl" id="ctrl" class="mode-control-btn">データ取得</button>
-    </form>
+    <button id="ctrlBtn" class="mode-control-btn">データ取得</button>
     <button id="mappingBtn" class="mode-control-btn">マッピング</button>
     <button id="navigationRunBtn" class="mode-control-btn">自律走行</button>
     <button id="fileManagementBtn" class="mode-control-btn">ファイル管理</button>
     
-    <form method="post" action="/gui" target="_blank">
-        <button type="submit" name="command" value="stop" id="stop">ロボット停止</button>
+    <form id="stopForm" method="post" action="/gui" target="_blank">
+        <button type="button" name="command" value="stop" id="stop" onclick="stopAll()">SPEL/ロボット停止</button>
     </form>
     <form method="get" action="/map_viewer" target="_blank">
         <button type="submit" name="command" value="map_viewer" id="map_viewer">Map Viewer</button>
@@ -50,12 +48,38 @@ hokuyo_nav2_gui
             </div>
         </div>
     </div>
+
+    <div id="ctrlPopupContainer" class="popup-container" style="display: none;">
+        <div id="ctrlPopupContent" class="popup-content" style="max-height: 90vh; overflow-y: auto;">
+            <button id="closeCtrlPopupBtn" class="close-button">閉じる</button>
+            <div id="ctrlRunContent">
+            </div>
+            <div class="log-output-container" style="display: none;">
+                <p><b>動作状況:</b></p>
+                <pre id="command_processing"></pre>
+            </div>
+            <style>
+                .log-output-container { margin-top: 20px; text-align: left; }
+                .log-output-container pre { 
+                    background-color: #222; /* 黒背景 */
+                    color: #0f0; /* 明るい緑色の文字 */
+                    border: 1px solid #555; 
+                    padding: 10px; 
+                    min-height: 100px; max-height: 200px; /* 高さを制限 */
+                    overflow-y: auto; /* 縦スクロールを有効化 */
+                    white-space: pre-wrap; word-wrap: break-word; font-family: monospace; font-size: 0.9em; }
+            </style>
+        </div>
+    </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/spel_cgi_request.js') }}"></script>
 <script>
+    const SPEL_IP='{{ spel_ip }}'; // SPEL PCのIPアドレス (server.pyから渡される)
     const reloadChannel = new BroadcastChannel('reloadIndexPageChannel');
     const navigationRunBtn = document.getElementById('navigationRunBtn');
     const mappingBtn = document.getElementById('mappingBtn');
+    const ctrlBtn = document.getElementById('ctrlBtn');
     const fileManagementBtn = document.getElementById('fileManagementBtn');
 
     const navigationPopupContainer = document.getElementById('navigationPopupContainer');
@@ -69,11 +93,14 @@ hokuyo_nav2_gui
     const fileManagementPopupContainer = document.getElementById('fileManagementPopupContainer');
     const fileManagementRunContent = document.getElementById('fileManagementRunContent');
     const closeFileManagementPopupBtn = document.getElementById('closeFileManagementPopupBtn');
+
+    const ctrlPopupContainer = document.getElementById('ctrlPopupContainer');
+    const ctrlRunContent = document.getElementById('ctrlRunContent');
+    const closeCtrlPopupBtn = document.getElementById('closeCtrlPopupBtn');
     
     const statusDisplay = document.getElementById('status-display');
     const modeControlBtns = document.querySelectorAll('.mode-control-btn');
     const stopBtn = document.getElementById('stop');
-    const ctrlBtn = document.getElementById('ctrl');
 
     function initializeCheckboxes(container) {
         const checkboxes = container.querySelectorAll('input[type="checkbox"]');
@@ -166,7 +193,7 @@ hokuyo_nav2_gui
                 message = "自律走行モード";
                 break;
             case 'ctrl':
-                message = "手動操作モード";
+                message = "データ取得モード";
                 break;
             case 'mapping':
                 message = "マッピングモード";
@@ -275,6 +302,20 @@ hokuyo_nav2_gui
             });
     });
 
+    ctrlBtn.addEventListener('click', () => {
+        fetch('/ctrl_popup')
+            .then(response => response.text())
+            .then(data => {
+                ctrlRunContent.innerHTML = data;
+                ctrlPopupContainer.style.display = 'flex';
+                initializeCheckboxes(ctrlRunContent);
+            })
+            .catch(error => {
+                console.error('Error fetching ctrl_popup.html:', error);
+                alert('データ取得設定の読み込みに失敗しました。');
+            });
+    });
+
 
     closenavigationPopupBtn.addEventListener('click', () => {
         navigationPopupContainer.style.display = 'none';
@@ -289,6 +330,11 @@ hokuyo_nav2_gui
     closeFileManagementPopupBtn.addEventListener('click', () => {
         fileManagementPopupContainer.style.display = 'none';
         fileManagementRunContent.innerHTML = '';
+    });
+
+    closeCtrlPopupBtn.addEventListener('click', () => {
+        ctrlPopupContainer.style.display = 'none';
+        ctrlRunContent.innerHTML = '';
     });
 
     navigationPopupContainer.addEventListener('click', (event) => {
@@ -311,6 +357,37 @@ hokuyo_nav2_gui
             fileManagementRunContent.innerHTML = '';
         }
     });
+
+    ctrlPopupContainer.addEventListener('click', (event) => {
+        if (event.target === ctrlPopupContainer) {
+            ctrlPopupContainer.style.display = 'none';
+            ctrlRunContent.innerHTML = '';
+        }
+    });
+
+    function stopAll() {
+        kill_nodes(); // SPEL PCのノードを停止
+
+        // ログ表示エリアをクリアして非表示にする処理を追加
+        const logContainer = document.querySelector('.log-output-container');
+        const logElement = document.getElementById('command_processing');
+        if (logContainer) logContainer.style.display = 'none';
+        if (logElement) logElement.innerText = '';
+
+        const stopForm = document.getElementById('stopForm');
+        
+        // 既存のinputを削除してから追加することで、重複を防ぐ
+        let existingInput = stopForm.querySelector('input[name="command"]');
+        if (existingInput) {
+            existingInput.remove();
+        }
+        const commandInput = document.createElement('input');
+        commandInput.type = 'hidden';
+        commandInput.name = 'command';
+        commandInput.value = 'stop';
+        stopForm.appendChild(commandInput);
+        stopForm.submit(); // ロボット側のノードを停止
+    }
 </script>
 {% endblock %}
 

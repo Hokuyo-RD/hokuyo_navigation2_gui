@@ -165,7 +165,7 @@ def main_gui():
     """メインGUIページ (index.html)"""
     # request.host は 'hostname:port' 形式なので、ホスト名(IPアドレス)だけを抽出
     viewer_host = request.host.split(':')[0]
-    return render_template('index.html', viewer_host=viewer_host, spel_ip=SPEL_IP, rosbridge_uri=ROSBRIDGE_URI)
+    return render_template('index.html', viewer_host=viewer_host, spel_ip=SPEL_IP)
 
 @app.route('/get_mode')
 def get_mode():
@@ -232,109 +232,6 @@ def file_management_popup():
 @app.route('/ctrl_executed')
 def ctrl_run():
     return render_template('ctrl_executed.html', message="手動操作モードに切り替わりました。Viewerでジョイスティックを使ってデモをしてください。")
-
-@app.route('/robot_control')
-def robot_control():
-    """ロボット操作用のページをレンダリングし、rostopic一覧とタイプを提供する"""
-    topics_with_types = []
-    twist_topics = []
-    try:
-        # ROS 2の環境をsourceしてからコマンドを実行するように変更
-        # これにより、DDSの環境変数などが正しく引き継がれる
-        ros_setup_path = "/opt/ros/humble/setup.bash" # ご利用のROSディストリビューションに合わせて変更
-        # HOKUYO_NAV2_PKG_PATH (.../src/pkg/pkg) からワークスペースルート (.../) を正しく取得
-        workspace_root = os.path.abspath(os.path.join(HOKUYO_NAV2_PKG_PATH, '..', '..', '..')) # /home/hokuyo/colcon_ws
-        ws_setup_path = os.path.join(workspace_root, 'install', 'setup.bash')
-        # .bashrcに依存せず、ROSのセットアップスクリプトを直接sourceする
-        # これにより、どのような環境から起動されてもROS環境が正しく設定される
-        command = f"bash -c 'source {ros_setup_path} && source {ws_setup_path} && ros2 topic list -t'"
-
-        result = subprocess.run(
-            command,
-            shell=True, # shell=True を指定してbashコマンドを実行
-            capture_output=True,
-            text=True,
-            check=True,
-            env=os.environ, # ★ 現在の環境変数をサブプロセスに引き継ぐ
-            timeout=10 # タイムアウトを10秒に延長
-        )
-        # --- デバッグ用出力 ---
-        print("--- ros2 topic list -t (from /robot_control) ---")
-        print(f"Command: {command}")
-        print(f"Stdout:\n{result.stdout}")
-        if result.stderr:
-            print(f"Stderr:\n{result.stderr}")
-        print("-------------------------------------------------")
-        # 出力をパースして {'name': トピック名, 'type': タイプ} の辞書リストを作成
-        topic_lines = result.stdout.strip().split('\n')
-        for line in topic_lines:
-            if not line:
-                continue
-            # 出力形式例: '/topic_name [package/msg/Type]'
-            match = re.match(r'(\S+)\s+\[(\S+)\]', line)
-            if match:
-                topic_name = match.group(1)
-                topic_type = match.group(2)
-                topics_with_types.append({'name': topic_name, 'type': topic_type})
-                # geometry_msgs/Twist 型のトピックを収集
-                if topic_type == 'geometry_msgs/msg/Twist':
-                    twist_topics.append(topic_name)
-
-        topics_with_types.sort(key=lambda x: x['name']) # トピック名でソート
-        twist_topics.sort()
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
-        flash(f"rostopic一覧の取得に失敗しました: {e}", "error")
-        print(f"Error getting rostopic list: {e}")
-
-    viewer_host = request.host.split(':')[0]
-    return render_template('robot_control.html', viewer_host=viewer_host, spel_ip=SPEL_IP, topics=topics_with_types, twist_topics=twist_topics)
-
-@app.route('/api/get_topics')
-def api_get_topics():
-    """ROSトピック一覧をJSONで返すAPI"""
-    topics_with_types = []
-    twist_topics = []
-    try:
-        # こちらも同様に修正
-        ros_setup_path = "/opt/ros/humble/setup.bash" # ご利用のROSディストリビューションに合わせて変更
-        workspace_root = os.path.abspath(os.path.join(HOKUYO_NAV2_PKG_PATH, '..', '..', '..')) # /home/hokuyo/colcon_ws
-        ws_setup_path = os.path.join(workspace_root, 'install', 'setup.bash')
-        # こちらも同様に修正
-        command = f"bash -c 'source {ros_setup_path} && source {ws_setup_path} && ros2 topic list -t'"
-
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            check=True,
-            env=os.environ, # ★ 現在の環境変数をサブプロセスに引き継ぐ
-            timeout=10
-        )
-        # --- デバッグ用出力 ---
-        print("--- ros2 topic list -t (from /api/get_topics) ---")
-        print(f"Stdout:\n{result.stdout}")
-        if result.stderr:
-            print(f"Stderr:\n{result.stderr}")
-        print("-------------------------------------------------")
-        topic_lines = result.stdout.strip().split('\n')
-        for line in topic_lines:
-            if not line:
-                continue
-            match = re.match(r'(\S+)\s+\[(\S+)\]', line)
-            if match:
-                topic_name = match.group(1)
-                topic_type = match.group(2)
-                topics_with_types.append({'name': topic_name, 'type': topic_type})
-                if topic_type == 'geometry_msgs/msg/Twist':
-                    twist_topics.append(topic_name)
-        
-        topics_with_types.sort(key=lambda x: x['name'])
-        twist_topics.sort()
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
-        print(f"Error getting rostopic list for API: {e}")
-        # エラー時も空のリストを返す
-    return jsonify(all_topics=topics_with_types, twist_topics=twist_topics)
 
 @app.route('/navigation_executed')
 def navigation_executed():
@@ -1534,7 +1431,7 @@ def trigger_script():
         script_path = os.path.join(BASE_PATH, "start_getting_rosbag.sh")
         Thread(target=run_subprocess, args=([script_path],)).start()
         current_mode = "ctrl"
-        return redirect('/robot_control')
+        return redirect('/ctrl_executed')
         
     elif command == "map":
         return redirect('/mapping_popup')

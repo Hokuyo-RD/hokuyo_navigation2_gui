@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ロボット操作</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: sans-serif; 
+            padding: 20px; 
+            background-color: #f4f7f9; 
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .joystick-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            gap: 15px;
+        }
+        .joystick-controls {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-group label {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .control-group select, .control-group input[type="range"] {
+            width: 100%;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .control-group select {
+            padding: 8px;
+        }
+        .speed-label {
+            font-family: monospace;
+            font-weight: bold;
+            color: #007bff;
+            min-width: 45px;
+        }
+        #zone_joystick {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            background: #e0e0e0;
+            border-radius: 50%;
+            border: 2px solid #bdbdbd;
+        }
+        .topic-list-container {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .topic-table-wrapper {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        .topic-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .topic-table th, .topic-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .topic-table th {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            font-size: 0.9em;
+        }
+        .topic-table td {
+            font-family: monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .topic-table tr:last-child td {
+            border-bottom: none;
+        }
+        .topic-table td:first-child {
+            font-weight: bold;
+        }
+        .topic-list li:last-child {
+            border-bottom: none;
+        }
+        .message {
+            list-style: none; padding: 0; margin-top: 20px;
+        }
+        .message li {
+            padding: 10px; margin-bottom: 10px; border-radius: 5px; font-weight: bold; border: 1px solid;
+        }
+        .error {
+            background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>ロボット操作</h1>
+        <a href="#" class="back-link" onclick="closeCurrentTabAndReloadOpener(); return false;">← メインGUIに戻る</a>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="message">
+            {% for category, message in messages %}
+              <li class="message {{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        <div class="content-grid">
+            <div class="joystick-container">
+                <h3>ジョイスティック</h3>
+                <p>ドラッグしてロボットを操作します。</p>
+                <div class="joystick-controls">
+                    <div class="control-group">
+                        <label for="topic-selector">ターゲットトピック</label>
+                        <select id="topic-selector">
+                            {% for topic in twist_topics %}
+                                <option value="{{ topic }}" {% if topic == '/cmd_vel' %}selected{% endif %}>{{ topic }}</option>
+                            {% endfor %}
+                            {% if not twist_topics %}
+                                <option value="/cmd_vel" selected>/cmd_vel (default)</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="max-linear-speed">最大線形速度: <span id="linear-speed-val" class="speed-label">0.50</span> m/s</label>
+                        <input type="range" id="max-linear-speed" min="0.1" max="2.0" step="0.05" value="0.5">
+                    </div>
+                    <div class="control-group">
+                        <label for="max-angular-speed">最大角速度: <span id="angular-speed-val" class="speed-label">0.50</span> rad/s</label>
+                        <input type="range" id="max-angular-speed" min="0.1" max="2.0" step="0.05" value="0.5">
+                    </div>
+                </div>
+                <div id="zone_joystick"></div>
+            </div>
+            <div class="topic-list-container">
+                <h3>アクティブなRostopic一覧</h3>
+                {% if topics %}
+                    <div id="topic-table-wrapper" class="topic-table-wrapper">
+                        <table class="topic-table">
+                            <thead>
+                                <tr>
+                                    <th>トピック名</th>
+                                    <th>メッセージタイプ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topic-table-body">
+                                {% for topic in topics %}
+                                    <tr><td>{{ topic.name }}</td><td>{{ topic.type }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p>トピックが見つかりませんでした。ROSが実行されているか確認してください。</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function closeCurrentTabAndReloadOpener() {
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.location.reload(); 
+                } catch (e) {
+                    console.warn("親ウィンドウのリロードに失敗しました:", e);
+                }
+            }
+            window.close();
+        }
+
+        // WebSocketとジョイスティックのセットアップ
+        const viewerHost = "{{ viewer_host }}";
+        const spelIp = "{{ spel_ip }}";
+        const rosbridgeUrl = `ws://${viewerHost}:9090`;
+        let ros = null;
+        let joystick = null;
+
+        // --- UI要素と設定値の管理 ---
+        const topicSelector = document.getElementById('topic-selector');
+        const linearSpeedSlider = document.getElementById('max-linear-speed');
+        const angularSpeedSlider = document.getElementById('max-angular-speed');
+        const linearSpeedValueSpan = document.getElementById('linear-speed-val');
+        const angularSpeedValueSpan = document.getElementById('angular-speed-val');
+
+        let selectedTopic = topicSelector.value;
+        let maxLinearSpeed = parseFloat(linearSpeedSlider.value);
+        let maxAngularSpeed = parseFloat(angularSpeedSlider.value);
+
+        function connectToRos() {
+            ros = new WebSocket(rosbridgeUrl);
+
+            ros.onopen = function() {
+                console.log('Connected to ROSBridge WebSocket server.');
+                // 初期のトピックをadvertise
+                if (selectedTopic) {
+                    advertiseTopic(selectedTopic);
+                }
+                initializeJoystick();
+                setupEventListeners();
+                setInterval(updateTopicLists, 5000); // 5秒ごとにトピックリストを更新
+            };
+
+            ros.onclose = function() {
+                console.log('Connection to ROSBridge WebSocket server closed.');
+                if (joystick) {
+                    joystick.destroy();
+                    joystick = null;
+                }
+                // 5秒後に再接続を試みる
+                setTimeout(connectToRos, 5000);
+            };
+
+            ros.onerror = function(error) {
+                console.error('ROSBridge WebSocket error: ', error);
+            };
+        }
+
+        function advertiseTopic(topicName) {
+            if (!ros || ros.readyState !== WebSocket.OPEN) return;
+            const advertiseMsg = {
+                op: 'advertise',
+                topic: topicName,
+                type: 'geometry_msgs/msg/Twist'
+            };
+            ros.send(JSON.stringify(advertiseMsg));
+            console.log(`Advertised topic: ${topicName}`);
+        }
+
+        function unadvertiseTopic(topicName) {
+            if (!ros || ros.readyState !== WebSocket.OPEN) return;
+            const unadvertiseMsg = {
+                op: 'unadvertise',
+                topic: topicName
+            };
+            ros.send(JSON.stringify(unadvertiseMsg));
+            console.log(`Unadvertised topic: ${topicName}`);
+        }
+
+        function setupEventListeners() {
+            topicSelector.addEventListener('change', (event) => {
+                const newTopic = event.target.value;
+                unadvertiseTopic(selectedTopic);
+                advertiseTopic(newTopic);
+                selectedTopic = newTopic;
+            });
+
+            linearSpeedSlider.addEventListener('input', (event) => {
+                maxLinearSpeed = parseFloat(event.target.value);
+                linearSpeedValueSpan.textContent = maxLinearSpeed.toFixed(2);
+            });
+
+            angularSpeedSlider.addEventListener('input', (event) => {
+                maxAngularSpeed = parseFloat(event.target.value);
+                angularSpeedValueSpan.textContent = maxAngularSpeed.toFixed(2);
+            });
+        }
+
+        function initializeJoystick() {
+            const options = {
+                zone: document.getElementById('zone_joystick'),
+                mode: 'static',
+                position: { left: '50%', top: '50%' },
+                color: '#007bff',
+                size: 150
+            };
+            joystick = nipplejs.create(options);
+
+            joystick.on('move', function (evt, data) {
+                const linear_speed = Math.sin(data.angle.radian) * maxLinearSpeed;
+                const angular_speed = -Math.cos(data.angle.radian) * maxAngularSpeed;
+
+                const twist = {
+                    linear: { x: linear_speed, y: 0, z: 0 },
+                    angular: { x: 0, y: 0, z: angular_speed }
+                };
+                publishCmdVel(twist);
+            });
+
+            joystick.on('end', function () {
+                const twist = {
+                    linear: { x: 0, y: 0, z: 0 },
+                    angular: { x: 0, y: 0, z: 0 }
+                };
+                publishCmdVel(twist);
+            });
+        }
+
+        function publishCmdVel(twist) {
+            if (ros && ros.readyState === WebSocket.OPEN) {
+                const message = {
+                    op: 'publish',
+                    topic: selectedTopic,
+                    msg: twist
+                };
+                ros.send(JSON.stringify(message));
+            }
+        }
+
+        function updateTopicLists() {
+            fetch('/api/get_topics')
+                .then(response => response.json())
+                .then(data => {
+                    // 1. 右側のトピック一覧テーブルを更新
+                    const tableBody = document.getElementById('topic-table-body');
+                    tableBody.innerHTML = ''; // テーブルの内容をクリア
+                    if (data.all_topics && data.all_topics.length > 0) {
+                        data.all_topics.forEach(topic => {
+                            const row = tableBody.insertRow();
+                            const cell1 = row.insertCell(0);
+                            const cell2 = row.insertCell(1);
+                            cell1.textContent = topic.name;
+                            cell2.textContent = topic.type;
+                        });
+                    } else {
+                        const row = tableBody.insertRow();
+                        const cell = row.insertCell(0);
+                        cell.colSpan = 2;
+                        cell.textContent = 'アクティブなトピックが見つかりません。';
+                    }
+
+                    // 2. 左側のターゲットトピックのプルダウンを更新
+                    const currentSelected = topicSelector.value;
+                    topicSelector.innerHTML = ''; // プルダウンの内容をクリア
+
+                    if (data.twist_topics && data.twist_topics.length > 0) {
+                        data.twist_topics.forEach(topic => {
+                            const option = new Option(topic, topic);
+                            topicSelector.add(option);
+                        });
+                        // 前に選択されていた項目があれば、それを再選択する
+                        if (data.twist_topics.includes(currentSelected)) {
+                            topicSelector.value = currentSelected;
+                        } else {
+                            // なければ、新しい選択を advertise しなおす
+                            unadvertiseTopic(selectedTopic);
+                            selectedTopic = topicSelector.value;
+                            advertiseTopic(selectedTopic);
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching topic list:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', connectToRos);
+    </script>
+</body>
+</html>

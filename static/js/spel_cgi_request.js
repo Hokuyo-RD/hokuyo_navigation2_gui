@@ -38,10 +38,16 @@ function start_spel() {
   if (logElement) logElement.innerText = "";
   appendLog(logElement, "SPEL起動中...");
 
-  fetch('http://'+SPEL_IP+'/cgi-bin/call_start_spel.bash')
+  fetch('/spel_proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ command: 'start_spel' }),
+  })
     .then(response => response.text())
     .then(data => {
-      console.log('サーバーからの応答:', data);
+      console.log('Server response:', data);
       appendLog(logElement, data);
     });
 }
@@ -54,10 +60,16 @@ function kill_nodes() {
     appendLog(logElement, "SPEL停止中...");
   }
 
-  fetch('http://'+SPEL_IP+'/cgi-bin/call_stop_spel.bash')
+  fetch('/spel_proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ command: 'stop_spel' }),
+  })
     .then(response => response.text())
     .then(data => {
-      console.log('サーバーからの応答:', data);
+      console.log('Server response:', data);
       appendLog(logElement, data);
     });
 }
@@ -70,28 +82,47 @@ function set_domain_id() {
 
   const ros_domain_id = document.getElementById("ros_domain_id").value;
 
-  fetch('http://'+SPEL_IP+'/cgi-bin/call_set_id.bash?ros_domain_id=' + encodeURIComponent(ros_domain_id))
+  fetch('/spel_proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ command: 'set_id', ros_domain_id: ros_domain_id }),
+  })
     .then(response => response.text())
     .then(data => {
-      console.log('サーバーからの応答:', data);
+      console.log('Server response:', data);
       appendLog(logElement, data);
     });
 }
 
 
 function get_spel_state(callback) {
-  if (!callback) showLogContainer();
   const logElement = document.getElementById('command_processing');
-  if (logElement && !callback) { // 状態表示の更新時はログをクリアしない
+  
+  // callbackが指定されている場合は、メイン画面のステータス更新なのでログには何も表示しない
+  if (callback) {
+    // 何もしない
+  } else {
+    // callbackがない場合（ボタンクリック時）はログエリアを表示し、ログをクリアしてメッセージを追加
+    showLogContainer();
     logElement.innerText = "";
     appendLog(logElement, "GET SPEL STATE...");
   }
-
-  fetch('http://'+SPEL_IP+'/cgi-bin/call_get_state.bash')
+  
+  fetch('/spel_proxy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ command: 'get_state' }),
+  })
     .then(response => response.text())
     .then(data => {
       console.log('SPEL STATE:', data);
       SPEL_STATE=data;
+      // メイン画面のステータス表示を更新する関数を呼び出す
+      if (typeof updateSpelStatusDisplay === 'function') updateSpelStatusDisplay(data.trim());
       if (callback) callback(data.trim());
       else appendLog(logElement, SPEL_STATE);
     });

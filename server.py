@@ -12,6 +12,7 @@ import pathlib
 import csv # Added for CSV handling
 import json # Added for JSON handling
 import re
+import requests
 
 from flask import Flask, request, render_template, redirect, jsonify, url_for, flash, send_from_directory
 from flask_sockets import Sockets
@@ -172,6 +173,40 @@ def get_mode():
     """現在のシステムモードを返す (API)"""
     global current_mode
     return jsonify(mode=current_mode)
+
+@app.route('/spel_proxy', methods=['POST'])
+def spel_proxy():
+    """
+    SPEL PCへのCGIリクエストをプロキシするエンドポイント
+    """
+    data = request.get_json()
+    command = data.get('command')
+    spel_ip = app.config.get('SPEL_IP', '192.168.1.23') # デフォルト値を設定
+
+    cgi_map = {
+        'start_spel': f'http://{spel_ip}/cgi-bin/call_start_spel.bash',
+        'stop_spel': f'http://{spel_ip}/cgi-bin/call_stop_spel.bash',
+        'get_state': f'http://{spel_ip}/cgi-bin/call_get_state.bash',
+    }
+
+    if command in cgi_map:
+        url = cgi_map[command]
+        try:
+            response = requests.get(url, timeout=5)
+            return response.text, response.status_code
+        except requests.exceptions.RequestException as e:
+            return str(e), 500
+            
+    elif command == 'set_id':
+        ros_domain_id = data.get('ros_domain_id', '0')
+        url = f'http://{spel_ip}/cgi-bin/call_set_id.bash?ros_domain_id={ros_domain_id}'
+        try:
+            response = requests.get(url, timeout=5)
+            return response.text, response.status_code
+        except requests.exceptions.RequestException as e:
+            return str(e), 500
+
+    return 'Invalid command', 400
 
 @app.route('/navigation_run_popup')
 def navigation_run_popup():

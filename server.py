@@ -68,7 +68,7 @@ SERVER_HOST = '0.0.0.0'
 SERVER_PORT = 5050
 
 # 環境変数からSPEL PCのIPアドレスを取得。未設定の場合はデフォルト値を使用。
-SPEL_IP = os.environ.get('SPEL_IP', '192.168.1.23')
+SPEL_IP = os.environ.get('SPEL_IP', '192.168.0.200')
 
 app = Flask(__name__)
 sockets = Sockets(app)
@@ -181,7 +181,7 @@ def spel_proxy():
     """
     data = request.get_json()
     command = data.get('command')
-    spel_ip = app.config.get('SPEL_IP', '192.168.1.23') # デフォルト値を設定
+    spel_ip = app.config.get('SPEL_IP', '192.168.0.200') # デフォルト値を設定
 
     cgi_map = {
         'start_spel': f'http://{spel_ip}/cgi-bin/call_start_spel.bash',

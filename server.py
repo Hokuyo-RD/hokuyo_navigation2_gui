@@ -91,14 +91,19 @@ def zip_directory(path, zip_filename):
                 archive_path = os.path.join(root_dir_name, os.path.relpath(file_path, path))
                 zipf.write(file_path, archive_path)
 
-def run_subprocess(command_list):
+def run_subprocess(command_list, extra_env=None):
     """別スレッドでサブプロセスを実行するための関数"""
     try:
+        # 親プロセスの環境変数をコピーし、追加の環境変数で更新する
+        env = os.environ.copy()
+        if extra_env:
+            env.update(extra_env)
         # Popenを使い、新しいプロセスグループで実行する (preexec_fn=os.setsid)
         # これにより、killall等が親プロセスに影響を与えるのを防ぐ
         process = subprocess.Popen(
             command_list,
             stdout=subprocess.PIPE,
+            env=env,
             stderr=subprocess.STDOUT,  # 標準エラー出力を標準出力にリダイレクト
             text=True,
             bufsize=1,  # 行バッファリングを有効化
@@ -192,7 +197,7 @@ def spel_proxy():
     if command in cgi_map:
         url = cgi_map[command]
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=10)
             return response.text, response.status_code
         except requests.exceptions.RequestException as e:
             return str(e), 500
@@ -201,7 +206,7 @@ def spel_proxy():
         ros_domain_id = data.get('ros_domain_id', '0')
         url = f'http://{spel_ip}/cgi-bin/call_set_id.bash?ros_domain_id={ros_domain_id}'
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=10)
             return response.text, response.status_code
         except requests.exceptions.RequestException as e:
             return str(e), 500
@@ -442,7 +447,8 @@ def convert():
                 output_filename_base
             ]
             
-            Thread(target=run_subprocess, args=(command_list,)).start()
+            extra_env = {'SPEL_IP': SPEL_IP}
+            Thread(target=run_subprocess, args=(command_list, extra_env)).start()
             result_message = f"トピック同期スクリプトがバックグラウンドで開始されました。出力ファイル名: {output_filename_base}。完了までお待ちください。"
             
         else:
@@ -507,7 +513,8 @@ def _start_mapping_process(mode, req):
             flag_file_name_full
         ]
         
-        Thread(target=run_subprocess, args=(command_list,)).start()
+        extra_env = {'SPEL_IP': SPEL_IP}
+        Thread(target=run_subprocess, args=(command_list, extra_env)).start()
         result_message = f"{mode.upper()} マッピングスクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name}"
         
         return jsonify({
@@ -978,7 +985,8 @@ def pcd2pgm_convert():
         ]
         
         # 別スレッドで実行
-        Thread(target=run_subprocess, args=(command_list,)).start()
+        extra_env = {'SPEL_IP': SPEL_IP}
+        Thread(target=run_subprocess, args=(command_list, extra_env)).start()
         result_message = f"PCD to PGM 変換スクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name}"
         
         return jsonify({
@@ -1416,7 +1424,8 @@ def trigger_script():
                 if wpfile:
                     command_list.append(wpfile)
                 
-            Thread(target=run_subprocess, args=(command_list,)).start()
+            extra_env = {'SPEL_IP': SPEL_IP}
+            Thread(target=run_subprocess, args=(command_list, extra_env)).start()
             current_mode = "running"
             return redirect('/navigation_executed')
         else:
@@ -1452,19 +1461,22 @@ def trigger_script():
         script_path = os.path.join(BASE_PATH, "start_mapping.sh")
         command_list = [script_path, mapping_type]
         
-        Thread(target=run_subprocess, args=(command_list,)).start()
+        extra_env = {'SPEL_IP': SPEL_IP}
+        Thread(target=run_subprocess, args=(command_list, extra_env)).start()
         current_mode = "mapping"
         return redirect('/mapping_executed')
 
     elif command == "stop":
         script_path = os.path.join(BASE_PATH, "ctrl/web_kill_all_rosnode.sh")
-        Thread(target=run_subprocess, args=([script_path],)).start()
+        extra_env = {'SPEL_IP': SPEL_IP}
+        Thread(target=run_subprocess, args=([script_path], extra_env)).start()
         current_mode = "stopped"
         return render_template('stop.html')
         
     elif command == "ctrl":
         script_path = os.path.join(BASE_PATH, "start_getting_rosbag.sh")
-        Thread(target=run_subprocess, args=([script_path],)).start()
+        extra_env = {'SPEL_IP': SPEL_IP}
+        Thread(target=run_subprocess, args=([script_path], extra_env)).start()
         current_mode = "ctrl"
         return redirect('/ctrl_executed')
         

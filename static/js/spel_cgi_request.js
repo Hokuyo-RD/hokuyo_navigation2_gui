@@ -24,14 +24,18 @@ function appendLog(logElement, text) {
   logElement.scrollTop = logElement.scrollHeight; // 自動スクロール
 }
 
-function start_spel() {
+function showLogContainer() {
   const logElement = document.getElementById('command_processing');
   const logContainer = logElement ? logElement.closest('.log-output-container') : null;
-
   if (logContainer) {
     logContainer.style.display = 'block';
   }
-  if (logElement) logElement.innerText = ""; // ログをクリア
+}
+
+function start_spel() {
+  showLogContainer();
+  const logElement = document.getElementById('command_processing');
+  if (logElement) logElement.innerText = "";
   appendLog(logElement, "SPEL起動中...");
 
   fetch('http://'+SPEL_IP+'/cgi-bin/call_start_spel.bash')
@@ -43,7 +47,9 @@ function start_spel() {
 }
 
 function kill_nodes() {    
+  showLogContainer();
   const logElement = document.getElementById('command_processing');
+  if (logElement) logElement.innerText = "";
   if (logElement) {
     appendLog(logElement, "SPEL停止中...");
   }
@@ -57,8 +63,9 @@ function kill_nodes() {
 }
 
 function set_domain_id() {
+  showLogContainer();
   const logElement = document.getElementById('command_processing');
-  if (logElement) logElement.innerText = ""; // ログをクリア
+  if (logElement) logElement.innerText = "";
   appendLog(logElement, "SET DOMAIN ID...");
 
   const ros_domain_id = document.getElementById("ros_domain_id").value;
@@ -72,16 +79,20 @@ function set_domain_id() {
 }
 
 
-function get_spel_state() {
+function get_spel_state(callback) {
+  if (!callback) showLogContainer();
   const logElement = document.getElementById('command_processing');
-  if (logElement) logElement.innerText = ""; // ログをクリア
-  appendLog(logElement, "GET SPEL STATE...");
+  if (logElement && !callback) { // 状態表示の更新時はログをクリアしない
+    logElement.innerText = "";
+    appendLog(logElement, "GET SPEL STATE...");
+  }
 
   fetch('http://'+SPEL_IP+'/cgi-bin/call_get_state.bash')
     .then(response => response.text())
     .then(data => {
-      console.log('サーバーからの応答:', data);
+      console.log('SPEL STATE:', data);
       SPEL_STATE=data;
-      appendLog(logElement, SPEL_STATE);
+      if (callback) callback(data.trim());
+      else appendLog(logElement, SPEL_STATE);
     });
 }

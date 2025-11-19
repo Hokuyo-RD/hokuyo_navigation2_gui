@@ -230,26 +230,17 @@ button[value="map_viewer"]:hover {
 /* --- ボタンの状態制御スタイル --- */
 /* チェックボックス未完了時に適用される非活性ボタン */
 .inactive-button {
-    opacity: 0.5 !important;
     background-color: #cccccc !important;
     color: #666666 !important;
     cursor: not-allowed;
-    /* ポップアップ内のボタンのベースサイズ */
-    font-size: 1.4em !important;
-    padding: 25px 50px !important;
-    border-radius: 10px !important;
+    opacity: 0.6;
 }
 
 /* チェックボックス完了時や、常に実行可能なボタンに適用される活性ボタン */
 .active-button {
     background-color: #28a745 !important; /* Green */
     color: white !important;
-    opacity: 1;
     cursor: pointer;
-    /* ポップアップ内のボタンのベースサイズ */
-    font-size: 1.4em !important;
-    padding: 25px 50px !important;
-    border-radius: 10px !important;
 }
 /* --- /ボタンの状態制御スタイル --- */
 

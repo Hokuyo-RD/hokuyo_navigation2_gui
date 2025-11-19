@@ -10,14 +10,17 @@ hokuyo_nav2_gui
 
 {% block content %}
 <div class="index-page-container">
-    <div id="status-display" style="font-size: 1.2em; margin-bottom: 20px;">現在のモード: 未設定</div>
+    <div style="font-size: 1.2em; margin-bottom: 20px;">
+        <span id="status-display">現在のモード: 未設定</span>
+        <span id="spel-status-display" style="margin-left: 20px;">RSF状態: 不明</span>
+    </div>
     <button id="ctrlBtn" class="mode-control-btn">データ取得</button>
     <button id="mappingBtn" class="mode-control-btn">マッピング</button>
     <button id="navigationRunBtn" class="mode-control-btn">自律走行</button>
     <button id="fileManagementBtn" class="mode-control-btn">ファイル管理</button>
     
     <form id="stopForm" method="post" action="/gui" target="_blank">
-        <button type="button" name="command" value="stop" id="stop" onclick="stopAll()">SPEL/ロボット停止</button>
+        <button type="button" name="command" value="stop" id="stop" onclick="stopAll()">RSF/ロボット停止</button>
     </form>
     <form method="get" action="/map_viewer" target="_blank">
         <button type="submit" name="command" value="map_viewer" id="map_viewer">Map Viewer</button>
@@ -49,26 +52,10 @@ hokuyo_nav2_gui
         </div>
     </div>
 
-    <div id="ctrlPopupContainer" class="popup-container" style="display: none;">
+    <div id="ctrlPopupContainer" class="popup-container">
         <div id="ctrlPopupContent" class="popup-content" style="max-height: 90vh; overflow-y: auto;">
             <button id="closeCtrlPopupBtn" class="close-button">閉じる</button>
-            <div id="ctrlRunContent">
-            </div>
-            <div class="log-output-container" style="display: none;">
-                <p><b>動作状況:</b></p>
-                <pre id="command_processing"></pre>
-            </div>
-            <style>
-                .log-output-container { margin-top: 20px; text-align: left; }
-                .log-output-container pre { 
-                    background-color: #222; /* 黒背景 */
-                    color: #0f0; /* 明るい緑色の文字 */
-                    border: 1px solid #555; 
-                    padding: 10px; 
-                    min-height: 100px; max-height: 200px; /* 高さを制限 */
-                    overflow-y: auto; /* 縦スクロールを有効化 */
-                    white-space: pre-wrap; word-wrap: break-word; font-family: monospace; font-size: 0.9em; }
-            </style>
+            <div id="ctrlRunContent"></div>
         </div>
     </div>
 </div>
@@ -99,6 +86,7 @@ hokuyo_nav2_gui
     const closeCtrlPopupBtn = document.getElementById('closeCtrlPopupBtn');
     
     const statusDisplay = document.getElementById('status-display');
+    const spelStatusDisplay = document.getElementById('spel-status-display');
     const modeControlBtns = document.querySelectorAll('.mode-control-btn');
     const stopBtn = document.getElementById('stop');
 
@@ -220,9 +208,32 @@ hokuyo_nav2_gui
             });
     }
 
+    function updateSpelStatusDisplay(state) {
+        let message;
+        let color;
+        if (state.includes('SPEL')) {
+            message = "起動中";
+            color = "limegreen";
+        } else if (state.includes('STOP')) {
+            message = "停止中";
+            color = "tomato";
+        } else {
+            message = "未接続状態";
+            color = "gray";
+        }
+        spelStatusDisplay.textContent = `RSF状態: ${message}`;
+        spelStatusDisplay.style.color = color;
+    }
+
+    function refreshSpelStatus() {
+        get_spel_state(updateSpelStatusDisplay);
+    }
+
     window.onload = function() {
         refreshModeStatus();
+        refreshSpelStatus();
         setInterval(refreshModeStatus, 5000);
+        setInterval(refreshSpelStatus, 5000);
     };
 
     navigationRunBtn.addEventListener('click', () => {

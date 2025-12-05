@@ -60,6 +60,7 @@
                         <th>Map File</th>
                         <th>Waypoint File</th>
                         <th>Nav Type</th>
+                        <th>Interval (sec)</th>
                         <th>アクション</th>
                     </tr>
                 </thead>
@@ -88,6 +89,9 @@
                                 <option value="gnss" {% if row.nav_type == 'gnss' %}selected{% endif %}>gnss</option>
                                 <option value="loc" {% if row.nav_type == 'loc' %}selected{% endif %}>loc</option>
                             </select>
+                        </td>
+                        <td>
+                            <input type="text" class="interval-input" value="{{ row.get('interval', '15') }}" placeholder="e.g., 15">
                         </td>
                         <td><button type="button" class="delete-row-btn">削除</button></td>
                     </tr>
@@ -151,12 +155,21 @@
                     <option value="loc" ${data.nav_type === "loc" ? 'selected' : ''}>loc</option>
                 `;
 
+                // Create Interval Input
+                const intervalInput = document.createElement('input');
+                intervalInput.type = 'text';
+                intervalInput.className = 'interval-input';
+                intervalInput.value = data.interval || '15'; // Default value
+
                 const mapTd = document.createElement('td');
                 mapTd.appendChild(mapSelect);
                 const wpTd = document.createElement('td');
                 wpTd.appendChild(wpSelect);
                 const navTd = document.createElement('td');
                 navTd.appendChild(navSelect);
+
+                const intervalTd = document.createElement('td');
+                intervalTd.appendChild(intervalInput);
 
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
@@ -171,6 +184,7 @@
                 row.appendChild(mapTd);
                 row.appendChild(wpTd);
                 row.appendChild(navTd);
+                row.appendChild(intervalTd);
                 row.appendChild(actionTd);
 
                 row.querySelector('.delete-row-btn').addEventListener('click', function() {
@@ -198,7 +212,8 @@
                     const mapFile = row.querySelector('.map-file-select').value;
                     const waypointFile = row.querySelector('.waypoint-file-select').value;
                     const navType = row.querySelector('.nav-type-select').value;
-                    rows.push({ map_file: mapFile, waypoint_file: waypointFile, nav_type: navType });
+                    const interval = row.querySelector('.interval-input').value;
+                    rows.push({ map_file: mapFile, waypoint_file: waypointFile, nav_type: navType, interval: interval });
                 });
 
                 rowsDataInput.value = JSON.stringify(rows);

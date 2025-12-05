@@ -191,7 +191,7 @@ def navigation_run_popup():
     try:
         # CONFIG_DIRから特定のヘッダーを持つ.csvファイル名を取得
         csv_files = []
-        expected_header = "map_file,waypoint_file,nav_type"
+        expected_header = "map_file,waypoint_file,nav_type,interval"
         for filename in os.listdir(CONFIG_DIR):
             if filename.endswith('.csv'):
                 filepath = os.path.join(CONFIG_DIR, filename)
@@ -1138,7 +1138,7 @@ def browse_files(dir_type):
         if dir_type == 'config':
             # configディレクトリの場合、ヘッダーをチェックして構造化編集可能か判定
             files_with_info = []
-            expected_header = "map_file,waypoint_file,nav_type"
+            expected_header = "map_file,waypoint_file,nav_type,interval"
             csv_files = [f for f in all_files if f.lower().endswith('.csv')]
             for filename in csv_files:
                 file_path = os.path.join(target_dir, filename)
@@ -1227,7 +1227,7 @@ def create_csv():
 
     try:
         # デフォルトのヘッダーを持つ空のCSVファイルを作成
-        default_header = "map_file,waypoint_file,nav_type\n"
+        default_header = "map_file,waypoint_file,nav_type,interval\n"
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(default_header)
         flash(f'新規ファイル "{filename}" を作成しました。', 'success')
@@ -1239,7 +1239,7 @@ def create_csv():
 @app.route('/create_plain_text')
 def create_plain_text():
     """プレーンテキストエディタで新規CSVファイルを作成するページを表示"""
-    return render_template('plain_text_editor.html', filename='', content='map_file,waypoint_file,nav_type\n', is_new=True)
+    return render_template('plain_text_editor.html', filename='', content='map_file,waypoint_file,nav_type,interval\n', is_new=True)
 
 @app.route('/edit_plain_text/<dir_type>/<path:filename>')
 def edit_plain_text(dir_type, filename):
@@ -1334,10 +1334,10 @@ def save_structured_csv():
         if not rows:
             # 空の場合はヘッダーのみ書き込む
             with open(file_path, 'w', encoding='utf-8', newline='') as f:
-                f.write("map_file,waypoint_file,nav_type\n")
+                f.write("map_file,waypoint_file,nav_type,interval\n")
         else:
             with open(file_path, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=["map_file", "waypoint_file", "nav_type"])
+                writer = csv.DictWriter(f, fieldnames=["map_file", "waypoint_file", "nav_type", "interval"])
                 writer.writeheader()
                 writer.writerows(rows)
 

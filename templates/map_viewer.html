@@ -1158,15 +1158,23 @@
                     transformControls.attach(selectedWaypoint);
 
                     const index = selectedWaypoint.userData.waypointIndex;
+
+                    // [BUGFIX] ギズモと他のWPが重なった時の意図しない回転を防止
+                    // 他のWPをクリックした際に、TransformControlsがmouseDown状態のままになるのを防ぐため、
+                    // 選択が切り替わったタイミングで強制的にpointerUpイベントを発火させて状態をリセットする。
+                    transformControls.pointerUp({ button: 0 });
+
                     const position = selectedWaypoint.position;
                     const attributes = selectedWaypoint.userData.attributes;
 
                     displayWaypointInfo(index, position, attributes);
                     document.getElementById('add-waypoint-after-button').disabled = false;
                 } else {
+                    dragControls.enabled = false; // 選択が外れたらドラッグを無効化
                     hideWaypointInfo();
                 }
             } else {
+                dragControls.enabled = false; // 選択が外れたらドラッグを無効化
                 hideWaypointInfo();
             }
         }
@@ -1592,6 +1600,8 @@
             transformControls.showX = false;
             transformControls.showY = false;
             transformControls.showZ = true;
+            // ギズモのサイズを少し大きくして視認性と操作性を向上させる (デフォルトは1)
+            transformControls.size = 1.2;
             transformControls.addEventListener('mouseDown', function () {
                 orbitControls.enabled = false;
             });

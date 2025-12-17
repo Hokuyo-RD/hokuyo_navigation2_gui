@@ -406,6 +406,7 @@
         import { PCDLoader } from 'three/addons/loaders/PCDLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { DragControls } from 'three/addons/controls/DragControls.js';
 
         document.addEventListener('DOMContentLoaded', (event) => {
@@ -457,7 +458,7 @@
         let waypoints = []; 
         let mapData = null; 
         const meshRegistry = {}; 
-        let currentMapName = '{{ map_name }}';
+        let currentMapName = '{{ map_name }}'; 
         let scene, camera, renderer, pcdLoader;
         let orbitControls, transformControls, dragControls;
         let raycaster;
@@ -465,6 +466,7 @@
         let selectedWaypoint = null;
         let draggableObjects = [];
         let isAddingWaypointMode = false;
+        let labelRenderer;
         
         const gridGroup = new THREE.Group();
         let activeGrid = null;
@@ -1587,7 +1589,81 @@
             camera.up.set(0, 0, 1);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
+
+            // CSS2Dラベル用のレンダラー
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(container.clientWidth, container.clientHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none'; // マウス操作を透過させる
+            container.appendChild(labelRenderer.domElement);
+
+            // --- 原点マーカーとラベルの作成 ---
+            function createAxis(direction, color, labelText) {
+                const axisGroup = new THREE.Group();
+                const shaftRadius = 0.02;
+                const shaftLength = 0.8;
+                const headRadius = 0.05;
+                const headLength = 0.2;
+
+                // 矢印の幹 (Cylinder)
+                const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 16);
+                const shaftMat = new THREE.MeshBasicMaterial({ color: color });
+                const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+                shaft.position.y = shaftLength / 2; // 中心を原点からずらす
+                axisGroup.add(shaft);
+
+                // 矢印の頭 (Cone)
+                const headGeo = new THREE.ConeGeometry(headRadius, headLength, 16);
+                const headMat = new THREE.MeshBasicMaterial({ color: color });
+                const head = new THREE.Mesh(headGeo, headMat);
+                head.position.y = shaftLength;
+                axisGroup.add(head);
+
+                // 軸の向きを調整
+                const targetDirection = new THREE.Vector3().fromArray(direction);
+                axisGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), targetDirection.normalize());
+
+                // ラベルの作成
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'axis-label';
+                labelDiv.textContent = labelText;
+                labelDiv.style.color = `#${color.toString(16).padStart(6, '0')}`;
+                labelDiv.style.fontWeight = 'bold';
+                labelDiv.style.fontSize = '14px';
+                labelDiv.style.textShadow = '1px 1px 2px black';
+                const axisLabel = new CSS2DObject(labelDiv);
+                axisLabel.position.copy(targetDirection.multiplyScalar(shaftLength + headLength + 0.1));
+
+                // Z軸ラベルが他の軸と重ならないように少しオフセットする
+                if (labelText === 'Z') {
+                    axisLabel.position.y += 1.1;
+                    axisLabel.position.z -= 1.1;
+                }
+                if (labelText === 'X') {
+                    axisLabel.position.x -= 1.1;
+                    axisLabel.position.y += 1.1;
+                }
+
+                axisGroup.add(axisLabel);
+
+                return axisGroup;
+            }
+
+            scene.add(createAxis([1, 0, 0], 0xff0000, 'X')); // X軸
+            scene.add(createAxis([0, 1, 0], 0x00ff00, 'Y')); // Y軸
+            scene.add(createAxis([0, 0, 1], 0x00aaff, 'Z')); // Z軸
+
+            const originDiv = document.createElement('div');
+            originDiv.textContent = 'Origin';
+            originDiv.style.color = '#ffffff';
+            originDiv.style.fontSize = '12px';
+            const originLabel = new CSS2DObject(originDiv);
+            originLabel.position.set(0.1, -0.1, 0);
+            scene.add(originLabel);
+            // --- 原点マーカーここまで ---
 
             orbitControls = new OrbitControls(camera, renderer.domElement);
             orbitControls.minDistance = 0.5;
@@ -1601,7 +1677,7 @@
             transformControls.showY = false;
             transformControls.showZ = true;
             // ギズモのサイズを少し大きくして視認性と操作性を向上させる (デフォルトは1)
-            transformControls.size = 1.2;
+            transformControls.size = 4.0;
             transformControls.addEventListener('mouseDown', function () {
                 orbitControls.enabled = false;
             });
@@ -1766,11 +1842,13 @@
             const container = document.getElementById('viewer-container');
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
+            labelRenderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setSize(container.clientWidth, container.clientHeight);
         }
         function animate() {
             requestAnimationFrame(animate);
             orbitControls.update();
+            labelRenderer.render(scene, camera);
             updateAdaptiveGrid();
             renderer.render(scene, camera);
         }

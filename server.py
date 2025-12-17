@@ -1110,8 +1110,9 @@ def _get_available_files(directory, extension):
     except FileNotFoundError:
         return []
 
-@app.route('/browse_files/<dir_type>')
-def browse_files(dir_type):
+@app.route('/browse_files/<dir_type>', defaults={'path': ''})
+@app.route('/browse_files/<dir_type>/<path:path>')
+def browse_files(dir_type, path):
     """
     指定されたタイプのディレクトリ内のファイルを表示する。
     dir_type: 'map', 'wp', 'config'
@@ -1126,21 +1127,26 @@ def browse_files(dir_type):
         flash('無効なディレクトリタイプです。', 'error')
         return redirect(url_for('main_gui'))
 
-    target_dir = dir_map[dir_type]['path']
+    base_dir = dir_map[dir_type]['path']
     title = dir_map[dir_type]['title']
+    target_dir = os.path.join(base_dir, path)
 
-    if not _is_safe_path(target_dir, HOKUYO_NAV2_PKG_PATH):
+    if not _is_safe_path(target_dir, base_dir):
         flash("セキュリティ上の理由により、このディレクトリにはアクセスできません。", "error")
-        return redirect(url_for('main_gui'))
+        return redirect(url_for('browse_files', dir_type=dir_type))
 
     try:
-        all_files = sorted(os.listdir(target_dir))
+        items = sorted(os.listdir(target_dir))
+        files_with_info = []
+        parent_path = os.path.dirname(path) if path else None
+
         if dir_type == 'config':
             # configディレクトリの場合、ヘッダーをチェックして構造化編集可能か判定
-            files_with_info = []
             expected_header = "map_file,waypoint_file,nav_type,interval"
-            csv_files = [f for f in all_files if f.lower().endswith('.csv')]
+            csv_files = [f for f in items if f.lower().endswith('.csv')]
             for filename in csv_files:
+                if os.path.isdir(os.path.join(target_dir, filename)): continue
+
                 file_path = os.path.join(target_dir, filename)
                 is_structured = False
                 try:
@@ -1148,61 +1154,84 @@ def browse_files(dir_type):
                         header = f.readline().strip()
                         if header == expected_header:
                             is_structured = True
-                except Exception:
-                    pass # ファイルが読めない場合は構造化不可とする
-                files_with_info.append({'name': filename, 'is_structured': is_structured})
-            files = files_with_info
+                except Exception as e:
+                    print(f"Could not read or parse {filename}: {e}")
+                files_with_info.append({
+                    'name': filename, 
+                    'is_structured': is_structured,
+                    'is_dir': False, # configはファイルのみ
+                    'path': os.path.join(path, filename)
+                })
         else:
-            files = all_files
+            # map と wp の場合
+            for item_name in items:
+                item_path = os.path.join(target_dir, item_name)
+                is_dir = os.path.isdir(item_path)
+                files_with_info.append({
+                    'name': item_name,
+                    'is_dir': is_dir,
+                    'path': os.path.join(path, item_name)
+                })
 
         return render_template('file_browser.html', 
-                               files=files, 
+                               files=files_with_info, 
                                dir_type=dir_type, 
-                               title=title)
+                               title=title,
+                               current_path=path,
+                               parent_path=parent_path)
     except (FileNotFoundError, PermissionError) as e:
         flash(f"ディレクトリの操作中にエラーが発生しました: {e}", "error")
         return redirect(url_for('main_gui'))
 
-@app.route('/delete_file', methods=['POST'])
-def delete_file():
-    """ファイルを削除するAPI"""
+@app.route('/delete_item', methods=['POST'])
+def delete_item():
+    """ファイルまたはディレクトリを削除するAPI"""
     dir_type = request.form.get('dir_type') 
-    filenames = request.form.getlist('filenames') # 複数ファイルに対応
+    item_paths = request.form.getlist('item_paths') # 複数アイテムに対応
+    current_path = request.form.get('current_path', '')
 
     dir_map = {'map': MAP_DIR, 'wp': WP_DIR, 'config': CONFIG_DIR}
     if dir_type not in dir_map:
         flash('無効なディレクトリタイプです。', 'error')
         return redirect(url_for('main_gui'))
 
-    if not filenames:
-        flash('削除するファイルが選択されていません。', 'error')
-        return redirect(url_for('browse_files', dir_type=dir_type))
+    if not item_paths:
+        flash('削除するアイテムが選択されていません。', 'error')
+        return redirect(url_for('browse_files', dir_type=dir_type, path=current_path))
 
-    target_dir = dir_map[dir_type]
+    base_dir = dir_map[dir_type]
     deleted_count = 0
     error_count = 0
 
-    for filename in filenames:
-        file_path = os.path.join(target_dir, filename)
+    for item_path_str in item_paths:
+        # item_path_str is the relative path from base_dir
+        full_path = os.path.join(base_dir, item_path_str)
 
-        if not _is_safe_path(file_path, target_dir):
-            flash(f'不正なファイルパスです: {filename}', 'error')
+        if not _is_safe_path(full_path, base_dir):
+            flash(f'不正なパスです: {item_path_str}', 'error')
             error_count += 1
             continue
 
         try:
-            os.remove(file_path)
-            deleted_count += 1
+            if os.path.isdir(full_path):
+                shutil.rmtree(full_path)
+                deleted_count += 1
+            elif os.path.isfile(full_path):
+                os.remove(full_path)
+                deleted_count += 1
+            else:
+                # Already deleted or does not exist
+                pass
         except Exception as e:
-            flash(f'ファイル "{filename}" の削除中にエラーが発生しました: {e}', 'error')
+            flash(f'アイテム "{os.path.basename(item_path_str)}" の削除中にエラーが発生しました: {e}', 'error')
             error_count += 1
 
     if deleted_count > 0:
-        flash(f'{deleted_count}個のファイルを削除しました。', 'success')
+        flash(f'{deleted_count}個のアイテムを削除しました。', 'success')
     if error_count == 0 and deleted_count == 0:
-        flash('削除対象のファイルが見つかりませんでした。', 'warning')
+        flash('削除対象のアイテムが見つかりませんでした。', 'warning')
 
-    return redirect(url_for('browse_files', dir_type=dir_type))
+    return redirect(url_for('browse_files', dir_type=dir_type, path=current_path))
 
 @app.route('/create_csv', methods=['POST'])
 def create_csv():

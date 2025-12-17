@@ -244,17 +244,6 @@ hokuyo_nav2_gui
             .then(data => {
                 mappingRunContent.innerHTML = data;
                 mappingPopupContainer.style.display = 'flex';
-
-                // ポップアップ内のトグルスイッチのイベントリスナーをここで設定
-                const advancedToggle = mappingRunContent.querySelector('#advanced-toggle');
-                if (advancedToggle) {
-                    advancedToggle.addEventListener('change', function() {
-                        const advancedFeatures = mappingRunContent.querySelector('#advanced-features');
-                        if (advancedFeatures) {
-                            advancedFeatures.style.display = this.checked ? 'flex' : 'none';
-                        }
-                    });
-                }
             })
             .catch(error => {
                 console.error('Error fetching mapping_popup.html:', error);

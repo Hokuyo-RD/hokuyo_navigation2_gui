@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>CSV編集: {{ filename }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         h1 { color: #333; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: middle; }
+        th { border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; font-weight: bold; vertical-align: middle; }
         td select, td input[type="text"] {
             width: 100%;
             padding: 5px;
@@ -17,21 +18,33 @@
             border-radius: 4px;
             box-sizing: border-box;
         }
+        /* Drag handle column style */
+        .drag-handle-col {
+            border: none;
+            background-color: transparent;
+            width: 40px;
+            padding: 8px 10px 8px 0; /* 右に少し余白 */
+        }
         /* Style for the draggable placeholder */
         .sortable-ghost {
             opacity: 0.4;
             background-color: #f0f0f0;
         }
-        .actions { margin-top: 15px; text-align: right; }
-        .actions button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; }
-        .save-btn { background-color: #28a745; color: white; }
-        .save-btn:hover { background-color: #218838; }
-        .add-row-btn { background-color: #007bff; color: white; }
-        .add-row-btn:hover { background-color: #0056b3; }
-        .delete-row-btn { background-color: #dc3545; color: white; }
-        .delete-row-btn:hover { background-color: #c82333; }
-        .cancel-btn { background-color: #6c757d; color: white; }
-        .cancel-btn:hover { background-color: #5a6268; }
+        .actions { margin-top: 20px; text-align: right; display: flex; justify-content: flex-end; gap: 10px; }
+
+        .button { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; transition: background-color 0.2s; display: inline-block; text-align: center; font-size: 1em; }
+        .button-delete { background-color: #dc3545; color: white; }
+        .button-delete:hover { background-color: #c82333; }
+        .button-save { background-color: #28a745; color: white; }
+        .button-save:hover { background-color: #218838; }
+        .button-add { background-color: #007bff; color: white; }
+        .button-add:hover { background-color: #0056b3; }
+        .button-secondary { background-color: #6c757d; color: white; }
+        .button-secondary:hover { background-color: #5a6268; }
+
+        /* Adjust button size inside the table */
+        td .button { padding: 6px 10px; font-size: 0.9em; }
+
         .flash-message { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
         .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .flash-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
@@ -57,16 +70,18 @@
             <table id="csvTable">
                 <thead>
                     <tr>
+                        <th class="drag-handle-col"></th>
                         <th>Map File</th>
                         <th>Waypoint File</th>
                         <th>Nav Type</th>
-                        <th>Interval (sec)</th>
-                        <th>アクション</th>
+                        <th style="width: 120px;">Interval (sec)</th>
+                        <th>削除</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in csv_data %}
                     <tr>
+                        <td class="drag-handle drag-handle-col" style="cursor: move; text-align: center; user-select: none;">☰</td>
                         <td>
                             <select class="map-file-select">
                                 <option value="">-- 選択 --</option>
@@ -93,16 +108,16 @@
                         <td>
                             <input type="text" class="interval-input" value="{{ row.get('interval', '15') }}" placeholder="e.g., 15">
                         </td>
-                        <td><button type="button" class="delete-row-btn">削除</button></td>
+                        <td><button type="button" class="button button-delete">削除</button></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
 
             <div class="actions">
-                <button type="button" id="addRowBtn" class="add-row-btn">行を追加</button>
-                <button type="submit" class="save-btn">保存</button>
-                <button type="button" class="cancel-btn" onclick="window.location.href='{{ url_for('browse_files', dir_type='config') }}'">キャンセル</button>
+                <button type="button" id="addRowBtn" class="button button-add">行を追加</button>
+                <button type="submit" class="button button-save">保存</button>
+                <button type="button" class="button button-secondary" onclick="window.location.href='{{ url_for('browse_files', dir_type='config') }}'">キャンセル</button>
             </div>
         </form>
     </div>
@@ -122,13 +137,22 @@
             new Sortable(csvTableBody, {
                 animation: 150, // ms, animation speed moving items when sorting, `0` for no animation.
                 ghostClass: 'sortable-ghost', // Class name for the drop placeholder
-                handle: 'td', // Draggable handle (any cell in the row)
+                handle: '.drag-handle', // Draggable handle is now the specific element with this class
             });
 
             function createRow(data = { map_file: '', waypoint_file: '', nav_type: '' }) {
                 const row = document.createElement('tr');
 
+                // Create Drag Handle
+                const dragTd = document.createElement('td'); 
+                dragTd.className = 'drag-handle';
+                dragTd.style.cursor = 'move';
+                dragTd.style.textAlign = 'center';
+                dragTd.style.userSelect = 'none';
+                dragTd.innerHTML = '☰';
+
                 // Create Map File Select
+                dragTd.classList.add('drag-handle-col');
                 const mapSelect = document.createElement('select');
                 mapSelect.className = 'map-file-select';
                 let mapOptionsHtml = '<option value="">-- 選択 --</option>';
@@ -159,7 +183,7 @@
                 const intervalInput = document.createElement('input');
                 intervalInput.type = 'text';
                 intervalInput.className = 'interval-input';
-                intervalInput.value = data.interval || '15'; // Default value
+                intervalInput.value = data.interval || '1'; // Default value
 
                 const mapTd = document.createElement('td');
                 mapTd.appendChild(mapSelect);
@@ -173,7 +197,7 @@
 
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
-                deleteButton.className = 'delete-row-btn';
+                deleteButton.className = 'button button-delete';
                 deleteButton.textContent = '削除';
                 deleteButton.addEventListener('click', function() {
                     row.remove();
@@ -181,13 +205,14 @@
                 const actionTd = document.createElement('td');
                 actionTd.appendChild(deleteButton);
 
+                row.appendChild(dragTd);
                 row.appendChild(mapTd);
                 row.appendChild(wpTd);
                 row.appendChild(navTd);
                 row.appendChild(intervalTd);
                 row.appendChild(actionTd);
 
-                row.querySelector('.delete-row-btn').addEventListener('click', function() {
+                row.querySelector('.button-delete').addEventListener('click', function() {
                     row.remove();
                 });
                 return row;
@@ -198,7 +223,7 @@
             });
 
             // Initial setup for existing delete buttons
-            csvTableBody.querySelectorAll('.delete-row-btn').forEach(button => {
+            csvTableBody.querySelectorAll('.button-delete').forEach(button => {
                 button.addEventListener('click', function() {
                     button.closest('tr').remove();
                 });

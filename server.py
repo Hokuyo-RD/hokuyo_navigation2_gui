@@ -212,7 +212,7 @@ def stop_run():
 @app.route('/mapping_executed')
 def mapping_run():
     """マッピング実行後のメッセージ画面"""
-    return render_template('ctrl_executed.html', message="マッピングが開始されました。安全に注意し、周囲を走行してください。")
+    return render_template('ctrl_executed.html', message="マッピングが開始されました。")
 
 @app.route('/mapping_popup')
 def mapping_run_popup():
@@ -224,7 +224,7 @@ def file_management_popup():
 
 @app.route('/ctrl_executed')
 def ctrl_run():
-    return render_template('ctrl_executed.html', message="手動操作モードに切り替わりました。Viewerでジョイスティックを使ってデモをしてください。")
+    return render_template('ctrl_executed.html', message="センサデータの記録が開始されました。")
 
 @app.route('/navigation_executed')
 def navigation_executed():

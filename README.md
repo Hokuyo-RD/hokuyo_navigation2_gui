@@ -15,11 +15,17 @@ Flaskサーバーを介して提供され、マッピング、ナビゲーショ
 
 ### 2. マッピング
 
-- **SLAM**: ROS Bagファイルを使用して、以下のSLAMアルゴリズムを実行します。SLAM実行時にウェイポイントファイル`.json`が作成されます。
-  - `p2o` ([hokuyo_slam](https://github.com)を用いた3D点群マップ)
+- **3D SLAMと2Dウェイポイントファイル出力の同時実行**: ROS Bagファイルを使用して、以下のSLAMアルゴリズムを実行します。SLAM実行時にウェイポイントファイル`.json`が作成されます。
+  - `p2o` ([hokuyo_slam](https://github.com/hokuyo-rd/hokuyo_slam_ros2.git)を用いた3D点群マップ)
   - `lio_raw` (LiDAR Inertial Odometry の軌跡に基づく3D点群マップ)
+
+![画像](Image/expo2025.png)
+
 - **データ処理**:
   - **PCDからPGMへの変換**: 3D点群マップ（`.pcd`）を2D占有格子マップ（`.pgm`と`.yaml`）に変換します。オプションとして、変換の際に`.json` 形式のウェイポイントファイルを指定すると、.pgm`マップ状に、指定したウェイポイントに沿って通行可能領域を生成します
+
+![画像](Image/pcd2pgm.png)
+![画像](Image/pgm_waypoint.png)
 
 ### 3. ナビゲーション
 - **単一マップ走行**: 指定したマップとウェイポイントファイルを使用して自律走行を開始します。自律走行は実行時に、GNSSベースか、LiDARベースの自律走行のどちらか1つを選択できます。
@@ -102,7 +108,7 @@ sudo ufw enable
 
 ### 1. ROS 2環境のセットアップ
 
-`hokuyo_navigation2`ワークスペースをROS 2環境にセットアップします。
+[hokuyo_navigation2](https://github.com/hokuyo-rd/hokuyo_navigation2.git) ワークスペースをROS 2環境にセットアップします。
 
 ### 2. サーバーの起動
 
@@ -134,6 +140,8 @@ Webブラウザを開き、サーバーを実行しているマシンのIPアド
 1. メイン画面で「データ取得」ボタンをクリックします。
 2. センサやモータドライバの起動スクリプトが実行され、起動画面が表示されます。 
 - 起動したいセンサやモータドライバの実行スクリプトは、`hokuyo_navigation2/script/start_getting_rosbag.sh` 内に記述してください。
+- このモードのときに、ROS Bag を取得してください。
+- ROS Bag の取得には、[vizanti](https://github.com/hokuyo-rd/vizanti.git) を用いております。
 
 ### マッピング
 1. メイン画面で「Mapping」ボタンをクリックします。

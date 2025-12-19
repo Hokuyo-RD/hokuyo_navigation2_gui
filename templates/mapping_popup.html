@@ -53,20 +53,8 @@
 <div class="mapping-popup-content">
     <form method="post" action="/gui" target="_blank">
         <p>マッピングモードを選択してください。</p>
-        
-        <div class="toggle-switch-container">
-            <label class="switch">
-                <input type="checkbox" id="advanced-toggle">
-                <span class="slider"></span>
-            </label>
-            <span>高度な機能を表示 (Filter/Sync)</span>
-        </div>
 
         <div style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;">
-            <div id="advanced-features" style="display: none; flex-direction: column; gap: 10px;">
-                <button type="submit" name="command" value="execute_mapping_filter" class="mode-control-btn active-button">rosbag filter</button>
-                <button type="submit" name="command" value="execute_mapping_sync" class="mode-control-btn active-button">sync_topic</button>
-            </div>
             <button type="submit" name="command" value="execute_mapping_p2o" class="mode-control-btn active-button">p2o</button>
             <button type="submit" name="command" value="execute_mapping_lio_raw" class="mode-control-btn active-button">lio_raw</button>
             <button type="submit" name="command" value="execute_mapping_pcd2pgm" class="mode-control-btn active-button">pcd2pgm</button>

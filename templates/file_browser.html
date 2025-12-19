@@ -94,58 +94,80 @@
             {% endif %}
         {% endwith %}
 
+        <p>現在のパス: <code>/{{ current_path }}</code></p>
+
         {% if files %}
+            {# Bulk delete form for map/wp files #}
             {% if dir_type == 'map' or dir_type == 'wp' %}
-                <form action="{{ url_for('delete_file') }}" method="post" id="delete-form" onsubmit="return confirm('選択したファイルを本当に削除しますか？');">
-                    <input type="hidden" name="dir_type" value="{{ dir_type }}">
-                    <ul id="file-list">
-                        {% for file in files %}
-                        <li>
-                            <label class="file-item">
-                                <input type="checkbox" name="filenames" value="{{ file }}" style="margin-right: 5px;">
-                                <span class="file-name" style="flex-grow: 1;">{{ file }}</span>
-                            </label>
-                            <div class="actions">
-                                {% if dir_type == 'map' and file.lower().endswith('.yaml') or dir_type == 'wp' and file.lower().endswith('.json') %}
-                                    <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=file) }}" class="button button-secondary">テキスト編集</a>
-                                {% endif %}
-                                <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file }}」を削除しますか？');">
-                                    <input type="hidden" name="dir_type" value="{{ dir_type }}">
-                                    <input type="hidden" name="filenames" value="{{ file }}">
-                                    <button type="submit" class="button button-delete">削除</button>
-                                </form>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <div class="bulk-actions">
-                        <label><input type="checkbox" id="select-all"> すべて選択/解除</label>
-                        <button type="submit" class="button button-delete">選択したファイルを削除</button>
-                    </div>
-                </form>
-            {% else %}
-                <ul id="file-list">
-                    {% for file in files %}
-                    <li>
-                        <span class="file-name" style="flex-grow: 1;">{{ file.name }}</span>
-                        <div class="actions">
-                            {% if file.is_structured %}
-                                <a href="{{ url_for('edit_csv', filename=file.name) }}" class="button button-edit">編集</a>
-                            {% endif %}
-                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=file.name) }}" class="button button-secondary">テキスト編集</a>
-                            <form action="{{ url_for('delete_file') }}" method="post" onsubmit="return confirm('本当に「{{ file.name }}」を削除しますか？');">
-                                <input type="hidden" name="dir_type" value="{{ dir_type }}">
-                                <input type="hidden" name="filenames" value="{{ file.name }}">
-                                <button type="submit" class="button button-delete">削除</button>
-                            </form>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
+            <form action="{{ url_for('delete_item') }}" method="post" id="bulk-delete-form" onsubmit="return confirm('選択したアイテムを本当に削除しますか？');">
+                <input type="hidden" name="dir_type" value="{{ dir_type }}">
+                <input type="hidden" name="current_path" value="{{ current_path }}">
+                <div class="bulk-actions">
+                    <label><input type="checkbox" id="select-all"> すべて選択/解除</label>
+                    <button type="submit" class="button button-delete">選択したファイルを削除</button>
+                </div>
+            </form>
             {% endif %}
+
+            {# Directories first, then files #}
+            <ul id="file-list">
+                {# Parent directory link #}
+                {% if parent_path is not none %}
+                <li>
+                    <a href="{{ url_for('browse_files', dir_type=dir_type, path=parent_path) }}" class="file-item" style="text-decoration: none; color: inherit;">
+                        <span style="flex-grow: 1;">📁 .. (親ディレクトリへ)</span>
+                    </a>
+                </li>
+                {% endif %}
+                {# Directories #}
+                {% for item in files if item.is_dir %}
+                <li>
+                    <a href="{{ url_for('browse_files', dir_type=dir_type, path=item.path) }}" class="file-item" style="text-decoration: none; color: inherit;">
+                        <span style="flex-grow: 1;">📁 {{ item.name }}</span>
+                    </a>
+                    <div class="actions">
+                        <button type="button" class="button button-delete" onclick="deleteIndividualItem('{{ item.path }}', '{{ dir_type }}', '{{ current_path }}', true)">削除</button>
+                    </div>
+                </li>
+                {% endfor %}
+
+                {# Files #}
+                {% for item in files if not item.is_dir %}
+                <li>
+                    <label class="file-item">
+                        {% if dir_type == 'map' or dir_type == 'wp' %}
+                            <input type="checkbox" name="item_paths" value="{{ item.path }}" form="bulk-delete-form" style="margin-right: 5px;">
+                        {% else %} {# dir_type == 'config' #}
+                            {# No checkbox for config files in this implementation #}
+                        {% endif %}
+                        <span class="file-name" style="flex-grow: 1;">📄 {{ item.name }}</span>
+                    </label>
+                    <div class="actions">
+                        {% set filename = item.name %}
+                        {% if dir_type == 'map' and filename.lower().endswith('.yaml') or dir_type == 'wp' and filename.lower().endswith('.json') %}
+                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=filename) }}" class="button button-secondary">テキスト編集</a>
+                        {% elif dir_type == 'config' %}
+                            {% if item.is_structured %}
+                                <a href="{{ url_for('edit_csv', filename=filename) }}" class="button button-edit">編集</a>
+                            {% endif %}
+                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=filename) }}" class="button button-secondary">テキスト編集</a>
+                        {% endif %}
+                        {# Individual delete button #}
+                        <button type="button" class="button button-delete" onclick="deleteIndividualItem('{{ item.path }}', '{{ dir_type }}', '{{ current_path }}', false)">削除</button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
         {% else %}
-            <p>ファイルが見つかりません。</p>
+            <p>ファイルまたはディレクトリが見つかりません。</p>
         {% endif %}
+
+        {# Hidden form for individual file deletion via JavaScript #}
+        <form id="individual-delete-form" action="{{ url_for('delete_item') }}" method="post" style="display: none;">
+            <input type="hidden" name="dir_type" value="">
+            <input type="hidden" name="item_paths" value="">
+            <input type="hidden" name="current_path" value="">
+        </form>
 
         {% if dir_type == 'config' %}
         <div class="new-file-form">
@@ -166,10 +188,23 @@
     </div>
 
     <script>
+        // Function to handle individual file deletion
+        function deleteIndividualItem(itemPath, dirType, currentPath, isDir) {
+            const itemName = itemPath.split('/').pop();
+            const itemType = isDir ? 'ディレクトリ' : 'ファイル';
+            if (confirm(`本当に${itemType}「${itemName}」を削除しますか？\n(ディレクトリの場合、中のファイルもすべて削除されます)`)) {
+                const form = document.getElementById('individual-delete-form');
+                form.elements['dir_type'].value = dirType;
+                form.elements['item_paths'].value = itemPath;
+                form.elements['current_path'].value = currentPath;
+                form.submit();
+            }
+        }
+
         const selectAllCheckbox = document.getElementById('select-all');
         if (selectAllCheckbox) {
             selectAllCheckbox.addEventListener('change', function(e) {
-                document.querySelectorAll('input[name="filenames"]').forEach(checkbox => {
+                document.querySelectorAll('input[name="item_paths"]').forEach(checkbox => {
                     checkbox.checked = e.target.checked;
                 });
             });
@@ -177,7 +212,7 @@
 
         if ("{{ dir_type }}" === 'map' || "{{ dir_type }}" === 'wp' || "{{ dir_type }}" === 'config') {
             document.querySelectorAll('.file-name').forEach(span => {
-                span.addEventListener('click', function() {
+                span.addEventListener('dblclick', function() { // ダブルクリックでリネームするように変更
                     const originalName = this.textContent;
                     const input = document.createElement('input');
                     input.type = 'text';

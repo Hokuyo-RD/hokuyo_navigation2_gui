@@ -12,7 +12,6 @@ import pathlib
 import csv # Added for CSV handling
 import json # Added for JSON handling
 import re
-import requests
 
 from flask import Flask, request, render_template, redirect, jsonify, url_for, flash, send_from_directory
 from flask_sockets import Sockets
@@ -67,9 +66,6 @@ ROSBRIDGE_URI = "ws://localhost:9090"
 SERVER_HOST = '0.0.0.0'
 SERVER_PORT = 5050
 
-# 環境変数からSPEL PCのIPアドレスを取得。未設定の場合はデフォルト値を使用。
-SPEL_IP = os.environ.get('SPEL_IP', '192.168.0.200')
-
 app = Flask(__name__)
 sockets = Sockets(app)
 app.secret_key = 'your_secret_key_here' 
@@ -91,19 +87,14 @@ def zip_directory(path, zip_filename):
                 archive_path = os.path.join(root_dir_name, os.path.relpath(file_path, path))
                 zipf.write(file_path, archive_path)
 
-def run_subprocess(command_list, extra_env=None):
+def run_subprocess(command_list):
     """別スレッドでサブプロセスを実行するための関数"""
     try:
-        # 親プロセスの環境変数をコピーし、追加の環境変数で更新する
-        env = os.environ.copy()
-        if extra_env:
-            env.update(extra_env)
         # Popenを使い、新しいプロセスグループで実行する (preexec_fn=os.setsid)
         # これにより、killall等が親プロセスに影響を与えるのを防ぐ
         process = subprocess.Popen(
             command_list,
             stdout=subprocess.PIPE,
-            env=env,
             stderr=subprocess.STDOUT,  # 標準エラー出力を標準出力にリダイレクト
             text=True,
             bufsize=1,  # 行バッファリングを有効化
@@ -171,47 +162,13 @@ def main_gui():
     """メインGUIページ (index.html)"""
     # request.host は 'hostname:port' 形式なので、ホスト名(IPアドレス)だけを抽出
     viewer_host = request.host.split(':')[0]
-    return render_template('index.html', viewer_host=viewer_host, spel_ip=SPEL_IP)
+    return render_template('index.html', viewer_host=viewer_host)
 
 @app.route('/get_mode')
 def get_mode():
     """現在のシステムモードを返す (API)"""
     global current_mode
     return jsonify(mode=current_mode)
-
-@app.route('/spel_proxy', methods=['POST'])
-def spel_proxy():
-    """
-    SPEL PCへのCGIリクエストをプロキシするエンドポイント
-    """
-    data = request.get_json()
-    command = data.get('command')
-    spel_ip = app.config.get('SPEL_IP', '192.168.0.200') # デフォルト値を設定
-
-    cgi_map = {
-        'start_spel': f'http://{spel_ip}/cgi-bin/call_start_spel.bash',
-        'stop_spel': f'http://{spel_ip}/cgi-bin/call_stop_spel.bash',
-        'get_state': f'http://{spel_ip}/cgi-bin/call_get_state.bash',
-    }
-
-    if command in cgi_map:
-        url = cgi_map[command]
-        try:
-            response = requests.get(url, timeout=10)
-            return response.text, response.status_code
-        except requests.exceptions.RequestException as e:
-            return str(e), 500
-            
-    elif command == 'set_id':
-        ros_domain_id = data.get('ros_domain_id', '0')
-        url = f'http://{spel_ip}/cgi-bin/call_set_id.bash?ros_domain_id={ros_domain_id}'
-        try:
-            response = requests.get(url, timeout=10)
-            return response.text, response.status_code
-        except requests.exceptions.RequestException as e:
-            return str(e), 500
-
-    return 'Invalid command', 400
 
 @app.route('/navigation_run_popup')
 def navigation_run_popup():
@@ -234,7 +191,7 @@ def navigation_run_popup():
     try:
         # CONFIG_DIRから特定のヘッダーを持つ.csvファイル名を取得
         csv_files = []
-        expected_header = "map_file,waypoint_file,nav_type"
+        expected_header = "map_file,waypoint_file,nav_type,interval"
         for filename in os.listdir(CONFIG_DIR):
             if filename.endswith('.csv'):
                 filepath = os.path.join(CONFIG_DIR, filename)
@@ -255,15 +212,11 @@ def stop_run():
 @app.route('/mapping_executed')
 def mapping_run():
     """マッピング実行後のメッセージ画面"""
-    return render_template('ctrl_executed.html', message="マッピングが開始されました。安全に注意し、周囲を走行してください。")
+    return render_template('ctrl_executed.html', message="マッピングが開始されました。")
 
 @app.route('/mapping_popup')
 def mapping_run_popup():
     return render_template('mapping_popup.html')
-
-@app.route('/ctrl_popup')
-def ctrl_popup():
-    return render_template('ctrl_popup.html')
 
 @app.route('/file_management_popup')
 def file_management_popup():
@@ -271,7 +224,7 @@ def file_management_popup():
 
 @app.route('/ctrl_executed')
 def ctrl_run():
-    return render_template('ctrl_executed.html', message="手動操作モードに切り替わりました。Viewerでジョイスティックを使ってデモをしてください。")
+    return render_template('ctrl_executed.html', message="センサデータの記録が開始されました。")
 
 @app.route('/navigation_executed')
 def navigation_executed():
@@ -447,8 +400,7 @@ def convert():
                 output_filename_base
             ]
             
-            extra_env = {'SPEL_IP': SPEL_IP}
-            Thread(target=run_subprocess, args=(command_list, extra_env)).start()
+            Thread(target=run_subprocess, args=(command_list,)).start()
             result_message = f"トピック同期スクリプトがバックグラウンドで開始されました。出力ファイル名: {output_filename_base}。完了までお待ちください。"
             
         else:
@@ -513,8 +465,7 @@ def _start_mapping_process(mode, req):
             flag_file_name_full
         ]
         
-        extra_env = {'SPEL_IP': SPEL_IP}
-        Thread(target=run_subprocess, args=(command_list, extra_env)).start()
+        Thread(target=run_subprocess, args=(command_list,)).start()
         result_message = f"{mode.upper()} マッピングスクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name}"
         
         return jsonify({
@@ -985,8 +936,7 @@ def pcd2pgm_convert():
         ]
         
         # 別スレッドで実行
-        extra_env = {'SPEL_IP': SPEL_IP}
-        Thread(target=run_subprocess, args=(command_list, extra_env)).start()
+        Thread(target=run_subprocess, args=(command_list,)).start()
         result_message = f"PCD to PGM 変換スクリプトがバックグラウンドで開始されました。出力マップ名: {output_map_name}"
         
         return jsonify({
@@ -1160,8 +1110,9 @@ def _get_available_files(directory, extension):
     except FileNotFoundError:
         return []
 
-@app.route('/browse_files/<dir_type>')
-def browse_files(dir_type):
+@app.route('/browse_files/<dir_type>', defaults={'path': ''})
+@app.route('/browse_files/<dir_type>/<path:path>')
+def browse_files(dir_type, path):
     """
     指定されたタイプのディレクトリ内のファイルを表示する。
     dir_type: 'map', 'wp', 'config'
@@ -1176,21 +1127,26 @@ def browse_files(dir_type):
         flash('無効なディレクトリタイプです。', 'error')
         return redirect(url_for('main_gui'))
 
-    target_dir = dir_map[dir_type]['path']
+    base_dir = dir_map[dir_type]['path']
     title = dir_map[dir_type]['title']
+    target_dir = os.path.join(base_dir, path)
 
-    if not _is_safe_path(target_dir, HOKUYO_NAV2_PKG_PATH):
+    if not _is_safe_path(target_dir, base_dir):
         flash("セキュリティ上の理由により、このディレクトリにはアクセスできません。", "error")
-        return redirect(url_for('main_gui'))
+        return redirect(url_for('browse_files', dir_type=dir_type))
 
     try:
-        all_files = sorted(os.listdir(target_dir))
+        items = sorted(os.listdir(target_dir))
+        files_with_info = []
+        parent_path = os.path.dirname(path) if path else None
+
         if dir_type == 'config':
             # configディレクトリの場合、ヘッダーをチェックして構造化編集可能か判定
-            files_with_info = []
-            expected_header = "map_file,waypoint_file,nav_type"
-            csv_files = [f for f in all_files if f.lower().endswith('.csv')]
+            expected_header = "map_file,waypoint_file,nav_type,interval"
+            csv_files = [f for f in items if f.lower().endswith('.csv')]
             for filename in csv_files:
+                if os.path.isdir(os.path.join(target_dir, filename)): continue
+
                 file_path = os.path.join(target_dir, filename)
                 is_structured = False
                 try:
@@ -1198,61 +1154,84 @@ def browse_files(dir_type):
                         header = f.readline().strip()
                         if header == expected_header:
                             is_structured = True
-                except Exception:
-                    pass # ファイルが読めない場合は構造化不可とする
-                files_with_info.append({'name': filename, 'is_structured': is_structured})
-            files = files_with_info
+                except Exception as e:
+                    print(f"Could not read or parse {filename}: {e}")
+                files_with_info.append({
+                    'name': filename, 
+                    'is_structured': is_structured,
+                    'is_dir': False, # configはファイルのみ
+                    'path': os.path.join(path, filename)
+                })
         else:
-            files = all_files
+            # map と wp の場合
+            for item_name in items:
+                item_path = os.path.join(target_dir, item_name)
+                is_dir = os.path.isdir(item_path)
+                files_with_info.append({
+                    'name': item_name,
+                    'is_dir': is_dir,
+                    'path': os.path.join(path, item_name)
+                })
 
         return render_template('file_browser.html', 
-                               files=files, 
+                               files=files_with_info, 
                                dir_type=dir_type, 
-                               title=title)
+                               title=title,
+                               current_path=path,
+                               parent_path=parent_path)
     except (FileNotFoundError, PermissionError) as e:
         flash(f"ディレクトリの操作中にエラーが発生しました: {e}", "error")
         return redirect(url_for('main_gui'))
 
-@app.route('/delete_file', methods=['POST'])
-def delete_file():
-    """ファイルを削除するAPI"""
+@app.route('/delete_item', methods=['POST'])
+def delete_item():
+    """ファイルまたはディレクトリを削除するAPI"""
     dir_type = request.form.get('dir_type') 
-    filenames = request.form.getlist('filenames') # 複数ファイルに対応
+    item_paths = request.form.getlist('item_paths') # 複数アイテムに対応
+    current_path = request.form.get('current_path', '')
 
     dir_map = {'map': MAP_DIR, 'wp': WP_DIR, 'config': CONFIG_DIR}
     if dir_type not in dir_map:
         flash('無効なディレクトリタイプです。', 'error')
         return redirect(url_for('main_gui'))
 
-    if not filenames:
-        flash('削除するファイルが選択されていません。', 'error')
-        return redirect(url_for('browse_files', dir_type=dir_type))
+    if not item_paths:
+        flash('削除するアイテムが選択されていません。', 'error')
+        return redirect(url_for('browse_files', dir_type=dir_type, path=current_path))
 
-    target_dir = dir_map[dir_type]
+    base_dir = dir_map[dir_type]
     deleted_count = 0
     error_count = 0
 
-    for filename in filenames:
-        file_path = os.path.join(target_dir, filename)
+    for item_path_str in item_paths:
+        # item_path_str is the relative path from base_dir
+        full_path = os.path.join(base_dir, item_path_str)
 
-        if not _is_safe_path(file_path, target_dir):
-            flash(f'不正なファイルパスです: {filename}', 'error')
+        if not _is_safe_path(full_path, base_dir):
+            flash(f'不正なパスです: {item_path_str}', 'error')
             error_count += 1
             continue
 
         try:
-            os.remove(file_path)
-            deleted_count += 1
+            if os.path.isdir(full_path):
+                shutil.rmtree(full_path)
+                deleted_count += 1
+            elif os.path.isfile(full_path):
+                os.remove(full_path)
+                deleted_count += 1
+            else:
+                # Already deleted or does not exist
+                pass
         except Exception as e:
-            flash(f'ファイル "{filename}" の削除中にエラーが発生しました: {e}', 'error')
+            flash(f'アイテム "{os.path.basename(item_path_str)}" の削除中にエラーが発生しました: {e}', 'error')
             error_count += 1
 
     if deleted_count > 0:
-        flash(f'{deleted_count}個のファイルを削除しました。', 'success')
+        flash(f'{deleted_count}個のアイテムを削除しました。', 'success')
     if error_count == 0 and deleted_count == 0:
-        flash('削除対象のファイルが見つかりませんでした。', 'warning')
+        flash('削除対象のアイテムが見つかりませんでした。', 'warning')
 
-    return redirect(url_for('browse_files', dir_type=dir_type))
+    return redirect(url_for('browse_files', dir_type=dir_type, path=current_path))
 
 @app.route('/create_csv', methods=['POST'])
 def create_csv():
@@ -1277,7 +1256,7 @@ def create_csv():
 
     try:
         # デフォルトのヘッダーを持つ空のCSVファイルを作成
-        default_header = "map_file,waypoint_file,nav_type\n"
+        default_header = "map_file,waypoint_file,nav_type,interval\n"
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(default_header)
         flash(f'新規ファイル "{filename}" を作成しました。', 'success')
@@ -1289,7 +1268,7 @@ def create_csv():
 @app.route('/create_plain_text')
 def create_plain_text():
     """プレーンテキストエディタで新規CSVファイルを作成するページを表示"""
-    return render_template('plain_text_editor.html', filename='', content='map_file,waypoint_file,nav_type\n', is_new=True)
+    return render_template('plain_text_editor.html', filename='', content='map_file,waypoint_file,nav_type,interval\n', is_new=True)
 
 @app.route('/edit_plain_text/<dir_type>/<path:filename>')
 def edit_plain_text(dir_type, filename):
@@ -1384,10 +1363,10 @@ def save_structured_csv():
         if not rows:
             # 空の場合はヘッダーのみ書き込む
             with open(file_path, 'w', encoding='utf-8', newline='') as f:
-                f.write("map_file,waypoint_file,nav_type\n")
+                f.write("map_file,waypoint_file,nav_type,interval\n")
         else:
             with open(file_path, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=["map_file", "waypoint_file", "nav_type"])
+                writer = csv.DictWriter(f, fieldnames=["map_file", "waypoint_file", "nav_type", "interval"])
                 writer.writeheader()
                 writer.writerows(rows)
 
@@ -1424,8 +1403,7 @@ def trigger_script():
                 if wpfile:
                     command_list.append(wpfile)
                 
-            extra_env = {'SPEL_IP': SPEL_IP}
-            Thread(target=run_subprocess, args=(command_list, extra_env)).start()
+            Thread(target=run_subprocess, args=(command_list,)).start()
             current_mode = "running"
             return redirect('/navigation_executed')
         else:
@@ -1461,22 +1439,19 @@ def trigger_script():
         script_path = os.path.join(BASE_PATH, "start_mapping.sh")
         command_list = [script_path, mapping_type]
         
-        extra_env = {'SPEL_IP': SPEL_IP}
-        Thread(target=run_subprocess, args=(command_list, extra_env)).start()
+        Thread(target=run_subprocess, args=(command_list,)).start()
         current_mode = "mapping"
         return redirect('/mapping_executed')
 
     elif command == "stop":
         script_path = os.path.join(BASE_PATH, "ctrl/web_kill_all_rosnode.sh")
-        extra_env = {'SPEL_IP': SPEL_IP}
-        Thread(target=run_subprocess, args=([script_path], extra_env)).start()
+        Thread(target=run_subprocess, args=([script_path],)).start()
         current_mode = "stopped"
         return render_template('stop.html')
         
     elif command == "ctrl":
         script_path = os.path.join(BASE_PATH, "start_getting_rosbag.sh")
-        extra_env = {'SPEL_IP': SPEL_IP}
-        Thread(target=run_subprocess, args=([script_path], extra_env)).start()
+        Thread(target=run_subprocess, args=([script_path],)).start()
         current_mode = "ctrl"
         return redirect('/ctrl_executed')
         

@@ -393,6 +393,8 @@
         <fieldset>
             <legend>Waypoint Editing</legend>
             <div style="display: flex; flex-direction: column; gap: 5px;">
+                <div id="total-distance-display" style="font-weight: bold; color: #88ff88; margin-bottom: 5px;">Total Distance: 0.00 m</div>
+                <label><input type="checkbox" id="show-distance-labels" checked> 距離ラベル表示</label>
                 <label><input type="checkbox" id="auto-orient-waypoints"> 次のWPを指す</label>
                 <button id="add-waypoint-end-button">末尾に追加</button>
                 <button id="add-waypoint-start-button">先頭に追加</button>
@@ -489,6 +491,21 @@
                     return 0xff0000; // 赤
                 default:
                     return 0x00ffff; // 水色 (デフォルト)
+            }
+        }
+
+        function calculateAndDisplayTotalDistance() {
+            let totalDistance = 0;
+            if (waypoints.length > 1) {
+                for (let i = 0; i < waypoints.length - 1; i++) {
+                    const p1 = new THREE.Vector3().fromArray(waypoints[i][0]);
+                    const p2 = new THREE.Vector3().fromArray(waypoints[i + 1][0]);
+                    totalDistance += p1.distanceTo(p2);
+                }
+            }
+            const displayEl = document.getElementById('total-distance-display');
+            if (displayEl) {
+                displayEl.textContent = `Total Distance: ${totalDistance.toFixed(2)} m`;
             }
         }
 
@@ -785,6 +802,7 @@
                 document.getElementById('info').innerHTML += `<br>Waypointを ${waypoints.length} 個配置完了`;
                 if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
                 updateWaypointPath(mapName);
+                calculateAndDisplayTotalDistance();
             } catch (error) {
                 console.error('Waypointファイルのロード中にエラーが発生しました:', error);
                 document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointロード失敗: ${error.message}</span>`;
@@ -793,6 +811,7 @@
         function updateWaypointPath(mapName) {
             const componentType = 'waypoint-path';
             const uniqueId = `${componentType}-${mapName}`;
+            const labelsId = `waypoint-labels-${mapName}`;
 
             // 既存の経路を削除
             if (meshRegistry[uniqueId]) {
@@ -801,6 +820,14 @@
                 oldPath.geometry.dispose();
                 oldPath.material.dispose();
                 delete meshRegistry[uniqueId];
+            }
+
+            // 既存のラベルを削除
+            if (meshRegistry[labelsId]) {
+                const oldLabelsGroup = meshRegistry[labelsId];
+                scene.remove(oldLabelsGroup);
+                while(oldLabelsGroup.children.length > 0) oldLabelsGroup.remove(oldLabelsGroup.children[0]);
+                delete meshRegistry[labelsId];
             }
 
             if (waypoints.length < 2) {
@@ -818,6 +845,39 @@
 
             scene.add(line);
             meshRegistry[uniqueId] = line;
+
+            // 距離ラベルの作成
+            const labelsGroup = new THREE.Group();
+            labelsGroup.name = labelsId;
+
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = points[i];
+                const p2 = points[i+1];
+                const distance = p1.distanceTo(p2);
+                const midPoint = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+
+                const div = document.createElement('div');
+                div.textContent = `${distance.toFixed(2)}m`;
+                div.style.color = '#ffaa00';
+                div.style.fontSize = '12px';
+                div.style.fontWeight = 'bold';
+                div.style.textShadow = '1px 1px 1px black';
+                div.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                div.style.padding = '2px 4px';
+                div.style.borderRadius = '3px';
+                div.style.pointerEvents = 'none';
+
+                const label = new CSS2DObject(div);
+                label.position.copy(midPoint);
+                labelsGroup.add(label);
+            }
+
+            const showLabelsCheckbox = document.getElementById('show-distance-labels');
+            if (showLabelsCheckbox) {
+                labelsGroup.visible = showLabelsCheckbox.checked;
+            }
+            scene.add(labelsGroup);
+            meshRegistry[labelsId] = labelsGroup;
         }
 
         function updateGridBasedOnMapSize() {
@@ -909,6 +969,18 @@
                 }
                 scene.remove(mesh);
                 delete meshRegistry[uniqueId];
+
+                // waypoint-path削除時にラベルも削除
+                if (type === 'waypoint-path') {
+                    const labelsId = `waypoint-labels-${mapName}`;
+                    if (meshRegistry[labelsId]) {
+                        const labelsGroup = meshRegistry[labelsId];
+                        scene.remove(labelsGroup);
+                        while(labelsGroup.children.length > 0) labelsGroup.remove(labelsGroup.children[0]);
+                        delete meshRegistry[labelsId];
+                    }
+                }
+
                 elementExists = true;
                 const toggleLabel = document.getElementById(uniqueId + '-label');
                 if (toggleLabel) {
@@ -922,6 +994,8 @@
                 if (type === 'waypoints') {
                     const pathId = `waypoint-path-${mapName}`;
                     if (meshRegistry[pathId]) unloadMap('waypoint-path', mapName);
+                    waypoints = [];
+                    calculateAndDisplayTotalDistance();
                 }
             }
             if (elementExists) {
@@ -1196,10 +1270,18 @@
             const yawRad = arrow ? arrow.rotation.z : 0;
             const yawDeg = THREE.MathUtils.radToDeg(yawRad);
 
+            let cumulativeDistance = 0;
+            for (let i = 0; i < index; i++) {
+                const p1 = new THREE.Vector3().fromArray(waypoints[i][0]);
+                const p2 = new THREE.Vector3().fromArray(waypoints[i + 1][0]);
+                cumulativeDistance += p1.distanceTo(p2);
+            }
+
             let basicInfoHtml = `
                 <p><strong>インデックス:</strong> ${index}</p>
                 <p><strong>位置:</strong> X: ${position.x.toFixed(3)}, Y: ${position.y.toFixed(3)}</p>
                 <p><strong>向き (Yaw):</strong> ${yawDeg.toFixed(1)}°</p>
+                <p><strong>始点からの距離:</strong> ${cumulativeDistance.toFixed(2)}m</p>
             `;
 
             let distanceInfoHtml = '<p><strong>距離:</strong> ';
@@ -1342,6 +1424,7 @@
             // 経路と向きを再計算
             updateWaypointPath(currentMapName);
             if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
+            calculateAndDisplayTotalDistance();
         }
 
         function applyYawChange() {
@@ -1442,6 +1525,7 @@
                 document.getElementById('info').innerHTML = `ウェイポイント ${indexToDelete} を削除しました。`;
                 updateWaypointPath(currentMapName);
                 if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
+                calculateAndDisplayTotalDistance();
             }
         }
 
@@ -1521,6 +1605,7 @@
 
             updateWaypointPath(currentMapName);
             if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
+            calculateAndDisplayTotalDistance();
         }
 
         let currentInsertionIndex = undefined;
@@ -1735,8 +1820,18 @@
                 if (arrow) {
                     arrow.position.copy(event.object.position);
                 }
+
+                // ドラッグ中にデータを更新
+                if (waypoints[index]) {
+                    waypoints[index][0][0] = event.object.position.x;
+                    waypoints[index][0][1] = event.object.position.y;
+                    waypoints[index][0][2] = event.object.position.z;
+                }
+
                 selectedWaypoint = event.object; // ドラッグ中のオブジェクトを選択中として設定
                 displayWaypointInfo(index, event.object.position, event.object.userData.attributes);
+                updateWaypointPath(currentMapName);
+                calculateAndDisplayTotalDistance();
             });
             dragControls.addEventListener('dragend', function (event) {
                 orbitControls.enabled = true;
@@ -1750,6 +1845,7 @@
                 }
                 if (document.getElementById('auto-orient-waypoints').checked) recalculateAllWaypointOrientations();
                 updateWaypointPath(currentMapName);
+                calculateAndDisplayTotalDistance();
             });
             dragControls.enabled = false; // 初期状態ではドラッグを無効化
 
@@ -1777,6 +1873,12 @@
             });
             document.getElementById('auto-orient-waypoints').addEventListener('change', (event) => {
                 toggleAutoOrient(event.target.checked);
+            });
+            document.getElementById('show-distance-labels').addEventListener('change', (event) => {
+                const labelsId = `waypoint-labels-${currentMapName}`;
+                if (meshRegistry[labelsId]) {
+                    meshRegistry[labelsId].visible = event.target.checked;
+                }
             });
 
             // アダプティブグリッドの初期化

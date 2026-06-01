@@ -299,6 +299,16 @@
         </div>
         {% endif %}
 
+        <div id="mapping-config-options" style="margin-top: 25px;">
+            <label for="config-file">パラメータ設定ファイル (CSV):</label>
+            <select id="config-file" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 1em;">
+                <option value="">-- 設定ファイルを選択 (任意) --</option>
+                {% for cfg in config_files %}
+                <option value="{{ cfg }}">{{ cfg }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
         <button id="start_convert_button" class="button primary">変換開始</button>
         <button id="cancel_button" class="button secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
 
@@ -340,7 +350,8 @@
                             input_pcd_filename: '{{ input_pcd_filename }}',
                             output_map_name: mapName,
                             waypoint_filename: waypointFilename,
-                            loop_waypoints: loopWaypoints 
+                            loop_waypoints: loopWaypoints,
+                            config_file: $('#config-file').val()
                         }),
                         success: function(response) {
                             if (response.status === 'success') {

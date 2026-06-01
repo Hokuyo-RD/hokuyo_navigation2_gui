@@ -336,6 +336,22 @@ def select_rosbag():
             else:
                 estimated_duration = 120
             
+            # Search for CSV files with specific header
+            config_files = []
+            expected_header = "オプション,指定値,デフォルト値"
+            if os.path.exists(CONFIG_DIR):
+                for filename in os.listdir(CONFIG_DIR):
+                    if filename.endswith('.csv'):
+                        filepath = os.path.join(CONFIG_DIR, filename)
+                        try:
+                            with open(filepath, 'r', encoding='utf-8') as f:
+                                header = f.readline().strip()
+                                if header == expected_header:
+                                    config_files.append(filename)
+                        except Exception:
+                            pass
+            config_files.sort()
+
             flash(f'ROS Bag "{file_path}" を読み込みました。', 'success')
             
             return render_template('rosbag_select_topics.html', 
@@ -344,7 +360,8 @@ def select_rosbag():
                                    sync_mode=is_sync_mode,
                                    p2o_mode=is_p2o_mode, 
                                    lio_raw_mode=is_lio_raw_mode,
-                                   bag_duration_sec=estimated_duration) 
+                                   bag_duration_sec=estimated_duration,
+                                   config_files=config_files) 
             
         except NameError:
             flash("ROS Bagフィルタのコア機能がインポートされていません。ROS環境を確認してください。", 'error')
@@ -373,6 +390,8 @@ def convert():
     selected_topics = data.get('topics', [])
     output_filename_base = data.get('output_filename')
     is_sync_mode = data.get('is_sync_mode', False)
+    config_filename = data.get('config_file', '')
+    config_file_path = os.path.join(CONFIG_DIR, config_filename) if config_filename else ''
 
     # 入力チェック 
     if not input_bag_path or not os.path.exists(input_bag_path):
@@ -397,7 +416,8 @@ def convert():
                 script_path, 
                 "sync", 
                 base_name,
-                output_filename_base
+                output_filename_base,
+                config_file_path
             ]
             
             Thread(target=run_subprocess, args=(command_list,)).start()
@@ -439,6 +459,8 @@ def _start_mapping_process(mode, req):
 
     input_bag_path = data.get('input_bag_path')
     output_map_name = data.get('output_map_name')
+    config_filename = data.get('config_file', '')
+    config_file_path = os.path.join(CONFIG_DIR, config_filename) if config_filename else ''
 
     if not input_bag_path or not os.path.exists(input_bag_path):
         return jsonify({'status': 'error', 'message': '入力ファイルが見つかりません。パスを確認してください。'}), 400
@@ -462,7 +484,8 @@ def _start_mapping_process(mode, req):
             output_map_name,
             MAP_DIR,
             WP_DIR,
-            flag_file_name_full
+            flag_file_name_full,
+            config_file_path
         ]
         
         Thread(target=run_subprocess, args=(command_list,)).start()
@@ -889,11 +912,28 @@ def pcd2pgm_select_waypoint():
 
     base_map_name = os.path.splitext(pcd_filename)[0]
 
+    # Search for CSV files with specific header
+    config_files = []
+    expected_header = "オプション,指定値,デフォルト値"
+    if os.path.exists(CONFIG_DIR):
+        for filename in os.listdir(CONFIG_DIR):
+            if filename.endswith('.csv'):
+                filepath = os.path.join(CONFIG_DIR, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        header = f.readline().strip()
+                        if header == expected_header:
+                            config_files.append(filename)
+                except Exception:
+                    pass
+    config_files.sort()
+
     # 最終的な変換設定画面 (pcd_pgm_convert.html) に遷移
     return render_template('pcd_pgm_convert.html', 
                             input_pcd_filename=pcd_filename,
                             input_waypoint_filename=waypoint_filename, # ウェイポイントファイル名を渡す
-                            default_output_name=f'{base_map_name}')
+                            default_output_name=f'{base_map_name}',
+                            config_files=config_files)
 
 @app.route('/pcd2pgm_convert', methods=['POST'])
 def pcd2pgm_convert():
@@ -907,6 +947,7 @@ def pcd2pgm_convert():
     output_map_name = data.get('output_map_name') # PGMファイルのベース名
     waypoint_filename = data.get('waypoint_filename', '') # ウェイポイントファイル名を受け取る
     loop_waypoints = data.get('loop_waypoints', 'false').lower() # ループフラグを受け取るオプション
+    config_filename = data.get('config_file', '')
 
     if not input_pcd_filename:
         return jsonify({'status': 'error', 'message': '入力PCDファイル名が指定されていません。'}), 400
@@ -918,6 +959,7 @@ def pcd2pgm_convert():
     # ウェイポイントファイルが存在するかチェック（存在しない場合は空文字列のままにする）
     if waypoint_filename and not os.path.exists(os.path.join(WP_DIR, waypoint_filename)):
         waypoint_filename = ''
+    config_file_path = os.path.join(CONFIG_DIR, config_filename) if config_filename else ''
     
     FLAG_MODE = 'PCD2PGM'
     flag_file_name_full = f'{output_map_name}.{FLAG_MODE}_DONE'
@@ -933,6 +975,7 @@ def pcd2pgm_convert():
             waypoint_filename,
             loop_waypoints,
             flag_file_name_full,
+            config_file_path
         ]
         
         # 別スレッドで実行
@@ -1003,11 +1046,28 @@ def pcd_pgm_convert_page():
     
     default_output_name = input_pcd_filename.replace('.pcd', '') if input_pcd_filename.endswith('.pcd') else f'{input_pcd_filename}'
     
+    # Search for CSV files with specific header
+    config_files = []
+    expected_header = "オプション,指定値,デフォルト値"
+    if os.path.exists(CONFIG_DIR):
+        for filename in os.listdir(CONFIG_DIR):
+            if filename.endswith('.csv'):
+                filepath = os.path.join(CONFIG_DIR, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        header = f.readline().strip()
+                        if header == expected_header:
+                            config_files.append(filename)
+                except Exception:
+                    pass
+    config_files.sort()
+
     return render_template('pcd_pgm_convert.html', 
                            input_pcd_filename=input_pcd_filename, 
                            default_output_name=default_output_name,
                            input_waypoint_filename=input_waypoint_filename,
-                           loop_waypoints=loop_waypoints)
+                           loop_waypoints=loop_waypoints,
+                           config_files=config_files)
 
 @app.route('/download_pgm_map/<basename>')
 def download_pgm_map(basename):

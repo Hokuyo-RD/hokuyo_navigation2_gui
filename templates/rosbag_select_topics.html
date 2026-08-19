@@ -255,7 +255,7 @@
         {% else %}
             {% set default_name = basename %}
         {% endif %}
-        <input type="text" id="output-filename" placeholder="例: {{ default_name }}_processed" value="{{ default_name }}_processed" required>
+        <input type="text" id="output-filename" placeholder="例: {{ default_name }}" value="{{ default_name }}" required>
         
         <div id="filter-options" style="{% if sync_mode or p2o_mode or lio_raw_mode %}display: none;{% endif %}">
             <label>選択するトピック (フィルタリングモードのみ):</label>

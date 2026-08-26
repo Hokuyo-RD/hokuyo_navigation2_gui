@@ -1,0 +1,434 @@
+/* ==========================================================================
+   pages/map-viewer.css — 3Dビューア（map_viewer.html）専用
+   --------------------------------------------------------------------------
+   このページだけダークUI。色は tokens.css の --viewer-* を使う。
+   共通の .btn は明るいUI用なので、ビューアのHUDでは素の <button> を
+   このファイルでダークに整えている。
+   ========================================================================== */
+
+.map-viewer {
+    margin: 0;
+    overflow: hidden;
+    background-color: var(--viewer-bg);
+    color: var(--viewer-text);
+}
+
+#viewer-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+.add-waypoint-mode {
+    cursor: crosshair;
+}
+
+/* ==========================================================================
+   画面に重ねる情報パネル（HUD）
+   ========================================================================== */
+.viewer-hud {
+    position: absolute;
+    z-index: var(--z-viewer-hud);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--viewer-overlay);
+    color: #fff;
+    font-size: var(--fs-sm);
+}
+
+#loading-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: var(--z-viewer-loading);
+    padding: var(--space-2) var(--space-5);
+    border-radius: var(--radius-sm);
+    background: var(--viewer-overlay-strong);
+    color: #fff;
+    font-size: var(--fs-xl);
+    transition: opacity var(--transition-base);
+}
+
+#info {
+    top: var(--space-2);
+    left: var(--space-2);
+}
+
+#grid-info {
+    top: var(--space-2);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: var(--fs-md);
+}
+
+/* ==========================================================================
+   右下の操作パネル
+   ========================================================================== */
+#controls {
+    position: absolute;
+    right: var(--space-2);
+    bottom: var(--space-2);
+    z-index: var(--z-viewer-hud);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 260px;
+    max-height: 95vh;
+    overflow-y: auto;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    background: var(--viewer-overlay);
+    color: #fff;
+    font-size: 14px;
+}
+
+#controls fieldset,
+#waypoint-info fieldset {
+    margin: var(--space-1) 0;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--viewer-border);
+    border-radius: var(--radius-sm);
+}
+
+#controls legend {
+    padding: 0 var(--space-1);
+    color: var(--viewer-accent);
+    font-weight: var(--fw-bold);
+}
+
+#controls label {
+    display: flex;
+    align-items: center;
+    color: inherit;
+    cursor: pointer;
+}
+
+#load-controls h4 {
+    margin: 0;
+    color: var(--viewer-text-muted);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-normal);
+}
+
+/* fieldset の中で入力欄を縦に積むグループ */
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+}
+
+.opacity-slider {
+    width: 100px;
+    margin-left: var(--space-1);
+}
+
+#dynamic-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+#dynamic-toggles label span {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+/* ==========================================================================
+   ダークUIのボタン・入力欄
+   ========================================================================== */
+#controls button,
+#waypoint-info button,
+.modal button {
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid #666;
+    border-radius: var(--radius-sm);
+    background-color: var(--viewer-control-bg);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+#controls button:hover:not(:disabled),
+#waypoint-info button:hover:not(:disabled),
+.modal button:hover:not(:disabled) {
+    background-color: var(--viewer-control-hover);
+    border-color: var(--viewer-border-strong);
+}
+
+#controls button:disabled,
+#waypoint-info button:disabled,
+.modal button:disabled {
+    background-color: var(--viewer-control-disabled);
+    color: var(--viewer-text-disabled);
+    cursor: not-allowed;
+}
+
+/* ビューア終了ボタンだけは他と区別する */
+#close-viewer-button {
+    margin-top: var(--space-1);
+    background-color: #616161;
+}
+
+#controls input[type="text"],
+.modal-content input[type="text"],
+.modal-content select {
+    padding: var(--space-2);
+    border: 1px solid #666;
+    border-radius: var(--radius-sm);
+    background-color: var(--viewer-control-bg);
+    color: #fff;
+}
+
+.modal-content input[type="text"],
+.modal-content select {
+    margin-bottom: var(--space-4);
+}
+
+#controls input[type="text"] {
+    padding: var(--space-1);
+    background-color: var(--viewer-control-disabled);
+    border-color: var(--viewer-border);
+}
+
+/* ==========================================================================
+   モーダル（ロード／アンロード）
+   オーバーレイ本体 .modal は components.css で定義
+   ========================================================================== */
+.modal-content {
+    width: 80%;
+    max-width: 550px;
+    margin: 10% auto;
+    padding: var(--space-5);
+    border: 1px solid var(--viewer-border-strong);
+    border-radius: var(--radius-sm);
+    background-color: var(--viewer-surface);
+    color: #fff;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--viewer-border);
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: var(--space-1);
+    color: inherit;
+}
+
+/* 右上の × */
+.modal .close-button {
+    float: right;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: var(--fw-bold);
+    cursor: pointer;
+}
+
+.modal .close-button:hover,
+.modal .close-button:focus {
+    color: #fff;
+}
+
+#load-options-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+#load-modal-info {
+    margin-top: var(--space-4);
+    color: var(--viewer-highlight);
+    font-size: var(--fs-sm);
+}
+
+#confirm-load-button {
+    padding: var(--space-2) var(--space-5);
+    white-space: nowrap;
+    font-size: var(--fs-sm);
+}
+
+#map-list-container,
+#unload-list-container {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: var(--space-2) 0 var(--space-4);
+    padding: var(--space-2);
+    border: 1px solid var(--viewer-border);
+    background-color: var(--viewer-surface-alt);
+}
+
+/* モーダル下部の注意書き＋実行ボタン */
+.modal-footer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--viewer-control-bg);
+}
+
+.modal-footer__note {
+    max-width: 65%;
+    color: var(--viewer-text-muted);
+    font-size: 0.5em;
+}
+
+.modal-footer__note p {
+    margin: 0 0 var(--space-1);
+    white-space: nowrap;
+}
+.modal-footer__note p:last-child { margin-bottom: 0; }
+
+/* ==========================================================================
+   選択中ウェイポイントの情報パネル（左下）
+   ========================================================================== */
+#waypoint-info {
+    position: absolute;
+    left: var(--space-2);
+    bottom: var(--space-2);
+    z-index: var(--z-viewer-hud);
+    display: none;           /* 選択時に JavaScript が flex にする */
+    flex-direction: column;
+    gap: var(--space-1);
+    max-width: 300px;
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--viewer-border);
+    border-radius: var(--radius-sm);
+    background: var(--viewer-overlay-strong);
+    color: #fff;
+    font-size: var(--fs-sm);
+}
+
+#waypoint-info h4 {
+    margin: 0 0 var(--space-1);
+    color: var(--viewer-highlight);
+    font-weight: var(--fw-bold);
+}
+
+#waypoint-info legend {
+    padding: 0 var(--space-1);
+    color: var(--viewer-text-muted);
+    font-weight: var(--fw-bold);
+}
+
+.coord-input {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-1);
+}
+
+.coord-input label {
+    flex-shrink: 0;
+    min-width: 60px;
+    margin-right: var(--space-2);
+    color: inherit;
+    font-size: 0.95em;
+}
+
+.coord-input select {
+    width: 100px;
+    padding: 2px var(--space-1);
+    border: 1px solid #777;
+    border-radius: 3px;
+    background-color: var(--viewer-control-bg);
+    color: #fff;
+}
+
+.coord-input input {
+    width: 70px;
+    padding: 2px var(--space-1);
+    border: 1px solid #777;
+    border-radius: 3px;
+    background-color: var(--viewer-control-bg);
+    color: #fff;
+}
+
+/* 走行距離の表示 */
+#total-distance-display {
+    margin-bottom: var(--space-1);
+    color: #88ff88;
+    font-weight: var(--fw-bold);
+}
+
+/* ==========================================================================
+   ウェイポイント凡例（JavaScript が body に追加する）
+   ========================================================================== */
+#waypoint-legend-container {
+    position: absolute;
+    left: var(--space-2);
+    bottom: var(--space-2);
+    z-index: var(--z-viewer-hud);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    background: var(--viewer-overlay-strong);
+    color: #fff;
+    font-size: var(--fs-sm);
+}
+
+#waypoint-legend-container h4 {
+    margin: 0 0 var(--space-1);
+    font-weight: var(--fw-bold);
+}
+
+#waypoint-legend { font-size: var(--fs-sm); }
+
+.legend-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 3px;
+}
+
+.legend-swatch {
+    width: 12px;
+    height: 12px;
+    margin-right: var(--space-1);
+    border: 1px solid #fff;
+}
+
+/* ウェイポイント種別の色。3D描画側（map_viewer.html の getWaypointColor）と
+   同じ色を tokens.css で一元管理している。 */
+.legend-swatch--normal  { background-color: var(--wp-normal); }
+.legend-swatch--slow    { background-color: var(--wp-slow); }
+.legend-swatch--stop    { background-color: var(--wp-stop); }
+.legend-swatch--default { background-color: var(--wp-default); }
+
+/* ==========================================================================
+   HUDに差し込むメッセージ（JavaScript が生成する）
+   ========================================================================== */
+.hud-error     { color: var(--viewer-danger); }
+.hud-warning   { color: var(--viewer-warning); }
+.hud-highlight { color: var(--viewer-highlight); }
+
+/* ==========================================================================
+   レスポンシブ
+   ========================================================================== */
+@media screen and (max-width: 1024px) {
+    .modal-content { width: 90vw; }
+}
+
+@media screen and (max-width: 768px) {
+    #controls { width: 240px; }
+}
+
+@media screen and (max-width: 480px) {
+    #controls {
+        left: var(--space-2);
+        width: auto;
+        max-width: calc(100vw - 20px);
+        max-height: 25vh;
+    }
+
+    #waypoint-info {
+        max-width: 220px;
+        max-height: 45vh;
+        overflow-y: auto;
+    }
+}

@@ -1,0 +1,43 @@
+/* ==========================================================================
+   pages/editor.css — ファイル編集画面（csv_editor.html / plain_text_editor.html）
+   --------------------------------------------------------------------------
+   カード・ボタン・表・通知は共通部品（components.css）を使う。
+   ここには編集画面でしか使わないものだけを置く。
+   ========================================================================== */
+
+/* --- CSV編集: 行を掴んで並べ替えるためのハンドル列 ----------------------- */
+.drag-handle-col {
+    width: 40px;
+    padding: var(--space-2) var(--space-2) var(--space-2) 0;
+    border: none;
+    background-color: transparent;
+}
+
+.drag-handle {
+    text-align: center;
+    cursor: move;
+    user-select: none;
+}
+
+/* 並べ替え中のプレースホルダ（SortableJS の ghostClass） */
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: var(--color-surface-hover);
+}
+
+/* 「Interval (sec)」列は内容が短いので幅を固定する */
+.col-interval {
+    width: 120px;
+}
+
+/* --- テキスト編集: 本文の入力欄 ------------------------------------------ */
+.text-editor {
+    height: 70vh;
+    font-family: var(--font-mono);
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.filename-input {
+    margin-bottom: var(--space-4);
+}

@@ -1,263 +1,17 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <title>PGMマップ設定 - PCD to PGM 変換</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-
-    <style>
-        /* ---------------------------------------------------------------------- */
-        /* 全体的なリセットとベーススタイル */
-        /* ---------------------------------------------------------------------- */
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* モダンなフォントに更新 */
-            padding: 30px; /* 余白を少し増やす */
-            background-color: #eef3f7; /* 明るくソフトな背景色 */
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 650px; /* 最大幅を少し広げる */
-            margin: 40px auto; /* 上下の余白を増やす */
-            background-color: #fff;
-            padding: 40px; /* パディングを増やす */
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); /* シャドウをソフトで深く */
-        }
-        h2 {
-            color: #1e88e5; /* より落ち着いた青 */
-            border-bottom: 3px solid #1e88e5; /* 実線に */
-            padding-bottom: 12px;
-            margin-bottom: 30px;
-            font-size: 1.8em;
-            text-align: center; /* タイトルを中央寄せ */
-            letter-spacing: 0.5px;
-        }
-        
-        /* ---------------------------------------------------------------------- */
-        /* ファイル表示エリアのスタイル */
-        /* ---------------------------------------------------------------------- */
-        .file-selection-display {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 30px;
-            border-left: 5px solid #ccc; /* 左側に区切り線を追加 */
-            padding-left: 15px;
-        }
-        .file-item {
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background-color: #f7fcf9; /* より明るい背景色 */
-            font-size: 1em;
-            color: #333;
-            line-height: 1.4;
-            display: flex; /* アイコン配置の準備 */
-            align-items: center;
-        }
-        .file-item::before {
-            content: '📁'; /* ファイルアイコン */
-            margin-right: 10px;
-            font-size: 1.2em;
-        }
-        .file-item strong {
-            color: #00897b; /* より鮮やかな緑青 */
-            font-weight: 600; /* 太すぎないフォントウェイト */
-            word-break: break-all; /* 長すぎるファイル名の折り返し */
-        }
-        .file-item.waypoint-info {
-            background-color: #fff8e1; /* ウェイポイント情報に注意を促す薄い黄色 */
-            border-color: #ffecb3;
-        }
-        .file-item.waypoint-info::before {
-            content: '📍'; /* ウェイポイントアイコン */
-            color: #ffb300;
-        }
-        .file-item.waypoint-info strong {
-            color: #ffa000;
-        }
-        .file-item.no-waypoint {
-            background-color: #f5f5f5; 
-            border-color: #e0e0e0;
-            color: #757575;
-            font-style: italic;
-        }
-        .file-item.no-waypoint::before {
-            content: '🚫'; /* なしアイコン */
-            color: #757575;
-        }
-
-        /* ---------------------------------------------------------------------- */
-        /* フォーム要素 */
-        /* ---------------------------------------------------------------------- */
-        label {
-            display: block;
-            margin-top: 20px;
-            margin-bottom: 8px;
-            font-weight: 600; /* より強く */
-            color: #455a64; /* 濃いグレー */
-            font-size: 1.05em;
-        }
-        input[type="text"] {
-            width: 96%; /* 全幅より少し小さく (パディング込みで調整) */
-            padding: 12px; /* パディングを増やす */
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 1em;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        input[type="text"]:focus {
-            border-color: #1e88e5; /* 青に強調 */
-            box-shadow: 0 0 5px rgba(30, 136, 229, 0.5); /* フォーカス時にシャドウを追加 */
-            outline: none;
-        }
-        .note {
-            font-size: 0.85em;
-            color: #888;
-            margin-top: 5px;
-            margin-bottom: 20px;
-            padding-left: 5px;
-        }
-        /* ループ設定用のスタイル */
-        .loop-setting {
-            margin-top: 25px;
-            padding: 15px;
-            border: 1px solid #b2ebf2; /* 明るい水色のボーダー */
-            border-radius: 8px;
-            background-color: #e0f7fa; /* 明るい水色の背景 */
-            display: flex;
-            align-items: center;
-        }
-        .loop-setting input[type="checkbox"] {
-            margin-right: 12px;
-            transform: scale(1.3); /* チェックボックスを大きく */
-            accent-color: #00bcd4; /* チェックボックスの色を変更 */
-        }
-        .loop-setting label {
-            display: inline;
-            font-weight: 500;
-            margin: 0;
-            color: #006064;
-            cursor: pointer;
-        }
-
-        /* ---------------------------------------------------------------------- */
-        /* ボタン共通スタイル */
-        /* ---------------------------------------------------------------------- */
-        .button {
-            padding: 12px 25px; /* パディングを増やす */
-            margin-right: 15px;
-            border: none;
-            border-radius: 8px; /* 角を丸く */
-            cursor: pointer;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s ease-in-out; /* トランジションをスムーズに */
-            display: inline-block;
-            text-align: center;
-            margin-top: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* ボタンにシャドウを追加 */
-        }
-        .button:active {
-            transform: translateY(1px); /* クリック時の沈み込みエフェクト */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Primaryボタン (変換開始/ダウンロード) */
-        .primary {
-            background-color: #4caf50; /* 落ち着いた緑 */
-            color: white;
-        }
-        .primary:hover:not(:disabled) {
-            background-color: #388e3c; /* ホバーで少し濃く */
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-        }
-        .primary:disabled {
-            background-color: #bdbdbd; /* グレーアウト */
-            cursor: not-allowed;
-            opacity: 0.8;
-            box-shadow: none;
-        }
-
-        /* Secondaryボタン (キャンセル/戻る/完了) */
-        .secondary {
-            background-color: #9e9e9e; /* ニュートラルなグレー */
-            color: white;
-        }
-        .secondary:hover:not(:disabled) {
-            background-color: #757575;
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-        }
-        .secondary:disabled {
-            background-color: #e0e0e0;
-            color: #a0a0a0;
-            cursor: not-allowed;
-            opacity: 0.8;
-        }
-
-        /* ---------------------------------------------------------------------- */
-        /* ステータスとローディング */
-        /* ---------------------------------------------------------------------- */
-        #status_message {
-            padding: 15px;
-            border-left: 6px solid #1e88e5; /* 青い強調線 */
-            background-color: #e3f2fd; /* 薄い水色の背景 */
-            border-radius: 8px;
-            margin-top: 30px !important; /* 強調 */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        #status_message p {
-            margin: 0;
-            line-height: 1.5;
-            font-weight: 500;
-        }
-        /* 完了時のメッセージスタイル */
-        #status_message p[style*="green"] {
-            color: #2e7d32 !important; 
-            font-weight: 700 !important;
-            font-size: 1.1em;
-        }
-        /* エラー時のメッセージスタイル */
-        #status_message p[style*="red"] {
-            color: #d32f2f !important; 
-            font-weight: 700 !important;
-            font-size: 1.1em;
-        }
-
-        #loading_spinner {
-            font-style: normal; /* 斜体を解除 */
-            color: #ff9800;
-            margin-top: 15px !important;
-            font-weight: bold;
-            animation: pulse 1.5s infinite; /* アニメーションを追加 */
-            display: flex;
-            align-items: center;
-        }
-        #loading_spinner::before {
-            content: '🔄'; /* 回転アイコン */
-            margin-right: 10px;
-            animation: spin 1.5s linear infinite; /* アイコンを回転 */
-        }
-
-        /* アニメーションキーフレーム */
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCD to PGM 変換設定</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <script src="{{ url_for('static', filename='js/jquery/jquery-3.6.0.min.js') }}"></script>
 
     <script>
         function closeCurrentTabAndReloadOpener() {
             try {
                 if (window.opener && !window.opener.closed) {
-                    window.opener.location.reload(); 
+                    window.opener.location.reload();
                 }
             } catch (e) {
                 console.warn("親ウィンドウのリロードに失敗しました:", e);
@@ -266,21 +20,21 @@
         }
     </script>
 </head>
-<body>
+<body class="page">
     <div class="container">
         <h2>PCD to PGM 変換: 設定</h2>
 
-        <ul class="file-selection-display">
-            <li class="file-item">
+        <ul class="info-list">
+            <li class="info-list__item">
                 変換元PCDファイル: <strong>{{ input_pcd_filename }}</strong>
             </li>
 
             {% if input_waypoint_filename %}
-            <li class="file-item waypoint-info">
+            <li class="info-list__item info-list__item--highlight">
                 ウェイポイントファイル: <strong>{{ input_waypoint_filename }}</strong> (PCD to PGMに反映)
             </li>
             {% else %}
-            <li class="file-item no-waypoint">
+            <li class="info-list__item info-list__item--none">
                 ウェイポイントファイル: なし (ウェイポイント情報は使用しません)
             </li>
             {% endif %}
@@ -288,20 +42,22 @@
 
         <input type="hidden" id="input_waypoint_filename" value="{{ input_waypoint_filename if input_waypoint_filename else '' }}">
 
-        <label for="output_map_name">出力PGMマップベース名:</label>
-        <input type="text" id="output_map_name" value="{{ default_output_name }}" required>
-        <p class="note">（例: `{{ default_output_name }}` → `{{ default_output_name }}.pgm` と `{{ default_output_name }}.yaml` が作成されます）</p>
+        <div class="field">
+            <label for="output_map_name">出力PGMマップベース名:</label>
+            <input type="text" id="output_map_name" value="{{ default_output_name }}" required>
+            <p class="note">（例: `{{ default_output_name }}` → `{{ default_output_name }}.pgm` と `{{ default_output_name }}.yaml` が作成されます）</p>
+        </div>
 
         {% if input_waypoint_filename %}
-        <div class="loop-setting">
+        <div class="check-row">
             <input type="checkbox" id="loop_waypoints" name="loop_waypoints" value="true">
             <label for="loop_waypoints">ウェイポイントをループとして扱う (自動走行の終点から始点に戻る)</label>
         </div>
         {% endif %}
 
-        <div id="mapping-config-options" style="margin-top: 25px;">
+        <div class="field" id="mapping-config-options">
             <label for="config-file">パラメータ設定ファイル (CSV):</label>
-            <select id="config-file" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 1em;">
+            <select id="config-file">
                 <option value="">-- 設定ファイルを選択 (任意) --</option>
                 {% for cfg in config_files %}
                 <option value="{{ cfg }}">{{ cfg }}</option>
@@ -309,19 +65,21 @@
             </select>
         </div>
 
-        <button id="start_convert_button" class="button primary">変換開始</button>
-        <button id="cancel_button" class="button secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
+        <div class="actions">
+            <button id="start_convert_button" class="btn btn--success">変換開始</button>
+            <button id="cancel_button" class="btn btn--secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
+        </div>
 
-        <div id="status_message" style="margin-top: 20px;">
+        <div id="status_message" class="progress-panel">
             <p>設定を確認し、「変換開始」ボタンを押してください。</p>
         </div>
-        <div id="loading_spinner" style="display:none; margin-top: 10px;">処理中...</div>
+        <div id="loading_spinner" class="spinner" hidden>処理中...</div>
 
         <script>
             $(document).ready(function() {
                 var pollingInterval;
                 var mapName;
-                var waypointFilename = $('#input_waypoint_filename').val(); 
+                var waypointFilename = $('#input_waypoint_filename').val();
 
                 $('#start_convert_button').click(function() {
                     mapName = $('#output_map_name').val().trim();
@@ -337,9 +95,9 @@
 
                     // ステータス初期化とローディング表示
                     $('#status_message').html('');
-                    $('#loading_spinner').show();
+                    $('#loading_spinner').prop('hidden', false);
                     $('#start_convert_button').prop('disabled', true);
-                    $('#cancel_button').prop('disabled', true); 
+                    $('#cancel_button').prop('disabled', true);
 
                     // 1. 変換開始APIを呼び出す
                     $.ajax({
@@ -355,17 +113,17 @@
                         }),
                         success: function(response) {
                             if (response.status === 'success') {
-                                $('#status_message').html('<p style="color: green;">' + response.message + '</p>');
+                                $('#status_message').html('<p class="text-success">' + response.message + '</p>');
                                 // 2. ポーリングを開始
                                 pollingInterval = setInterval(checkStatus, 5000);
                             } else {
-                                $('#status_message').html('<p style="color: red;">エラー: ' + response.message + '</p>');
+                                $('#status_message').html('<p class="text-error">エラー: ' + response.message + '</p>');
                                 cleanup();
                             }
                         },
                         error: function(xhr) {
                             var errorMsg = xhr.responseJSON ? xhr.responseJSON.message : (xhr.status + ': ' + xhr.statusText);
-                            $('#status_message').html('<p style="color: red;">API呼び出しエラー: ' + errorMsg + '</p>');
+                            $('#status_message').html('<p class="text-error">API呼び出しエラー: ' + errorMsg + '</p>');
                             cleanup();
                         }
                     });
@@ -383,29 +141,29 @@
                             $('#status_message').html('<p>' + response.message + '</p>');
                             if (response.status === 'finished') {
                                 clearInterval(pollingInterval);
-                                $('#loading_spinner').hide();
-                                
-                                var viewerLink = '<a href="/map_viewer" target="_blank" class="button secondary">3Dビューアで確認</a>';
-                                var downloadLink = '<a href="' + response.download_url + '" class="button primary" style="margin-top: 10px;">PGM/YAMLマップをダウンロード</a>';
-                                var backLink = '<button type="button" onclick="closeCurrentTabAndReloadOpener()" class="button secondary" style="margin-left: 10px;">他のPCDを選択/メインGUIに戻る</button>';
+                                $('#loading_spinner').prop('hidden', true);
+
+                                var viewerLink = '<a href="/map_viewer" target="_blank" class="btn btn--secondary">3Dビューアで確認</a>';
+                                var downloadLink = '<a href="' + response.download_url + '" class="btn btn--success">PGM/YAMLマップをダウンロード</a>';
+                                var backLink = '<button type="button" onclick="closeCurrentTabAndReloadOpener()" class="btn btn--secondary">他のPCDを選択/メインGUIに戻る</button>';
 
                                 $('#status_message').append(
-                                    '<p style="color: green; font-weight: bold; margin-top: 10px;">✅ 変換完了！</p>' + 
-                                    '<div style="margin-top: 15px;">' + viewerLink + downloadLink + backLink + '</div>'
+                                    '<p class="text-success">✅ 変換完了！</p>' +
+                                    '<div class="actions">' + viewerLink + downloadLink + backLink + '</div>'
                                 );
-                                
+
                             } else if (response.status === 'error') {
                                 clearInterval(pollingInterval);
-                                $('#loading_spinner').hide();
-                                $('#status_message').append('<p style="color: red; font-weight: bold;">❌ 処理中にエラーが発生しました。</p>');
+                                $('#loading_spinner').prop('hidden', true);
+                                $('#status_message').append('<p class="text-error">❌ 処理中にエラーが発生しました。</p>');
                                 cleanup();
                             }
                         },
                         error: function(xhr) {
                             clearInterval(pollingInterval);
-                            $('#loading_spinner').hide();
+                            $('#loading_spinner').prop('hidden', true);
                             var errorMsg = xhr.responseJSON ? xhr.responseJSON.message : (xhr.status + ': ' + xhr.statusText);
-                            $('#status_message').html('<p style="color: red;">ステータスチェックエラー: ' + errorMsg + '</p>');
+                            $('#status_message').html('<p class="text-error">ステータスチェックエラー: ' + errorMsg + '</p>');
                             cleanup();
                         }
                     });
@@ -413,8 +171,8 @@
 
                 function cleanup() {
                     $('#start_convert_button').prop('disabled', false);
-                    $('#cancel_button').prop('disabled', false); 
-                    $('#loading_spinner').hide();
+                    $('#cancel_button').prop('disabled', false);
+                    $('#loading_spinner').prop('hidden', true);
                 }
             });
         </script>

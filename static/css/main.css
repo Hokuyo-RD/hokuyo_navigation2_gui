@@ -1,370 +1,302 @@
-/* static/css/main.css */
+/* ==========================================================================
+   main.css — 全画面共通のエントリポイント
+   --------------------------------------------------------------------------
+   すべてのテンプレートはこのファイル1枚だけを読み込む。
+       <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+   画面固有のスタイルが必要な場合のみ static/css/pages/*.css を追加で読み込む。
+   詳しい構成は static/css/README.md を参照。
+   ========================================================================== */
 
-body {
-    font-family: sans-serif;
-    background-color: #f4f4f4;
-    color: #333;
-    margin: 0;
-    padding: 0;
+@import url("tokens.css");      /* 値（色・余白・影…）の定義 */
+@import url("base.css");        /* 素のHTML要素のベース */
+@import url("components.css");  /* 共有UI部品 */
+
+/* ==========================================================================
+   アプリシェル
+   --------------------------------------------------------------------------
+   layout.html を継承する画面（メニュー・実行結果・停止）専用のレイアウト。
+   <body class="app-shell"> が付いているときだけ適用される。
+   ========================================================================== */
+.app-shell {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
 }
 
-.header {
-    background-color: #222;
-    color: #eee;
-    padding: 20px;
+.app-header {
+    padding: var(--space-5);
+    background-color: var(--color-shell-header-bg);
+    color: var(--color-shell-on-dark);
     text-align: center;
-    margin-bottom: 20px;
 }
 
-.header h1 {
+.app-header h1 {
     margin: 0;
     font-size: 2em;
-    font-weight: bold;
+    font-weight: var(--fw-bold);
 }
 
-.content {
-    padding: 20px;
+.app-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 15px;
     flex-grow: 1;
+    gap: var(--space-4);
+    padding: var(--space-5);
 }
 
-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 20px 40px;
+.app-footer {
+    margin-top: var(--space-5);
+    padding: var(--space-2);
+    background-color: var(--color-shell-footer-bg);
+    color: var(--color-shell-on-dark);
+    font-size: var(--fs-sm);
     text-align: center;
-    text-decoration: none;
+}
+
+/* 現在のロボット動作モードの表示 */
+.mode-status {
+    margin-bottom: var(--space-5);
+    font-size: var(--fs-lg);
+}
+
+/* メニューボタンを縦に積むコンテナ */
+.menu-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-5);
+    padding: var(--space-5);
+}
+
+/* メニューのボタンは <form> で包んでいるものと包んでいないものが混在している。
+   form が幅を決めてしまうとボタン幅が揃わないので、form 自体は常に横いっぱいに
+   広げ、中のボタンを中央に置く。
+   直下の form だけが対象。子孫セレクタにするとポップアップ内のフォームまで
+   flex 化してしまい、中身が横並びに崩れる。 */
+.menu-stack > form {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+/* ==========================================================================
+   メニューボタン（タッチ操作前提の大きなボタン）
+   --------------------------------------------------------------------------
+   アプリシェル内のボタンはすべてこの見た目になる。ポップアップの中身は
+   fetch でこのDOMに差し込まれるため、ポップアップのボタンも同じ扱いになる。
+   1枚もの画面のボタンには .btn（components.css）を使うこと。
+   ========================================================================== */
+.app-shell button {
     display: inline-block;
-    font-size: 1.2em;
-    font-weight: bold;
-    border-radius: 10px;
-    cursor: pointer;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.3s ease;
     width: 250px;
     height: 120px;
-    box-sizing: border-box;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-a {
-    color: #007bff;
+    padding: var(--space-5) var(--space-8);
+    border: none;
+    border-radius: var(--radius-menu);
+    background-color: var(--color-primary);
+    color: #fff;
+    font-size: var(--fs-lg);
+    font-weight: var(--fw-bold);
+    text-align: center;
     text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-a:hover {
-    color: #0056b3;
-    text-decoration: underline;
-}
-
-.footer {
-    background-color: #333;
-    color: #eee;
-    text-align: center;
-    padding: 10px;
-    font-size: 0.9em;
-    margin-top: 20px;
-}
-
-/* メイン画面のボタンの色 */
-button[value="stop"] {
-    background-color: #dc3545;
-}
-
-button[value="stop"]:hover {
-    background-color: #c82333;
-}
-
-button[value="map_viewer"] {
-    background-color: #28a745;
-}
-
-button[value="map_viewer"]:hover {
-    background-color: #1e7e34;
-}
-
-.index-page-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-}
-
-.index-page-container button {
-    font-size: 1.3em;
-    padding: 25px 50px;
-    border-radius: 10px;
-}
-
-/* --- レスポンシブデザイン --- */
-/* スマートフォン向けのスタイル (最大幅 767px) */
-@media screen and (max-width: 767px) {
-    .header h1 {
-        font-size: 2em;
-    }
-
-    .content {
-        padding: 15px;
-        gap: 15px;
-    }
-
-    button {
-        width: 100%;
-        height: auto;
-        padding-top: 60px;
-        padding-bottom: 60px;
-        padding-left: 20px;
-        padding-right: 20px;
-        font-size: 1.2em;
-        border-radius: 10px;
-    }
-
-    .footer {
-        font-size: 1em;
-    }
-
-    .index-page-container {
-        padding: 15px;
-        gap: 15px;
-    }
-
-    .index-page-container button {
-        width: 100%;
-        padding-top: 60px;
-        padding-bottom: 60px;
-        padding-left: 20px;
-        padding-right: 20px;
-        font-size: 1.3em;
-        border-radius: 10px;
-    }
-}
-
-/* PC 向けのスタイル (最小幅 768px) */
-@media screen and (min-width: 768px) {
-    .header h1 {
-        font-size: 2.4em;
-    }
-
-    .content {
-        padding: 40px;
-        gap: 25px;
-    }
-
-    button {
-        width: 500px;
-        height: 140px;
-        font-size: 1.4em;
-        padding: 25px 50px;
-        border-radius: 10px;
-    }
-
-    .footer {
-        font-size: 1.1em;
-    }
-
-    .index-page-container button {
-        width: 600px;
-        font-size: 1.5em;
-        padding: 30px 60px;
-        border-radius: 10px;
-    }
-}
-/* --- /レスポンシブデザイン --- */
-
-
-/* --- ポップアップ共通スタイル --- */
-.popup-container {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.popup-content {
-    background-color: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-}
-
-.close-button {
-    position: static;
-    align-self: center;
-    margin-top: 10px;
-    padding: 5px 10px;
-    font-size: 0.8em;
     cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: 1px solid #007bff;
-    border-radius: 4px;
-    width: 50px;
-    text-align: center;
-    order: 2;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color var(--transition-base);
 }
-/* --- /ポップアップ共通スタイル --- */
 
-/* --- ボタンの状態制御スタイル --- */
-/* チェックボックス未完了時に適用される非活性ボタン */
-.inactive-button {
-    opacity: 0.5 !important;
-    background-color: #cccccc !important;
-    color: #666666 !important;
+.app-shell button:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+}
+
+/* メニュー画面（.menu-stack）のボタンは一回り大きい。
+   .app-shell button と詳細度が同じなので、必ずこの後ろに置くこと。 */
+.menu-stack button {
+    padding: var(--space-6) 50px;
+    font-size: 1.3em;
+}
+
+/* 用途別の色分け */
+.app-shell button[value="stop"] { background-color: var(--color-danger); }
+.app-shell button[value="stop"]:hover:not(:disabled) { background-color: var(--color-danger-hover); }
+
+.app-shell button[value="map_viewer"] { background-color: var(--color-success); }
+.app-shell button[value="map_viewer"]:hover:not(:disabled) { background-color: var(--color-success-hover); }
+
+/* --- 実行可否の状態（JavaScript が付け外しする） ------------------------- */
+/* チェック未完了などで押せない状態 */
+.app-shell .inactive-button {
+    background-color: var(--color-disabled-bg);
+    color: var(--color-disabled-text);
+    opacity: 0.5;
     cursor: not-allowed;
-    /* ポップアップ内のボタンのベースサイズ */
-    font-size: 1.4em !important;
-    padding: 25px 50px !important;
-    border-radius: 10px !important;
 }
 
-/* チェックボックス完了時や、常に実行可能なボタンに適用される活性ボタン */
-.active-button {
-    background-color: #28a745 !important; /* Green */
-    color: white !important;
+/* 実行可能な状態 */
+.app-shell .active-button {
+    background-color: var(--color-success);
+    color: #fff;
     opacity: 1;
     cursor: pointer;
-    /* ポップアップ内のボタンのベースサイズ */
-    font-size: 1.4em !important;
-    padding: 25px 50px !important;
-    border-radius: 10px !important;
-}
-/* --- /ボタンの状態制御スタイル --- */
-
-
-/* --- 屋内・屋外自律走行設定ポップアップコンテンツスタイル --- */
-.indoor-run-popup-content,
-.navigation-run-popup-content {
-    text-align: center;
-    padding: 20px;
-    margin-bottom: 20px;
-    font-size: 0.9em;
-    order: 1;
 }
 
-/* チェックボックスの親要素のスタイル */
-.indoor-run-popup-content div,
-.navigation-run-popup-content div {
-    margin-bottom: 10px;
-    text-align: left;
+.app-shell .active-button:hover:not(:disabled) {
+    background-color: var(--color-success-hover);
 }
 
-/* チェックボックスのスタイル */
-.indoor-run-popup-content div input[type="checkbox"],
-.navigation-run-popup-content div input[type="checkbox"] {
-    margin-right: 8px;
-    vertical-align: middle;
-    transform: scale(2.0);
-    -webkit-transform: scale(2.0);
-}
+/* ==========================================================================
+   ポップアップ（メニュー画面から fetch で読み込む設定ダイアログ）
+   --------------------------------------------------------------------------
+   オーバーレイ本体（.popup-container / .popup-content）は components.css。
+   ここではアプリシェル特有の中身だけを定義する。
+   ========================================================================== */
 
-/* チェックボックスに隣接するラベルのスタイル */
-.indoor-run-popup-content div label,
-.navigation-run-popup-content div label {
-    margin-left: 15px;
-    vertical-align: middle;
-    font-size: 0.9em;
-}
-
-/* チェックされていない状態のラベルを赤枠にするスタイル */
-input[type="checkbox"] + label {
-    border: 2px solid #dc3545; /* Red */
-    padding: 5px 10px;
-    font-weight: bold;
-    color: #dc3545;
-}
-
-/* チェックされた状態のラベルを緑枠にするスタイル */
-input[type="checkbox"]:checked + label {
-    border: 2px solid #28a745; /* Green */
-    padding: 5px 10px;
-    font-weight: bold;
-    color: #28a745;
-}
-
-/* 引数入力フィールドのスタイル */
-.input-field {
-    margin-top: 20px;
-    margin-bottom: 20px;
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.input-field label {
-    font-size: 1.1em;
-    font-weight: bold;
-    color: #555;
-    margin-bottom: 8px;
-}
-
-.input-field input[type="text"] {
-    padding: 12px;
-    font-size: 1.1em;
-    border: 2px solid #ccc;
-    border-radius: 8px;
-    width: 100%;
-    box-sizing: border-box;
-    transition: border-color 0.3s ease;
-}
-
-.input-field input[type="text"]:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-}
-/* --- /屋内・屋外自律走行設定ポップアップコンテンツスタイル --- */
-
-
-/* --- マッピング設定ポップアップコンテンツスタイル (屋外設定のスタイルを流用) --- */
-.mapping-popup-content {
-    /* navigation-run-popup-content と同じスタイルを適用 */
-    text-align: center;
-    padding: 20px;
-    margin-bottom: 20px;
-    font-size: 0.9em;
-    order: 1;
-}
-
-/* マッピングボタンのコンテナ（flex-direction: columnで縦に並べる） */
-.mapping-popup-content form > div[style*="flex-direction: column"] {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding-bottom: 20px;
-}
-
-.mapping-popup-content form button {
-    /* active-buttonのスタイルが適用されますが、サイズを統一 */
-    font-size: 1.4em !important;
-    padding: 25px 50px !important;
+/* 「閉じる」ボタン。メニューボタンの巨大な見た目を打ち消す */
+.app-shell .close-button {
+    order: 2;
+    align-self: center;
     width: auto;
     height: auto;
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-5);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary);
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-medium);
+    box-shadow: none;
 }
-/* --- /マッピング設定ポップアップコンテンツスタイル --- */
+
+/* ポップアップの中身。閉じるボタンより上に表示する */
+.navigation-run-popup-content,
+.mapping-popup-content {
+    order: 1;
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) 0;
+    font-size: var(--fs-sm);
+    text-align: center;
+}
+
+/* ポップアップ内のボタンはポップアップ幅いっぱいに広げる。
+   メニューボタンの固定幅（レスポンシブ指定を含む）に必ず勝つよう
+   .app-shell を前置して詳細度を上げている。 */
+.app-shell .navigation-run-popup-content button,
+.app-shell .mapping-popup-content button {
+    width: 100%;
+    height: auto;
+    padding: var(--space-5) var(--space-8);
+    font-size: 1.4em;
+}
+
+/* ボタンを縦に積む列 */
+.popup-button-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-bottom: var(--space-5);
+}
+
+/* --- 実行前チェックリスト ------------------------------------------------ */
+/* 1行を flex にしておくと、ラベルが2行に折り返しても枠が分断されない。 */
+.checklist > div {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+    text-align: left;
+}
+
+.checklist input[type="checkbox"] {
+    flex-shrink: 0;
+    /* scale(2) で見た目だけ拡大するので、その分の余白を左右に確保する */
+    margin: 0 var(--space-2);
+    transform: scale(2);
+}
+
+/* 未チェックは赤枠、チェック済みは緑枠にして状態を一目で分かるようにする */
+.checklist input[type="checkbox"] + label {
+    padding: var(--space-1) var(--space-2);
+    border: 2px solid var(--color-danger);
+    color: var(--color-danger);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-bold);
+}
+
+.checklist input[type="checkbox"]:checked + label {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+/* ポップアップ下部の実行ボタン */
+.popup-actions {
+    margin-top: var(--space-4);
+    text-align: center;
+}
+
+/* --- ポップアップ内の入力欄 ---------------------------------------------- */
+.popup-field {
+    width: 100%;
+    max-width: 400px;
+    margin: var(--space-2) auto 0;
+    text-align: center;
+}
+
+.popup-field label {
+    display: block;
+    margin-bottom: var(--space-2);
+    color: var(--color-text-muted);
+    font-weight: var(--fw-bold);
+}
+
+.popup-field select,
+.popup-field input[type="text"] {
+    border: 2px solid var(--color-border-strong);
+    border-radius: var(--radius-lg);
+}
+
+/* ==========================================================================
+   レスポンシブ（アプリシェルのみ）
+   ========================================================================== */
+@media screen and (max-width: 767px) {
+    .app-content {
+        padding: var(--space-4);
+    }
+
+    .app-shell button {
+        width: 100%;
+        height: auto;
+        padding: 60px var(--space-5);
+    }
+
+    .app-footer { font-size: var(--fs-md); }
+
+    .menu-stack {
+        width: 100%;
+        gap: var(--space-4);
+        padding: var(--space-4);
+    }
+}
+
+@media screen and (min-width: 768px) {
+    .app-header h1 { font-size: 2.4em; }
+
+    .app-content {
+        gap: var(--space-6);
+        padding: var(--space-8);
+    }
+
+    .app-shell button {
+        width: 500px;
+        height: 140px;
+        padding: var(--space-6) 50px;
+        font-size: 1.4em;
+    }
+
+    .app-footer { font-size: 1.1em; }
+
+    .menu-stack button {
+        width: 600px;
+        padding: var(--space-7) 60px;
+        font-size: 1.5em;
+    }
+}

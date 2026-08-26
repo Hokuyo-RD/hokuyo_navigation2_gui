@@ -1,0 +1,134 @@
+/* ==========================================================================
+   tokens.css — デザイントークン（唯一の「値」の置き場）
+   --------------------------------------------------------------------------
+   色・余白・角丸・影・フォントサイズなどの生の値は、すべてこのファイルで
+   定義する。他のCSSやテンプレートでは生の値を書かず、必ず var(--xxx) で
+   参照すること。配色を変えたいときはこのファイルだけを編集すればよい。
+   ========================================================================== */
+
+:root {
+    /* --- 配色: ブランド／状態色 ------------------------------------------ */
+    --color-primary: #007bff;          /* 主要操作・リンク */
+    --color-primary-hover: #0056b3;
+    --color-success: #28a745;          /* 実行・保存・次へ進む */
+    --color-success-hover: #1e7e34;
+    --color-danger: #dc3545;           /* 削除・停止・エラー */
+    --color-danger-hover: #c82333;
+    --color-warning: #ffc107;          /* 注意 */
+    --color-warning-hover: #d39e00;
+    --color-secondary: #6c757d;        /* 補助操作・キャンセル */
+    --color-secondary-hover: #5a6268;
+
+    /* --- 配色: 面と文字 --------------------------------------------------- */
+    --color-bg: #f4f7f9;               /* ページ背景 */
+    --color-surface: #ffffff;          /* カード・パネルの背景 */
+    --color-surface-alt: #f8f9fa;      /* リストなど一段沈んだ面 */
+    --color-surface-hover: #e9ecef;    /* ホバー時の面 */
+    --color-text: #333333;
+    --color-text-muted: #555555;
+    --color-text-subtle: #888888;
+    --color-border: #dddddd;
+    --color-border-strong: #cccccc;
+    --color-border-subtle: #eeeeee;
+
+    /* --- 配色: 無効状態 --------------------------------------------------- */
+    --color-disabled-bg: #cccccc;
+    --color-disabled-text: #666666;
+
+    /* --- 配色: 通知（フラッシュメッセージ／進捗表示） --------------------- */
+    --color-alert-success-bg: #d4edda;
+    --color-alert-success-fg: #155724;
+    --color-alert-success-border: #c3e6cb;
+    --color-alert-error-bg: #f8d7da;
+    --color-alert-error-fg: #721c24;
+    --color-alert-error-border: #f5c6cb;
+    --color-alert-warning-bg: #fff3cd;
+    --color-alert-warning-fg: #856404;
+    --color-alert-warning-border: #ffeeba;
+    --color-alert-info-bg: #d1ecf1;
+    --color-alert-info-fg: #0c5460;
+    --color-alert-info-border: #bee5eb;
+
+    /* --- 配色: アプリシェル（ヘッダ／フッタ） ----------------------------- */
+    --color-shell-header-bg: #222222;
+    --color-shell-footer-bg: #333333;
+    --color-shell-on-dark: #eeeeee;
+
+    /* --- 配色: 3Dビューア（ダークUI） ------------------------------------- */
+    --viewer-bg: #1e1e1e;
+    --viewer-surface: #2a2a2a;
+    --viewer-surface-alt: #222222;
+    --viewer-control-bg: #444444;
+    --viewer-control-hover: #555555;
+    --viewer-control-disabled: #333333;
+    --viewer-border: #555555;
+    --viewer-border-strong: #888888;
+    --viewer-text: #e0e0e0;
+    --viewer-text-muted: #bbbbbb;
+    --viewer-text-disabled: #777777;
+    --viewer-accent: #00aaff;          /* 見出し・凡例 */
+    --viewer-highlight: #ffcc00;       /* 選択中ウェイポイント等の強調 */
+    --viewer-overlay: rgba(0, 0, 0, 0.5);
+    --viewer-overlay-strong: rgba(0, 0, 0, 0.7);
+    --viewer-danger: #ff5252;          /* ダーク背景上のエラー文字 */
+    --viewer-warning: #ffeb3b;         /* ダーク背景上の警告文字 */
+
+    /* --- 配色: ウェイポイントの種別（3Dの描画色と凡例で共用） ------------- */
+    --wp-normal: #00ff00;
+    --wp-slow: #ffff00;
+    --wp-stop: #ff0000;
+    --wp-default: #00ffff;
+
+    /* --- タイポグラフィ --------------------------------------------------- */
+    --font-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans',
+                 'Noto Sans JP', Meiryo, Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --line-height: 1.6;
+
+    --fs-xs: 0.85em;
+    --fs-sm: 0.9em;
+    --fs-md: 1em;
+    --fs-lg: 1.2em;
+    --fs-xl: 1.5em;
+    --fs-2xl: 1.8em;
+    --fw-normal: 400;
+    --fw-medium: 600;
+    --fw-bold: 700;
+
+    /* --- 余白（4pxグリッド） ---------------------------------------------- */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-7: 30px;
+    --space-8: 40px;
+
+    /* --- 角丸 ------------------------------------------------------------- */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-menu: 10px;               /* メニュー画面の大きなボタン */
+
+    /* --- 影 --------------------------------------------------------------- */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.1);
+    --shadow-focus: 0 0 5px rgba(0, 123, 255, 0.5);
+
+    /* --- モーション ------------------------------------------------------- */
+    --transition-fast: 0.2s ease;
+    --transition-base: 0.3s ease;
+
+    /* --- レイアウト ------------------------------------------------------- */
+    --container-width: 750px;          /* カードの標準最大幅 */
+    --container-width-wide: 1000px;    /* 表を含む画面用 */
+
+    /* --- 重なり順（z-index はここでしか決めない） ------------------------- */
+    --z-viewer-hud: 10;
+    --z-viewer-loading: 100;
+    --z-modal: 200;
+    --z-popup: 1000;
+}

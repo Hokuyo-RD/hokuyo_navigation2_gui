@@ -1,0 +1,47 @@
+/* ==========================================================================
+   pages/file-browser.css — ファイル管理画面（file_browser.html）
+   --------------------------------------------------------------------------
+   一覧・ボタン・通知は共通部品（components.css）を使う。
+   ここにはファイル管理画面でしか使わないものだけを置く。
+   ========================================================================== */
+
+/* 一覧の上にある「すべて選択」＋一括削除の行 */
+.bulk-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+.bulk-actions label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+/* 一覧の下にある新規作成フォーム */
+.new-file-form {
+    margin-top: var(--space-5);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
+}
+
+.new-file-form__row {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.new-file-form__row input[type="text"] {
+    width: auto;      /* 幅は flex に任せる */
+    flex-grow: 1;
+}
+
+.new-file-form .btn--block {
+    margin-top: var(--space-2);
+}
+
+/* ファイル名をダブルクリックしたときに差し込まれるリネーム用の入力欄 */
+.rename-input {
+    width: 70%;
+}

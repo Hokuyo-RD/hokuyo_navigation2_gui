@@ -1,0 +1,582 @@
+/* ==========================================================================
+   components.css — 画面をまたいで共有するUI部品
+   --------------------------------------------------------------------------
+   命名規則: BEM風の  .block / .block__element / .block--modifier
+   状態クラスは .is-xxx （JavaScript から付け外しするもの）。
+   値は必ず tokens.css の var(--xxx) を使い、ここに生の色や余白を書かない。
+   ========================================================================== */
+
+/* ==========================================================================
+   カード（.container）— 1枚ものの画面の中身を包む白いパネル
+   ========================================================================== */
+.container {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: var(--space-7);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+/* 表など横に広い画面用 */
+.container--wide {
+    max-width: var(--container-width-wide);
+}
+
+/* カード見出し（h1/h2 のどちらでも同じ見た目になるようにしている） */
+.container > h1,
+.container > h2,
+.card-title {
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-3);
+    border-bottom: 2px solid var(--color-surface-hover);
+    color: var(--color-primary);
+    font-size: var(--fs-xl);
+    text-align: center;
+}
+
+/* セクション見出し（カードの直下でなくてもよい） */
+.container h3 {
+    margin-bottom: var(--space-2);
+    color: var(--color-text-muted);
+    font-size: var(--fs-md);
+}
+
+/* 前の画面へ戻るリンク */
+.back-link {
+    display: inline-block;
+    margin-bottom: var(--space-5);
+    font-weight: var(--fw-medium);
+}
+
+/* 選択中のファイル名など、操作の結果を短く示す行 */
+.selected-file-name {
+    margin-top: var(--space-4);
+    color: var(--color-text-muted);
+    font-weight: var(--fw-bold);
+}
+
+/* 補足テキスト */
+.note {
+    margin-top: var(--space-1);
+    margin-bottom: var(--space-5);
+    color: var(--color-text-subtle);
+    font-size: var(--fs-xs);
+}
+
+/* ==========================================================================
+   ボタン（.btn）
+   --------------------------------------------------------------------------
+   使い方: <button class="btn btn--success">実行</button>
+   色は用途で選ぶ。 primary=主要操作 / success=実行・保存・次へ /
+   danger=削除・停止 / secondary=キャンセル・戻る / warning=注意を伴う操作
+   <a> に付けてもボタンとして見えるようにしてある。
+   ========================================================================== */
+.btn {
+    display: inline-block;
+    padding: var(--space-3) var(--space-5);
+    border: none;
+    border-radius: var(--radius-md);
+    background-color: var(--color-secondary);
+    color: #fff;
+    font-size: var(--fs-md);
+    font-weight: var(--fw-medium);
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--transition-fast),
+                transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.btn:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.btn:disabled,
+.btn.is-disabled {
+    background-color: var(--color-disabled-bg);
+    color: var(--color-disabled-text);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* --- 色のバリエーション -------------------------------------------------- */
+.btn--primary { background-color: var(--color-primary); }
+.btn--primary:hover:not(:disabled) { background-color: var(--color-primary-hover); }
+
+.btn--success { background-color: var(--color-success); }
+.btn--success:hover:not(:disabled) { background-color: var(--color-success-hover); }
+
+.btn--danger { background-color: var(--color-danger); }
+.btn--danger:hover:not(:disabled) { background-color: var(--color-danger-hover); }
+
+.btn--warning { background-color: var(--color-warning); color: var(--color-text); }
+.btn--warning:hover:not(:disabled) { background-color: var(--color-warning-hover); color: var(--color-text); }
+
+.btn--secondary { background-color: var(--color-secondary); }
+.btn--secondary:hover:not(:disabled) { background-color: var(--color-secondary-hover); }
+
+/* --- 大きさのバリエーション ---------------------------------------------- */
+.btn--sm {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--fs-sm);
+}
+
+.btn--lg {
+    padding: var(--space-4) var(--space-7);
+    font-size: var(--fs-lg);
+}
+
+.btn--block {
+    display: block;
+    width: 100%;
+}
+
+/* ==========================================================================
+   ボタンの並び（.actions）
+   ========================================================================== */
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-5);
+}
+
+.actions--end { justify-content: flex-end; }
+
+/* 一覧の行の中に置くボタン列。折り返すと行の高さが揃わないので nowrap */
+.actions--inline {
+    flex-wrap: nowrap;
+    margin-top: 0;
+}
+
+.actions .btn { flex-shrink: 0; }
+
+.actions form {
+    display: inline;
+    margin: 0;
+}
+
+/* ==========================================================================
+   フォーム（.field）
+   --------------------------------------------------------------------------
+   <div class="field"><label>…</label><input …></div>
+   ========================================================================== */
+.field {
+    margin-bottom: var(--space-5);
+}
+
+.field > label {
+    display: block;
+    margin-bottom: var(--space-2);
+    color: var(--color-text-muted);
+    font-weight: var(--fw-medium);
+}
+
+/* ==========================================================================
+   選択リスト（.file-list）— ファイル／ディレクトリの一覧
+   --------------------------------------------------------------------------
+   選択中の項目には JavaScript から .selected を付ける。
+   ========================================================================== */
+.file-list {
+    margin: 0 0 var(--space-5);
+    padding: 0;
+    list-style: none;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface-alt);
+}
+
+.file-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border-subtle);
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.file-list li:last-child { border-bottom: none; }
+.file-list li:hover { background-color: var(--color-surface-hover); }
+
+/* クリックで選択する一覧（PCD／ウェイポイント／ROS Bag選択画面） */
+.file-list--selectable li { cursor: pointer; }
+
+.file-list li.selected {
+    background-color: var(--color-primary);
+    color: #fff;
+    font-weight: var(--fw-bold);
+}
+
+.file-list li.selected:hover { background-color: var(--color-primary-hover); }
+
+/* 選択できない項目（該当ファイルなし等のプレースホルダ） */
+.file-list li.is-empty {
+    color: var(--color-secondary);
+    cursor: default;
+}
+
+.file-list li.is-empty:hover { background-color: transparent; }
+
+/* 行の中身（チェックボックス＋名前）を左に寄せるためのラッパ */
+.file-list__item {
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.file-list__item:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.file-list__name {
+    flex-grow: 1;
+    font-weight: var(--fw-medium);
+    word-break: break-all;
+}
+
+/* ==========================================================================
+   情報リスト（.info-list）— 選択済みファイルなど「読むだけ」の一覧
+   ========================================================================== */
+.info-list {
+    margin: 0 0 var(--space-7);
+    padding: 0 0 0 var(--space-4);
+    list-style: none;
+    border-left: 5px solid var(--color-border-strong);
+}
+
+.info-list__item {
+    display: flex;
+    align-items: center;
+    /* flex にすると要素間の空白文字が消えるので gap で補う */
+    column-gap: var(--space-1);
+    margin-bottom: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface-alt);
+}
+
+.info-list__item::before {
+    content: '📁';
+    margin-right: var(--space-1);
+    font-size: var(--fs-lg);
+}
+
+.info-list__item strong {
+    color: var(--color-text);
+    font-weight: var(--fw-medium);
+    word-break: break-all;
+}
+
+/* 強調したい行（ウェイポイント情報・モード表示など） */
+.info-list__item--highlight {
+    border-color: var(--color-alert-warning-border);
+    background-color: var(--color-alert-warning-bg);
+}
+
+.info-list__item--highlight::before { content: '📍'; }
+.info-list__item--highlight strong { color: var(--color-alert-warning-fg); }
+
+/* 設定・モードを表す行 */
+.info-list__item--config::before { content: '⚙️'; }
+
+/* 「なし」を表す行 */
+.info-list__item--none {
+    color: var(--color-text-subtle);
+    font-style: italic;
+}
+
+.info-list__item--none::before { content: '🚫'; }
+
+/* ==========================================================================
+   通知（.alert）— flash メッセージ・処理結果の表示
+   --------------------------------------------------------------------------
+   種類は Flask の flash カテゴリ（success / error / warning / info）に対応。
+   <div class="alert alert--error">…</div>
+   ========================================================================== */
+.alert {
+    margin-bottom: var(--space-5);
+    padding: var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+}
+
+.alert:last-child { margin-bottom: 0; }
+.alert p { margin: 0; }
+
+.alert--success {
+    background-color: var(--color-alert-success-bg);
+    border-color: var(--color-alert-success-border);
+    color: var(--color-alert-success-fg);
+}
+
+.alert--error {
+    background-color: var(--color-alert-error-bg);
+    border-color: var(--color-alert-error-border);
+    color: var(--color-alert-error-fg);
+}
+
+.alert--warning {
+    background-color: var(--color-alert-warning-bg);
+    border-color: var(--color-alert-warning-border);
+    color: var(--color-alert-warning-fg);
+}
+
+.alert--info {
+    background-color: var(--color-alert-info-bg);
+    border-color: var(--color-alert-info-border);
+    color: var(--color-alert-info-fg);
+}
+
+/* flash メッセージを <ul> で並べる場合 */
+.alert-list {
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* ==========================================================================
+   進捗パネル（.progress-panel）— 変換・マッピングの状態表示
+   ========================================================================== */
+.progress-panel {
+    margin-top: var(--space-7);
+    padding: var(--space-4);
+    border-left: 6px solid var(--color-primary);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-alert-info-bg);
+    box-shadow: var(--shadow-sm);
+}
+
+.progress-panel p {
+    margin: 0;
+    font-weight: var(--fw-medium);
+}
+
+/* ==========================================================================
+   ローディング表示（.spinner）
+   ========================================================================== */
+.spinner {
+    display: flex;
+    align-items: center;
+    margin-top: var(--space-4);
+    color: var(--color-warning-hover);
+    font-weight: var(--fw-bold);
+    animation: pulse 1.5s infinite;
+}
+
+.spinner::before {
+    content: '🔄';
+    margin-right: var(--space-2);
+    animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* ==========================================================================
+   表（.table）
+   ========================================================================== */
+.table {
+    width: 100%;
+    margin-top: var(--space-5);
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: var(--space-2);
+    border: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+
+.table th {
+    background-color: var(--color-surface-alt);
+    font-weight: var(--fw-bold);
+    text-align: center;
+}
+
+.table td { text-align: left; }
+
+.table td select,
+.table td input[type="text"] {
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+}
+
+/* ==========================================================================
+   トグルスイッチ（.switch）
+   --------------------------------------------------------------------------
+   <label class="switch"><input type="checkbox"><span class="switch__slider"></span></label>
+   ========================================================================== */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+    margin-right: var(--space-2);
+    flex-shrink: 0;
+}
+
+.switch input {
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+.switch__slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 28px;
+    background-color: var(--color-border-strong);
+    cursor: pointer;
+    transition: background-color var(--transition-base);
+}
+
+.switch__slider::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--color-surface);
+    transition: transform var(--transition-base);
+}
+
+.switch input:checked + .switch__slider {
+    background-color: var(--color-primary);
+}
+
+.switch input:checked + .switch__slider::before {
+    transform: translateX(22px);
+}
+
+/* チェックボックス1個を目立たせて置く行（オプション設定など） */
+.check-row {
+    display: flex;
+    align-items: center;
+    margin-top: var(--space-6);
+    padding: var(--space-4);
+    border: 1px solid var(--color-alert-info-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-alert-info-bg);
+}
+
+.check-row input[type="checkbox"] {
+    margin-right: var(--space-3);
+    transform: scale(1.3);
+    accent-color: var(--color-primary);
+}
+
+.check-row label {
+    margin: 0;
+    color: var(--color-alert-info-fg);
+    cursor: pointer;
+}
+
+.switch-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-5);
+    padding: var(--space-2);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface-alt);
+}
+
+/* ==========================================================================
+   オーバーレイ（.popup-container / .modal）
+   --------------------------------------------------------------------------
+   どちらも初期状態は非表示で、JavaScript が display を切り替えて開く。
+   .popup-container は flex（中央寄せ）、.modal は block（スクロール可）。
+   ========================================================================== */
+.popup-container,
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: var(--viewer-overlay);
+}
+
+.popup-container {
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3);
+    z-index: var(--z-popup);
+}
+
+.modal {
+    overflow: auto;
+    background-color: var(--viewer-overlay-strong);
+    z-index: var(--z-modal);
+}
+
+.popup-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    position: relative;
+    /* 幅を固定しておかないと、中身の文字数でポップアップの幅が変わり
+       チェックリストのラベルなどが不自然に折り返す。
+       高さは画面内に収め、あふれる分はスクロールさせる。 */
+    width: min(720px, 100%);
+    max-height: 92vh;
+    overflow-y: auto;
+    /* layout.html が本文全体を <h1> で包んでいるため、そのままだと
+       ダイアログ内の文字が 2em 相当に膨らんで画面に収まらない。
+       ここで基準サイズを固定し、中身は em で相対指定する。 */
+    font-size: 1.5rem;
+    font-weight: var(--fw-normal);
+    padding: var(--space-7);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* ポップアップはメニュー画面（.menu-stack）の内側に fetch で差し込まれるため、
+   子孫セレクタで書かれたシェル側のレイアウト指定を巻き込みやすい。
+   中身のフォームは常に通常のブロックとして扱い、影響を遮断する。 */
+.popup-content form {
+    display: block;
+    width: auto;
+}
+
+/* ==========================================================================
+   文字色のユーティリティ（JavaScript から状態を反映するときに使う）
+   ========================================================================== */
+.text-success {
+    color: var(--color-success-hover);
+    font-weight: var(--fw-bold);
+}
+
+.text-error {
+    color: var(--color-danger);
+    font-weight: var(--fw-bold);
+}
+
+.text-muted { color: var(--color-text-muted); }

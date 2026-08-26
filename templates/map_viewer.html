@@ -4,273 +4,8 @@
     <meta charset="UTF-8">
     <title>PCD / PGM Map / Waypoint Viewer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <style>
-        body { margin: 0; overflow: hidden; background-color: #1e1e1e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; color: #e0e0e0; }
-        #viewer-container { width: 100vw; height: 100vh; position: relative; }
-        #loading-message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #fff;
-            font-size: 1.5em;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 100;
-            transition: opacity 0.3s;
-        }
-        .add-waypoint-mode {
-            cursor: crosshair;
-        }
-        #info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 0.9em;
-            z-index: 10;
-        }
-        #grid-info {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #fff;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 1.0em;
-            z-index: 10;
-        }
-        #controls {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px 15px;
-            border-radius: 3px;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 95vh;
-            width: 260px; /* パネルの幅を固定 */
-            overflow-y: auto;
-            font-size: 14px;
-        }
-        #controls fieldset {
-            border: 1px solid #555;
-            border-radius: 4px;
-            padding: 5px 8px;
-            margin: 3px 0;
-        }
-        #controls legend {
-            padding: 0 5px;
-            color: #00aaff;
-            font-weight: bold;
-        }
-        #controls button, .modal button {
-            background-color: #444;
-            color: #fff;
-            border: 1px solid #666;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-        #controls button:hover:not(:disabled), .modal button:hover:not(:disabled) {
-            background-color: #555;
-            border-color: #888;
-        }
-        #controls button:disabled, .modal button:disabled {
-            background-color: #333;
-            color: #777;
-            cursor: not-allowed;
-        }
-        #controls label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
-        #load-controls h4 {
-            margin: 0;
-            font-weight: normal;
-            font-size: 0.9em;
-            color: #ccc;
-        }
-        #dynamic-toggles {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        #dynamic-toggles label span {
-            white-space: nowrap; /* テキストを改行させない */
-            overflow: hidden; /* はみ出したテキストを隠す */
-            text-overflow: ellipsis; /* はみ出した部分を...で表示 */
-            min-width: 0; /* flexアイテムが縮むのを許可 */
-            vertical-align: middle; /* チェックボックスとテキストの垂直位置を中央に揃える */
-        }
-
-        .modal {
-            display: none; 
-            position: fixed;
-            z-index: 200; 
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.7);
-        }
-        .modal-content {
-            background-color: #2a2a2a;
-            margin: 10% auto; /* 上部の余白を調整 */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 550px;
-            border-radius: 5px;
-            color: #fff;
-        }
-        .modal-content h3 {
-            margin-top: 0;
-            border-bottom: 1px solid #555;
-            padding-bottom: 10px;
-        }
-        .modal-content label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .close-button {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close-button:hover,
-        .close-button:focus {
-            color: white;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        #map-list-container, #unload-list-container {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #555;
-            padding: 10px;
-            margin-top: 10px;
-            margin-bottom: 15px;
-            background-color: #222;
-        }
-        .modal-content input[type="text"], .modal-content select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 15px;
-            box-sizing: border-box;
-            background-color: #444; color: #fff; border: 1px solid #666; border-radius: 4px;
-        }
-        #waypoint-info {
-            position: absolute;
-            bottom: 10px; /* 画面下部に配置 */
-            left: 10px;
-            color: #fff;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 0.9em;
-            z-index: 10;
-            max-width: 300px;
-            display: none; /* 初期状態では非表示 */
-            flex-direction: column;
-            gap: 5px;
-            border: 1px solid #555;
-        }
-        #waypoint-info h4 {
-            margin: 0 0 5px 0;
-            font-weight: bold;
-            color: #ffcc00; /* 強調色 */
-        }
-        #waypoint-info fieldset {
-            border: 1px solid #444;
-            border-radius: 4px;
-            padding: 5px 10px;
-            margin: 5px 0;
-        }
-        #waypoint-info legend {
-            padding: 0 5px;
-            font-weight: bold;
-            color: #bbb;
-        }
-        #waypoint-info .coord-input {
-            display: flex;
-            justify-content: space-between; /* ラベルと入力ボックスを両端に配置 */
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        #waypoint-info .coord-input label {
-            flex-shrink: 0; /* ラベルが縮まないようにする */
-            margin-right: 10px; /* ラベルと入力ボックスの間に余白を追加 */
-            font-size: 0.95em;
-        }
-        #waypoint-info .coord-input input {
-            width: 70px; /* 入力フィールドの幅 */
-            padding: 2px 5px;
-            border: 1px solid #777;
-            background-color: #444;
-            color: #fff;
-            border-radius: 3px;
-        }
-        #waypoint-legend-container {
-            position: absolute; /* 絶対位置指定 */
-            bottom: 10px; /* 下からの距離 */
-            left: 10px; /* 左からの距離 */
-            color: #fff;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 0.9em;
-            z-index: 10;
-        }
-        #waypoint-legend-container h4 {
-            margin: 0 0 5px 0;
-            font-weight: bold;
-        }
-
-        /* タブレット・スマートフォン向けのレスポンシブ対応 */
-        @media screen and (max-width: 768px) {
-            #controls {
-                width: 240px; /* 少し幅を狭くする */
-            }
-        }
-
-        @media screen and (max-width: 480px) {
-            #controls {
-                width: auto; /* 幅を自動調整 */
-                left: 10px; /* 左にも配置 */
-                max-width: calc(100vw - 20px); /* 画面幅いっぱいに広がらないように */
-                max-height: 25vh; /* 高さを制限してマップが見えるように */
-            }
-
-            #waypoint-info {
-                max-width: 220px;
-                max-height: 45vh;
-                overflow-y: auto;
-            }
-        }
-
-
-
-        @media screen and (max-width: 1024px) {
-            .modal-content {
-                width: 90vw; /* タブレットではビューポート幅の90%に */
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/map-viewer.css') }}">
     <script type="importmap">
       { 
         "imports": {
@@ -281,43 +16,43 @@
     </script>
     <script src="{{ url_for('static', filename='js/yaml/yaml.min.js') }}"></script>
     </head>
-<body>
+<body class="map-viewer">
     <div id="load-modal" class="modal">
         <div class="modal-content">
             <span class="close-button" onclick="document.getElementById('load-modal').style.display='none';">&times;</span>
             <h3>マップのロード</h3>
-            <div id="load-options-container" style="display: flex; flex-direction: column; gap: 15px;">
+            <div id="load-options-container">
                 <div>
                     <label for="pcd-select">PCDファイル:</label>
-                    <select id="pcd-select" style="width: 100%; padding: 8px;">
+                    <select id="pcd-select">
                         <option value="">-- ロードしない --</option>
                         {% for pcd in available_pcds %}<option value="{{ pcd }}">{{ pcd }}</option>{% endfor %}
                     </select>
                 </div>
                 <div>
                     <label for="pgm-select">PGM/YAMLファイル:</label>
-                    <select id="pgm-select" style="width: 100%; padding: 8px;">
+                    <select id="pgm-select">
                         <option value="">-- ロードしない --</option>
                         {% for yaml in available_yamls %}<option value="{{ yaml }}">{{ yaml }}</option>{% endfor %}
                     </select>
                 </div>
                 <div>
                     <label for="wp-select">ウェイポイントファイル:</label>
-                    <select id="wp-select" style="width: 100%; padding: 8px;">
+                    <select id="wp-select">
                         <option value="">-- ロードしない --</option>
                         {% for wp in available_wps %}<option value="{{ wp }}">{{ wp }}</option>{% endfor %}
                     </select>
                 </div>
             </div>
-            <div id="load-modal-info" style="margin-top: 15px; color: #ffcc00; font-size: 0.9em;">
+            <div id="load-modal-info">
                 <!-- ロード済みコンポーネントに関する情報がここに表示されます -->
             </div>
-            <div style="margin-top: 25px; border-top: 1px solid #444; padding-top: 15px; display: flex; justify-content: space-between; align-items: flex-start;">
-                <div style="font-size: 0.5em; color: #bbb; max-width: 65%;">
-                    <p style="margin: 0 0 5px 0; white-space: nowrap;">※ 各タイプのデータは1つずつしかロードできません。</p>
-                    <p style="margin: 0;">※ 別のデータをロードするには、先にアンロードしてください。</p>
+            <div class="modal-footer">
+                <div class="modal-footer__note">
+                    <p>※ 各タイプのデータは1つずつしかロードできません。</p>
+                    <p>※ 別のデータをロードするには、先にアンロードしてください。</p>
                 </div>
-                <button id="confirm-load-button" style="padding: 10px 20px; font-size: 0.9em; white-space: nowrap;">選択した要素をロード</button>
+                <button id="confirm-load-button">選択した要素をロード</button>
             </div>
         </div>
     </div>
@@ -329,13 +64,13 @@
             <div id="unload-list-container">
                 <p>アンロード対象のチェックボックス...</p>
             </div>            
-            <button id="confirm-unload-button" style="padding: 8px 15px;">選択した要素をアンロード</button>
+            <button id="confirm-unload-button">選択した要素をアンロード</button>
         </div>
     </div>
     <div id="viewer-container"></div>
     <div id="loading-message">マップ名を指定してロードしてください。</div>
-    <div id="info"></div>
-    <div id="grid-info">Grid: 10m</div>
+    <div id="info" class="viewer-hud"></div>
+    <div id="grid-info" class="viewer-hud">Grid: 10m</div>
     <div id="waypoint-info">
         <h4>選択中のウェイポイント</h4>
         <fieldset>
@@ -373,11 +108,11 @@
             </label>
             <label for="pgm-opacity-slider" id="pgm-opacity-label" style="display: none;">
                 PGM透過度:
-                <input type="range" id="pgm-opacity-slider" min="0" max="1" step="0.1" value="1.0" style="width: 100px; margin-left: 5px;">
+                <input type="range" id="pgm-opacity-slider" min="0" max="1" step="0.1" value="1.0" class="opacity-slider">
             </label>
-            <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 8px;">
+            <div class="control-group">
                 <label for="map-name-input">現在のマップ名:</label>
-                <input type="text" id="map-name-input" value="{{ map_name }}" style="padding: 5px; background-color: #333; border: 1px solid #555;" disabled title="ロードボタンで設定されます">
+                <input type="text" id="map-name-input" value="{{ map_name }}" disabled title="ロードボタンで設定されます">
                 <button id="load-map-button">ロード</button>
                 <button id="unload-map-button">アンロード</button>
             </div>
@@ -392,15 +127,15 @@
 
         <fieldset>
             <legend>Waypoint Editing</legend>
-            <div style="display: flex; flex-direction: column; gap: 5px;">
-                <div id="total-distance-display" style="font-weight: bold; color: #88ff88; margin-bottom: 5px;">Total Distance: 0.00 m</div>
+            <div class="control-group">
+                <div id="total-distance-display">Total Distance: 0.00 m</div>
                 <label><input type="checkbox" id="show-distance-labels" checked> 距離ラベル表示</label>
                 <label><input type="checkbox" id="auto-orient-waypoints"> 次のWPを指す</label>
                 <button id="add-waypoint-end-button">末尾に追加</button>
                 <button id="add-waypoint-start-button">先頭に追加</button>
                 <button id="add-waypoint-after-button" disabled>選択中の後に追加</button>
                 <button id="save-waypoints-button">ウェイポイントを保存</button>
-                <button id="close-viewer-button" onclick="window.close()" style="margin-top: 5px; background-color: #616161;">ビューワ終了</button>
+                <button id="close-viewer-button" onclick="window.close()">ビューワ終了</button>
             </div>
         </fieldset>
     </div>
@@ -417,18 +152,18 @@
             legendContainer.id = 'waypoint-legend-container';
             legendContainer.innerHTML = `
                 <h4>ウェイポイント凡例:</h4>
-                <div id="waypoint-legend" style="font-size: 0.9em;">
-                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                        <span style="width: 12px; height: 12px; background-color: #00ff00; margin-right: 5px; border: 1px solid #fff;"></span> Normal: pass 0.5 [m/s]
+                <div id="waypoint-legend">
+                    <div class="legend-row">
+                        <span class="legend-swatch legend-swatch--normal"></span> Normal: pass 0.5 [m/s]
                     </div>
-                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                        <span style="width: 12px; height: 12px; background-color: #ffff00; margin-right: 5px; border: 1px solid #fff;"></span> Slow: Decel [m/s]
+                    <div class="legend-row">
+                        <span class="legend-swatch legend-swatch--slow"></span> Slow: Decel [m/s]
                     </div>
-                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                        <span style="width: 12px; height: 12px; background-color: #ff0000; margin-right: 5px; border: 1px solid #fff;"></span> Stop: wait [s]
+                    <div class="legend-row">
+                        <span class="legend-swatch legend-swatch--stop"></span> Stop: wait [s]
                     </div>
-                    <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                        <span style="width: 12px; height: 12px; background-color: #00ffff; margin-right: 5px; border: 1px solid #fff;"></span> Default
+                    <div class="legend-row">
+                        <span class="legend-swatch legend-swatch--default"></span> Default
                     </div>
                 </div>
             `;
@@ -670,7 +405,7 @@
                 console.log(`PGMマップを配置しました: ${mapName}`);
             } catch (error) {
                 console.error('PGMファイルのロード/パース中にエラーが発生しました:', pgmUrl, error);
-                document.getElementById('info').innerHTML += `<br><span style="color: red;">PGMロードエラー: ${error.message}</span>`;
+                document.getElementById('info').innerHTML += `<br><span class="hud-error">PGMロードエラー: ${error.message}</span>`;
             }
         }
         async function loadPCD(mapName) {
@@ -732,7 +467,7 @@
             } catch (error) {
                 updateGridBasedOnMapSize(); // YAMLがなくてもPCDだけでグリッド更新
                 console.error('YAMLファイルのロード中にエラーが発生しました:', error);
-                document.getElementById('info').innerHTML += `<br><span style="color: red;">YAMLロード失敗: ${error.message}</span>`;
+                document.getElementById('info').innerHTML += `<br><span class="hud-error">YAMLロード失敗: ${error.message}</span>`;
             }
         }
         async function loadWaypoints(mapName) {
@@ -805,7 +540,7 @@
                 calculateAndDisplayTotalDistance();
             } catch (error) {
                 console.error('Waypointファイルのロード中にエラーが発生しました:', error);
-                document.getElementById('info').innerHTML += `<br><span style="color: red;">Waypointロード失敗: ${error.message}</span>`;
+                document.getElementById('info').innerHTML += `<br><span class="hud-error">Waypointロード失敗: ${error.message}</span>`;
             }
         }
         function updateWaypointPath(mapName) {
@@ -1062,7 +797,7 @@
                 loadCount++;
             } 
             if (loadCount === 0) {
-                document.getElementById('info').innerHTML += `<br><span style="color: yellow;">警告: ロード対象が選択されていません。</span>`;
+                document.getElementById('info').innerHTML += `<br><span class="hud-warning">警告: ロード対象が選択されていません。</span>`;
             }
             document.getElementById('loading-message').style.display = 'none';
         }
@@ -1127,7 +862,7 @@
                 hasVisibleElements = true;
             }
             if (!hasVisibleElements) {
-                unloadListContainer.innerHTML = '<p style="color: yellow;">現在表示中の要素はありません。</p>';
+                unloadListContainer.innerHTML = '<p class="hud-warning">現在表示中の要素はありません。</p>';
                 confirmUnloadButton.disabled = true;
             } else {
                 confirmUnloadButton.disabled = false;
@@ -1307,11 +1042,11 @@
                     for (const key in attr) {
                         const inputId = `edit-attr-${index}-${key}` + (subIndex !== null ? `-${subIndex}` : '');
                         attributesHtml += `<div class="coord-input">`;
-                        attributesHtml += `<label for="${inputId}" style="width: auto; min-width: 60px;">${key}:</label>`;
+                        attributesHtml += `<label for="${inputId}">${key}:</label>`;
 
                         if (key === 'type') {
                             attributesHtml += `
-                                <select id="${inputId}" data-index="${index}" data-key="${key}" ${subIndex !== null ? `data-sub-index="${subIndex}"` : ''} style="width: 100px; padding: 2px 5px; border: 1px solid #777; background-color: #444; color: #fff; border-radius: 3px;">
+                                <select id="${inputId}" data-index="${index}" data-key="${key}" ${subIndex !== null ? `data-sub-index="${subIndex}"` : ''}>
                                     <option value="normal" ${attr[key] === 'normal' ? 'selected' : ''}>normal</option>
                                     <option value="slow" ${attr[key] === 'slow' ? 'selected' : ''}>slow</option>
                                     <option value="stop" ${attr[key] === 'stop' ? 'selected' : ''}>stop</option>
@@ -1623,7 +1358,7 @@
                 container.classList.add('add-waypoint-mode');
                 currentInsertionIndex = insertionMode;
                 let modeText = insertionMode === 0 ? "先頭" : (insertionMode === undefined ? "末尾" : "選択後");
-                infoDiv.innerHTML += `<br><span id="add-wp-msg" style="color: #ffcc00;">マップ上をクリックしてウェイポイントを${modeText}に追加... (Escでキャンセル)</span>`;
+                infoDiv.innerHTML += `<br><span id="add-wp-msg" class="hud-highlight">マップ上をクリックしてウェイポイントを${modeText}に追加... (Escでキャンセル)</span>`;
                 buttons.forEach(b => b.textContent = `追加中 (${modeText})... (Escで解除)`);
                 buttons.forEach(b => b.style.backgroundColor = '#ff8c00');
             } else {

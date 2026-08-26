@@ -2,94 +2,19 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>{{ title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { 
-            font-family: sans-serif; 
-            padding: 20px; 
-            background-color: #f4f7f9; 
-            color: #333;
-        }
-        .container {
-            max-width: 750px;
-            margin: auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #007bff;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 10px;
-            margin-bottom: 25px;
-            font-size: 1.5em;
-            text-align: center;
-        }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #007bff;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .back-link:hover { text-decoration: underline; }
-
-        #file-list { 
-            list-style-type: none; 
-            padding: 0; 
-            border: 1px solid #ddd; 
-            max-height: 400px; 
-            overflow-y: auto;
-            border-radius: 8px;
-            background-color: #f8f9fa;
-        }
-        #file-list li { 
-            margin-bottom: 0; 
-            padding: 12px 15px; 
-            border-bottom: 1px solid #eee; 
-            transition: background-color 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        #file-list li:last-child { border-bottom: none; }
-        #file-list li:hover { background-color: #e9ecef; }
-
-        .file-name { font-weight: bold; }
-        .file-item { display: flex; align-items: center; gap: 10px; flex-grow: 1; }
-        .file-item input[type="checkbox"] { margin-right: 5px; }
-
-        .bulk-actions { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .new-file-form { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; }
-        .actions { display: flex; gap: 8px; align-items: center; }
-        .actions form { display: inline; margin: 0; }
-
-        .button { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; transition: background-color 0.2s; display: inline-block; text-align: center; font-size: 0.9em; }
-        .button-delete { background-color: #dc3545; color: white; }
-        .button-delete:hover { background-color: #c82333; }
-        .button-edit { background-color: #007bff; color: white; }
-        .button-edit:hover { background-color: #0056b3; }
-        .button-secondary { background-color: #6c757d; color: white; }
-        .button-secondary:hover { background-color: #5a6268; }
-        .button-create { background-color: #28a745; color: white; }
-        .button-create:hover { background-color: #218838; }
-
-        .flash-message { padding: 15px; margin-bottom: 20px; border-radius: 4px; }
-        .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .flash-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-    </style>
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/file-browser.css') }}">
 </head>
-<body>
+<body class="page">
     <div class="container">
         <h1>{{ title }}</h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    <div class="alert alert--{{ category }}">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
@@ -104,29 +29,29 @@
                 <input type="hidden" name="current_path" value="{{ current_path }}">
                 <div class="bulk-actions">
                     <label><input type="checkbox" id="select-all"> すべて選択/解除</label>
-                    <button type="submit" class="button button-delete">選択したファイルを削除</button>
+                    <button type="submit" class="btn btn--danger btn--sm">選択したファイルを削除</button>
                 </div>
             </form>
             {% endif %}
 
             {# Directories first, then files #}
-            <ul id="file-list">
+            <ul id="file-list" class="file-list">
                 {# Parent directory link #}
                 {% if parent_path is not none %}
                 <li>
-                    <a href="{{ url_for('browse_files', dir_type=dir_type, path=parent_path) }}" class="file-item" style="text-decoration: none; color: inherit;">
-                        <span style="flex-grow: 1;">📁 .. (親ディレクトリへ)</span>
+                    <a href="{{ url_for('browse_files', dir_type=dir_type, path=parent_path) }}" class="file-list__item">
+                        <span class="file-list__name">📁 .. (親ディレクトリへ)</span>
                     </a>
                 </li>
                 {% endif %}
                 {# Directories #}
                 {% for item in files if item.is_dir %}
                 <li>
-                    <a href="{{ url_for('browse_files', dir_type=dir_type, path=item.path) }}" class="file-item" style="text-decoration: none; color: inherit;">
-                        <span style="flex-grow: 1;">📁 {{ item.name }}</span>
+                    <a href="{{ url_for('browse_files', dir_type=dir_type, path=item.path) }}" class="file-list__item">
+                        <span class="file-list__name">📁 {{ item.name }}</span>
                     </a>
-                    <div class="actions">
-                        <button type="button" class="button button-delete" onclick="deleteIndividualItem('{{ item.path }}', '{{ dir_type }}', '{{ current_path }}', true)">削除</button>
+                    <div class="actions actions--inline">
+                        <button type="button" class="btn btn--danger btn--sm" onclick="deleteIndividualItem('{{ item.path }}', '{{ dir_type }}', '{{ current_path }}', true)">削除</button>
                     </div>
                 </li>
                 {% endfor %}
@@ -134,26 +59,26 @@
                 {# Files #}
                 {% for item in files if not item.is_dir %}
                 <li>
-                    <label class="file-item">
+                    <label class="file-list__item">
                         {% if dir_type == 'map' or dir_type == 'wp' %}
-                            <input type="checkbox" name="item_paths" value="{{ item.path }}" form="bulk-delete-form" style="margin-right: 5px;">
+                            <input type="checkbox" name="item_paths" value="{{ item.path }}" form="bulk-delete-form">
                         {% else %} {# dir_type == 'config' #}
                             {# No checkbox for config files in this implementation #}
                         {% endif %}
-                        <span class="file-name" style="flex-grow: 1;">📄 {{ item.name }}</span>
+                        <span class="file-name file-list__name">📄 {{ item.name }}</span>
                     </label>
-                    <div class="actions">
+                    <div class="actions actions--inline">
                         {% set filename = item.name %}
                         {% if dir_type == 'map' and filename.lower().endswith('.yaml') or dir_type == 'wp' and filename.lower().endswith('.json') %}
-                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=filename) }}" class="button button-secondary">テキスト編集</a>
+                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=filename) }}" class="btn btn--secondary btn--sm">テキスト編集</a>
                         {% elif dir_type == 'config' %}
                             {% if item.is_structured %}
-                                <a href="{{ url_for('edit_csv', filename=filename) }}" class="button button-edit">編集</a>
+                                <a href="{{ url_for('edit_csv', filename=filename) }}" class="btn btn--primary btn--sm">編集</a>
                             {% endif %}
-                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=filename) }}" class="button button-secondary">テキスト編集</a>
+                            <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=filename) }}" class="btn btn--secondary btn--sm">テキスト編集</a>
                         {% endif %}
                         {# Individual delete button #}
-                        <button type="button" class="button button-delete" onclick="deleteIndividualItem('{{ item.path }}', '{{ dir_type }}', '{{ current_path }}', false)">削除</button>
+                        <button type="button" class="btn btn--danger btn--sm" onclick="deleteIndividualItem('{{ item.path }}', '{{ dir_type }}', '{{ current_path }}', false)">削除</button>
                     </div>
                 </li>
                 {% endfor %}
@@ -163,7 +88,7 @@
         {% endif %}
 
         {# Hidden form for individual file deletion via JavaScript #}
-        <form id="individual-delete-form" action="{{ url_for('delete_item') }}" method="post" style="display: none;">
+        <form id="individual-delete-form" action="{{ url_for('delete_item') }}" method="post" hidden>
             <input type="hidden" name="dir_type" value="">
             <input type="hidden" name="item_paths" value="">
             <input type="hidden" name="current_path" value="">
@@ -172,18 +97,18 @@
         {% if dir_type == 'config' %}
         <div class="new-file-form">
             <h3>新規CSVファイル作成</h3>
-            <form action="{{ url_for('create_csv') }}" method="post" style="display: flex; gap: 10px;">
-                <input type="text" name="filename" placeholder="新しいファイル名 (.csv)" style="flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;" required>
-                <button type="submit" class="button button-create">作成</button>
+            <form action="{{ url_for('create_csv') }}" method="post" class="new-file-form__row">
+                <input type="text" name="filename" placeholder="新しいファイル名 (.csv)" required>
+                <button type="submit" class="btn btn--success">作成</button>
             </form>
-            <a href="{{ url_for('create_plain_text') }}" class="button button-secondary" style="display: block; text-align: center; margin-top: 10px;">
+            <a href="{{ url_for('create_plain_text') }}" class="btn btn--secondary btn--block">
                 テキストモードで新規作成
             </a>
         </div>
         {% endif %}
 
-        <div style="margin-top: 30px; text-align: right;">
-            <button onclick="window.close()" class="button button-secondary">閉じる</button>
+        <div class="actions actions--end">
+            <button onclick="window.close()" class="btn btn--secondary">閉じる</button>
         </div>
     </div>
 
@@ -217,8 +142,7 @@
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.value = originalName;
-                    input.style.width = '70%';
-                    input.style.boxSizing = 'border-box';
+                    input.classList.add('rename-input');
 
                     this.style.display = 'none';
                     this.parentNode.insertBefore(input, this);

@@ -2,158 +2,23 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ROS Bag ファイルブラウザ</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <style>
-        body { 
-            font-family: sans-serif; 
-            padding: 20px; 
-            background-color: #f4f7f9; 
-            color: #333;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS Bag ブラウザ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <script>
+        function closeCurrentTabAndReloadOpener() {
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.location.reload();
+                } catch (e) {
+                    console.warn("親ウィンドウのリロードに失敗しました:", e);
+                }
+            }
+            window.close();
         }
-        .container {
-            max-width: 750px;
-            margin: auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #007bff;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 10px;
-            margin-bottom: 25px;
-            font-size: 1.5em;
-            text-align: center;
-        }
-
-        p {
-            margin-bottom: 20px;
-            color: #555;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #007bff;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
-        .message {
-            list-style: none;
-            padding: 0;
-            margin-top: 20px;
-        }
-        .message li {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            border: 1px solid;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-        }
-        .info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border-color: #bee5eb;
-        }
-
-        #file-list { 
-            list-style-type: none; 
-            padding: 0; 
-            border: 1px solid #ddd; 
-            max-height: 400px; 
-            overflow-y: auto;
-            border-radius: 8px;
-            background-color: #f8f9fa;
-        }
-        #file-list li { 
-            margin-bottom: 0; 
-            padding: 10px 15px; 
-            border-bottom: 1px solid #eee; 
-            cursor: pointer; 
-            transition: background-color 0.2s, color 0.2s;
-        }
-        #file-list li:last-child {
-            border-bottom: none;
-        }
-        #file-list li:hover {
-            background-color: #e9ecef;
-        }
-        .selected { 
-            background-color: #007bff !important; 
-            color: white;
-            font-weight: bold;
-        }
-        .selected:hover {
-            background-color: #007bff !important;
-        }
-        .folder a, .parent-link a { 
-            color: black; 
-            text-decoration: none;
-        }
-        .file { color: #37474f; }
-        .file.disabled {
-            color: #90a4ae;
-            cursor: not-allowed;
-            background-color: #f1f1f1;
-        }
-        .file.disabled:hover {
-            background-color: #f1f1f1;
-        }
-
-        .selection-form {
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: none;
-            transition: background-color 0.2s, opacity 0.2s;
-            display: inline-block;
-            text-align: center;
-        }
-        .button:disabled {
-            background-color: #bdbdbd;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-        .primary {
-            background-color: #28a745;
-            color: white;
-        }
-        .primary:hover:not(:disabled) {
-            background-color: #388e3c;
-        }
-        .secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        .secondary:hover {
-            background-color: #5a6268;
-        }
-        .action-buttons {
-            margin-top: 20px;
-            text-align: left;
-        }
-    </style>
+    </script>
 </head>
-<body>
+<body class="page">
     <div class="container">
         <h1>ROS Bag ブラウザ
             {% if sync_mode %}
@@ -164,26 +29,14 @@
             (LIO-RAW 用) {% else %}
             (フィルタ 用)
             {% endif %}
-        </h1>        
+        </h1>
         <a href="#" class="back-link" onclick="closeCurrentTabAndReloadOpener(); return false;">← メインGUIに戻る</a>
-        <script>
-            function closeCurrentTabAndReloadOpener() {
-                if (window.opener && !window.opener.closed) {
-                    try {
-                        window.opener.location.reload(); 
-                    } catch (e) {
-                        console.warn("親ウィンドウのリロードに失敗しました:", e);
-                    }
-                }
-                window.close();
-            }
-        </script>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <ul class="message">
+            <ul class="alert-list">
             {% for category, message in messages %}
-              <li class="message {{ category }}">{{ message }}</li>
+              <li class="alert alert--{{ category }}">{{ message }}</li>
             {% endfor %}
             </ul>
           {% endif %}
@@ -191,12 +44,12 @@
 
         <p>現在のディレクトリ (ROOT: <code>{{ root_dir }}</code>): <code>/{{ current_path }}</code></p>
 
-        <ul id="file-list">
+        <ul id="file-list" class="file-list file-list--selectable">
             {% set current_mode_param = 'sync' if sync_mode else ('p2o' if p2o_mode else ('lio_raw' if lio_raw_mode else None)) %}
 
             {% if parent_path is not none %}
-                <li class="parent-link">
-                    <a href="{{ url_for('browse_rosbag', path=parent_path, mode=current_mode_param) }}">
+                <li>
+                    <a class="file-list__item" href="{{ url_for('browse_rosbag', path=parent_path, mode=current_mode_param) }}">
                         📁 .. (親ディレクトリへ)
                     </a>
                 </li>
@@ -204,8 +57,8 @@
 
             {% for dir_name in dirs %}
                 {% set rel_path = current_path + '/' + dir_name if current_path else dir_name %}
-                <li class="folder" onclick="selectItem('{{ rel_path }}', '{{ dir_name }}', true, event)">
-                    📁 {{ dir_name }}
+                <li onclick="selectItem('{{ rel_path }}', '{{ dir_name }}', true, event)">
+                    <span class="file-list__name">📁 {{ dir_name }}</span>
                 </li>
             {% endfor %}
 
@@ -213,7 +66,7 @@
 
         <form action="{{ url_for('select_rosbag') }}" method="POST">
             <input type="hidden" id="file_path_input" name="file_path">
-            
+
             {% if sync_mode %}
             <input type="hidden" name="mode" value="sync">
             {% elif p2o_mode %}
@@ -222,11 +75,11 @@
             <input type="hidden" name="mode" value="lio_raw">
             {% endif %}
 
-            <div class="action-buttons">
-                <button type="submit" id="select_button" class="button primary" disabled>ROS Bagとして選択</button>
-                <button type="button" class="button secondary" onclick="window.close()">キャンセル</button>
+            <div class="actions">
+                <button type="submit" id="select_button" class="btn btn--success" disabled>ROS Bagとして選択</button>
+                <button type="button" class="btn btn--secondary" onclick="window.close()">キャンセル</button>
             </div>
-            <p id="selected_file_name" style="font-weight: bold; color: #555; margin-top: 15px;"></p>
+            <p id="selected_file_name" class="selected-file-name"></p>
         </form>
 
     </div>
@@ -237,7 +90,7 @@
         const selectedFileNameSpan = document.getElementById('selected_file_name');
         const fileListItems = document.querySelectorAll('#file-list li');
         const ROS_BAG_EXTENSIONS = ['.db3', '.mcap', '.bag'];
-        
+
         const isP2OMode = {{ p2o_mode | tojson }};
         const isLioRawMode = {{ lio_raw_mode | tojson }};
         const isMappingMode = isP2OMode || isLioRawMode;
@@ -245,10 +98,6 @@
         function isRosBag(name, isDir) {
             // ディレクトリのみをROS Bagとして選択可能にする
             return isDir;
-        }
-
-        function updateFileItemsAppearance() {
-            // ファイルは表示されないため、この関数は不要になりました
         }
 
         function selectItem(relativePath, name, isDir, event) {
@@ -272,9 +121,6 @@
                 selectedFileNameSpan.textContent = `選択ファイル: ${name} (非対応)`;
             }
         }
-
-        // ページ読み込み時にマッピングモードならファイルの見た目を変更
-        // document.addEventListener('DOMContentLoaded', updateFileItemsAppearance);
     </script>
 </body>
 </html>

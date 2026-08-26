@@ -1,60 +1,8 @@
-<style>
-    /* トグルスイッチのスタイル */
-    .toggle-switch-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 20px;
-        padding: 10px;
-        background-color: #f0f0f0;
-        border-radius: 8px;
-    }
-    .switch {
-        position: relative;
-        display: inline-block;
-        width: 50px;
-        height: 28px;
-        margin-right: 10px;
-    }
-    .switch input { 
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-    .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-        border-radius: 28px;
-    }
-    .slider:before {
-        position: absolute;
-        content: "";
-        height: 20px;
-        width: 20px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
-    }
-    input:checked + .slider {
-        background-color: #2196F3;
-    }
-    input:checked + .slider:before {
-        transform: translateX(22px);
-    }
-</style>
-
 <div class="mapping-popup-content">
     <form method="post" action="/gui" target="_blank">
         <p>マッピングモードを選択してください。</p>
 
-        <div style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;">
+        <div class="popup-button-column">
             <button type="submit" name="command" value="execute_mapping_p2o" class="mode-control-btn active-button">p2o</button>
             <button type="submit" name="command" value="execute_mapping_lio_raw" class="mode-control-btn active-button">lio_raw</button>
             <button type="submit" name="command" value="execute_mapping_pcd2pgm" class="mode-control-btn active-button">pcd2pgm</button>

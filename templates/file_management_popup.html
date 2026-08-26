@@ -1,14 +1,9 @@
 <div class="mapping-popup-content">
     <h3>ファイル管理</h3>
     <p>管理したいファイルの種類を選択してください。</p>
-    <div style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px;">
+    <div class="popup-button-column">
         <button onclick="window.open('{{ url_for('browse_files', dir_type='map') }}', '_blank')" class="mode-control-btn active-button">マップ管理</button>
         <button onclick="window.open('{{ url_for('browse_files', dir_type='wp') }}', '_blank')" class="mode-control-btn active-button">ウェイポイント管理</button>
         <button onclick="window.open('{{ url_for('browse_files', dir_type='config') }}', '_blank')" class="mode-control-btn active-button">設定ファイル管理</button>
     </div>
 </div>
-<style>
-    .mapping-popup-content button {
-        width: 100%; /* ポップアップの幅に合わせる */
-    }
-</style>

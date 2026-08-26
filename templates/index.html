@@ -9,8 +9,8 @@ hokuyo_nav2_gui
 {% endblock header %}
 
 {% block content %}
-<div class="index-page-container">
-    <div id="status-display" style="font-size: 1.2em; margin-bottom: 20px;">現在のモード: 未設定</div>
+<div class="menu-stack">
+    <div id="status-display" class="mode-status">現在のモード: 未設定</div>
     <form method="post" action="/gui" target="_blank">
         <button type="submit" name="command" value="ctrl" id="ctrl" class="mode-control-btn">データ取得</button>
     </form>
@@ -27,7 +27,7 @@ hokuyo_nav2_gui
     <br>
     <a href="http://{{ viewer_host }}:5000/" target="_blank" >自律走行経路確認Viewer</a>
 
-    <div id="navigationPopupContainer" class="popup-container" style="display: none;">
+    <div id="navigationPopupContainer" class="popup-container">
         <div id="navigationPopupContent" class="popup-content">
             <button id="closenavigationPopupBtn" class="close-button">閉じる</button>
             <div id="navigationRunContent">
@@ -35,7 +35,7 @@ hokuyo_nav2_gui
         </div>
     </div>
     
-    <div id="mappingPopupContainer" class="popup-container" style="display: none;">
+    <div id="mappingPopupContainer" class="popup-container">
         <div id="mappingPopupContent" class="popup-content">
             <button id="closeMappingPopupBtn" class="close-button">閉じる</button>
             <div id="mappingRunContent">
@@ -43,7 +43,7 @@ hokuyo_nav2_gui
         </div>
     </div>
 
-    <div id="fileManagementPopupContainer" class="popup-container" style="display: none;">
+    <div id="fileManagementPopupContainer" class="popup-container">
         <div id="fileManagementPopupContent" class="popup-content">
             <button id="closeFileManagementPopupBtn" class="close-button">閉じる</button>
             <div id="fileManagementRunContent">

@@ -2,235 +2,22 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ROS Bag 処理</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* ---------------------------------------------------------------------- */
-        /* 全体的なリセットとベーススタイル (pcd_pgm_convert.html からコピー) */
-        /* ---------------------------------------------------------------------- */
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 30px;
-            background-color: #eef3f7;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 650px;
-            margin: 40px auto;
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            color: #1e88e5;
-            border-bottom: 3px solid #1e88e5;
-            padding-bottom: 12px;
-            margin-bottom: 30px;
-            font-size: 1.8em;
-            text-align: center;
-            letter-spacing: 0.5px;
-        }
-        
-        /* ---------------------------------------------------------------------- */
-        /* ファイル表示エリアのスタイル */
-        /* ---------------------------------------------------------------------- */
-        .file-selection-display {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 30px;
-            border-left: 5px solid #ccc;
-            padding-left: 15px;
-        }
-        .file-item {
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background-color: #f7fcf9;
-            font-size: 1em;
-            color: #333;
-            line-height: 1.4;
-            display: flex;
-            align-items: center;
-        }
-        .file-item::before {
-            content: '📁';
-            margin-right: 10px;
-            font-size: 1.2em;
-        }
-        .file-item strong {
-            color: #00897b;
-            font-weight: 600;
-            word-break: break-all;
-        }
-        .file-item.mode-info {
-            background-color: #fff8e1;
-            border-color: #ffecb3;
-        }
-        .file-item.mode-info::before {
-            content: '⚙️';
-            color: #ffb300;
-        }
-        .file-item.mode-info strong {
-            color: #ffa000;
-        }
-
-        /* ---------------------------------------------------------------------- */
-        /* フォーム要素 */
-        /* ---------------------------------------------------------------------- */
-        label {
-            display: block;
-            margin-top: 20px;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #455a64;
-            font-size: 1.05em;
-        }
-        input[type="text"] {
-            width: 96%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 1em;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        input[type="text"]:focus {
-            border-color: #1e88e5;
-            box-shadow: 0 0 5px rgba(30, 136, 229, 0.5);
-            outline: none;
-        }
-        .topic-list {
-            max-height: 250px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            background-color: #fff;
-        }
-        .topic-item {
-            padding: 8px 5px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .topic-item:last-child {
-            border-bottom: none;
-        }
-        .topic-item label {
-            display: inline;
-            font-weight: normal;
-            margin: 0;
-        }
-
-        /* ---------------------------------------------------------------------- */
-        /* ボタン共通スタイル */
-        /* ---------------------------------------------------------------------- */
-        .button {
-            padding: 12px 25px;
-            margin-right: 15px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s ease-in-out;
-            display: inline-block;
-            text-align: center;
-            margin-top: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .button:active {
-            transform: translateY(1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .primary {
-            background-color: #4caf50;
-            color: white;
-        }
-        .primary:hover:not(:disabled) {
-            background-color: #388e3c;
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-        }
-        .primary:disabled {
-            background-color: #bdbdbd;
-            cursor: not-allowed;
-            opacity: 0.8;
-            box-shadow: none;
-        }
-        .secondary {
-            background-color: #9e9e9e;
-            color: white;
-        }
-        .secondary:hover:not(:disabled) {
-            background-color: #757575;
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-        }
-
-        /* ---------------------------------------------------------------------- */
-        /* ステータスとローディング */
-        /* ---------------------------------------------------------------------- */
-        #progress-area {
-            padding: 15px; /* pcd_pgm_convert.htmlからコピー */
-            border-left: 6px solid #1e88e5; /* 青い強調線 */
-            background-color: #e3f2fd; /* 薄い水色の背景 */
-            border-radius: 8px;
-            margin-top: 30px !important;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* pcd_pgm_convert.htmlからコピー */
-            display: none;
-        }
-        #progress-message, #message-area {
-            margin: 0;
-            line-height: 1.5;
-            font-weight: 500;
-        }
-        #loading_spinner {
-            font-style: normal; /* pcd_pgm_convert.htmlからコピー */
-            color: #ff9800; /* pcd_pgm_convert.htmlからコピー */
-            margin-top: 15px !important; /* pcd_pgm_convert.htmlからコピー */
-            font-weight: bold;
-            animation: pulse 1.5s infinite; /* pcd_pgm_convert.htmlからコピー */
-            display: flex;
-            align-items: center;
-        }
-        #loading_spinner::before {
-            content: '🔄'; /* pcd_pgm_convert.htmlからコピー */
-            margin-right: 10px; /* pcd_pgm_convert.htmlからコピー */
-            animation: spin 1.5s linear infinite; /* pcd_pgm_convert.htmlからコピー */
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-        /* 完了/エラーメッセージのスタイル (pcd_pgm_convert.htmlからコピー) */
-        #progress-message.finished {
-            color: #2e7d32 !important; 
-            font-weight: 700 !important;
-            font-size: 1.1em;
-        }
-        #progress-message.error {
-            color: #d32f2f !important; 
-            font-weight: 700 !important;
-            font-size: 1.1em;
-        }
-    </style>
+    <title>ROS Bag 処理設定</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/rosbag-topics.css') }}">
     <script src="{{ url_for('static', filename='js/jquery/jquery-3.6.0.min.js') }}"></script>
 </head>
-<body>
+<body class="page">
 
 <div class="container">
     <h2>ROS Bag 処理設定</h2>
 
-    <ul class="file-selection-display">
-        <li class="file-item">
+    <ul class="info-list">
+        <li class="info-list__item">
             変換元ROS Bag: <strong>{{ input_bag_path }}</strong>
         </li>
-        <li class="file-item mode-info">
+        <li class="info-list__item info-list__item--config">
             モード: <strong>
             {% if sync_mode %}
                 トピック同期 (Sync)
@@ -248,45 +35,49 @@
         <input type="hidden" id="input-bag-path" value="{{ input_bag_path }}">
         <input type="hidden" id="is-sync-mode" value="{{ sync_mode | tojson }}">
         <input type="hidden" id="is-p2o-mode" value="{{ p2o_mode | tojson }}">
-        <input type="hidden" id="is-lio-raw-mode" value="{{ lio_raw_mode | tojson }}"> <label for="output-filename">出力ファイル/マップ名:</label>
+        <input type="hidden" id="is-lio-raw-mode" value="{{ lio_raw_mode | tojson }}">
+
         {% set basename = input_bag_path.split('/')[-1] %}
         {% if '.' in basename %}
             {% set default_name = basename.rsplit('.', 1)[0] %}
         {% else %}
             {% set default_name = basename %}
         {% endif %}
-        <input type="text" id="output-filename" placeholder="例: {{ default_name }}" value="{{ default_name }}" required>
-        
-        <div id="filter-options" style="{% if sync_mode or p2o_mode or lio_raw_mode %}display: none;{% endif %}">
+        <div class="field">
+            <label for="output-filename">出力ファイル/マップ名:</label>
+            <input type="text" id="output-filename" placeholder="例: {{ default_name }}" value="{{ default_name }}" required>
+        </div>
+
+        <div class="field" id="filter-options" {% if sync_mode or p2o_mode or lio_raw_mode %}hidden{% endif %}>
             <label>選択するトピック (フィルタリングモードのみ):</label>
             <div class="topic-list">
                 {% for topic_name, topic_type in topics_info %}
                     <div class="topic-item">
                         <input type="checkbox" id="topic-{{ loop.index }}" name="topics" value="{{ topic_name }}" checked>
-                        <label for="topic-{{ loop.index }}" style="display: inline; font-weight: normal; display: flex; flex-direction: column;">
+                        <label for="topic-{{ loop.index }}">
                             <span>{{ topic_name }}</span>
-                            <span style="color: #888; font-size: 0.85em; margin-top: 2px;">{{ topic_type }}</span>
+                            <span class="topic-item__type">{{ topic_type }}</span>
                         </label>
                     </div>
                 {% endfor %}
             </div>
         </div>
 
-        <div id="p2o-options" style="{% if not p2o_mode %}display: none;{% endif %}">
+        <div id="p2o-options" {% if not p2o_mode %}hidden{% endif %}>
             <h3>P2O マッピング オプション</h3>
             <p>P2Oモードでは、トピック同期処理後のクリーンなROS Bagを入力として使用することが推奨されます。</p>
             <p><strong>出力マップ名:</strong> 上記の「出力ファイル/マップ名」がそのまま最終的なPCDファイル名に使用されます。</p>
         </div>
 
-        <div id="lio-raw-options" style="{% if not lio_raw_mode %}display: none;{% endif %}">
+        <div id="lio-raw-options" {% if not lio_raw_mode %}hidden{% endif %}>
             <h3>LIO-RAW マッピング オプション</h3>
             <p>LIO-RAWモードでは、計測したROS Bagを入力として使用し、GNSSによる補正前のLIOの地図を生成します。</p>
             <p><strong>出力マップ名:</strong> 上記の「出力ファイル/マップ名」がそのまま最終的なPCDファイル名に使用されます。</p>
         </div>
 
-        <div id="mapping-config-options" style="{% if not (sync_mode or p2o_mode or lio_raw_mode) %}display: none;{% endif %}">
+        <div class="field" id="mapping-config-options" {% if not (sync_mode or p2o_mode or lio_raw_mode) %}hidden{% endif %}>
             <label for="config-file">パラメータ設定ファイル (CSV):</label>
-            <select id="config-file" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 1em;">
+            <select id="config-file">
                 <option value="">-- 設定ファイルを選択 (任意) --</option>
                 {% for cfg in config_files %}
                 <option value="{{ cfg }}">{{ cfg }}</option>
@@ -294,29 +85,31 @@
             </select>
         </div>
 
-        <button type="submit" id="start-button" class="button primary">
-            {% if sync_mode %}
-                同期処理を開始
-            {% elif p2o_mode %}
-                P2O マッピングを開始
-            {% elif lio_raw_mode %}
-                LIO-RAW マッピングを開始 {% else %}
-                フィルタリングを開始
-            {% endif %}
-        </button>
-        <button type="button" id="cancel_button" class="button secondary" onclick="window.close()">キャンセル</button>
+        <div class="actions">
+            <button type="submit" id="start-button" class="btn btn--success">
+                {% if sync_mode %}
+                    同期処理を開始
+                {% elif p2o_mode %}
+                    P2O マッピングを開始
+                {% elif lio_raw_mode %}
+                    LIO-RAW マッピングを開始 {% else %}
+                    フィルタリングを開始
+                {% endif %}
+            </button>
+            <button type="button" id="cancel_button" class="btn btn--secondary" onclick="window.close()">キャンセル</button>
+        </div>
     </form>
 
-    <div id="progress-area">
+    <div id="progress-area" class="progress-panel" hidden>
         <p id="progress-message"></p>
         <div id="message-area"></div>
-        <div id="result-links" style="margin-top: 15px; display: none;">
-            <a id="download-link" class="button primary" style="display: none; margin-top: 10px;">ダウンロード</a>
-            <a id="viewer-link" class="button primary" style="display: none;" target="_blank">3Dビューアで確認</a>
-            <button id="reset-button" class="button secondary" style="display: none;" onclick="location.reload()">再設定</button>
+        <div id="result-links" class="actions" hidden>
+            <a id="download-link" class="btn btn--success" hidden>ダウンロード</a>
+            <a id="viewer-link" class="btn btn--success" hidden target="_blank">3Dビューアで確認</a>
+            <button id="reset-button" class="btn btn--secondary" hidden onclick="location.reload()">再設定</button>
         </div>
     </div>
-    <div id="loading_spinner" style="display:none;">処理中...</div>
+    <div id="loading_spinner" class="spinner" hidden>処理中...</div>
 </div>
 
 <script>
@@ -328,7 +121,7 @@
     const messageArea = document.getElementById('message-area');
     const downloadLink = document.getElementById('download-link');
     const viewerLink = document.getElementById('viewer-link');
-    
+
     const resultLinks = document.getElementById('result-links');
     const loadingSpinner = document.getElementById('loading_spinner');
     // 🌟 LIO-RAW モードのフラグを取得 🌟
@@ -353,57 +146,55 @@
         const modeName = mode.toUpperCase();
 
         progressMessage.textContent = status === 'finished' ? `✅ ${modeName} 処理が完了しました。` : '処理が失敗しました。';
-        progressMessage.className = status === 'finished' ? 'finished' : 'error';
+        progressMessage.className = status === 'finished' ? 'text-success' : 'text-error';
         messageArea.textContent = status === 'finished' ? '' : '❌ エラーが発生しました。ログを確認してください。';
-        
-        loadingSpinner.style.display = 'none';
-        
-        resultLinks.style.display = 'block';
-        document.getElementById('reset-button').style.display = 'inline-block';
-        downloadLink.style.display = 'none';
-        viewerLink.style.display = 'none';
+
+        loadingSpinner.hidden = true;
+
+        resultLinks.hidden = false;
+        document.getElementById('reset-button').hidden = false;
+        downloadLink.hidden = true;
+        viewerLink.hidden = true;
 
         if (status === 'finished') {
-            
+
             if (isMapping) {
                 // マッピングモード完了時 (P2O/LIO-RAW)
                 progressMessage.textContent = `${modeName} マッピングが完了しました。マップ名: ${filenameOrMapName}。`;
-                
+
                 if (downloadUrl) {
                     // 1. ダウンロードリンク (PCDファイルとしてダウンロード)
                     downloadLink.href = downloadUrl;
                     downloadLink.textContent = `PCDマップをダウンロード`;
-                    downloadLink.style.display = 'block'; 
-                    downloadLink.style.backgroundColor = '#28a745';
+                    downloadLink.hidden = false;
                     downloadLink.target = '_self';
 
                     // 2. ビューアリンク (新しいウィンドウで開く)
                     viewerLink.href = `/map_viewer`;
-                    viewerLink.style.display = 'inline-block'; 
-                    viewerLink.classList.remove('primary'); viewerLink.classList.add('secondary');
+                    viewerLink.hidden = false;
+                    viewerLink.classList.remove('btn--success');
+                    viewerLink.classList.add('btn--secondary');
                 } else {
                     progressMessage.textContent += ' (警告: ダウンロードURLがありません)';
                 }
-                
+
             } else {
                 // Filter/Syncモード完了時
                 progressMessage.textContent = '処理が完了しました。ファイルをダウンロードしてください。';
-                downloadLink.href = `/download/${filenameOrMapName}`; 
+                downloadLink.href = `/download/${filenameOrMapName}`;
                 downloadLink.textContent = `${filenameOrMapName}.zip をダウンロード`;
-                downloadLink.style.display = 'block';
-                downloadLink.style.backgroundColor = '#28a745';
-                downloadLink.target = '_self'; 
+                downloadLink.hidden = false;
+                downloadLink.target = '_self';
             }
         }
     }
 
-
     // 処理状況をポーリングする関数
     function startPolling(outputFilename, mode) {
-        progressArea.style.display = 'block';
-        startButton.style.display = 'none';
-        cancelButton.style.display = 'none';
-        
+        progressArea.hidden = false;
+        startButton.hidden = true;
+        cancelButton.hidden = true;
+
         totalPollingTime = 0;
 
         let endpoint;
@@ -420,15 +211,15 @@
 
         // progress-areaの直後にスピナーを挿入
         progressArea.insertAdjacentElement('afterend', loadingSpinner);
-        loadingSpinner.style.display = 'flex';
+        loadingSpinner.hidden = false;
 
         // ポーリングの実行ロジック (約1秒間隔)
         pollingTimer = setInterval(async () => {
             const isMapping = (mode === 'p2o' || mode === 'lio_raw');
-            const payload = isMapping ? 
-                { output_map_name: outputFilename } : 
+            const payload = isMapping ?
+                { output_map_name: outputFilename } :
                 { output_filename: outputFilename };
-            
+
             try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
@@ -438,7 +229,7 @@
                 const data = await response.json();
 
                 if (data.status === 'finished' || data.status === 'error') {
-                    loadingSpinner.style.display = 'none';
+                    loadingSpinner.hidden = true;
                     showDownloadResult(data.status, outputFilename, mode, data.download_url);
                     return;
                 }
@@ -446,15 +237,15 @@
                 // 進行中のプログレスバー更新
                 totalPollingTime += 1000; // 1秒ごとに増やす
                 // P2O/LIO-RAWは長めに設定 (Filter/Syncは1.5倍、Mappingは2倍)
-                const multiplier = isMapping ? 2 : 1.5; 
-                const maxExpectedTime = bagDurationSec * 1000 * multiplier; 
-                
+                const multiplier = isMapping ? 2 : 1.5;
+                const maxExpectedTime = bagDurationSec * 1000 * multiplier;
+
                 // プログレスメッセージの更新
                 progressMessage.textContent = `処理を続行中です... (経過時間: ${Math.round(totalPollingTime / 1000)}秒)`;
 
             } catch (error) {
                 console.error('Polling error:', error);
-                loadingSpinner.style.display = 'none';
+                loadingSpinner.hidden = true;
                 progressMessage.textContent = 'サーバーとの通信中にエラーが発生しました。';
                 messageArea.textContent = '処理に失敗しました。';
                 showDownloadResult('error', outputFilename, mode);
@@ -474,9 +265,9 @@
         }
 
         messageArea.textContent = '';
-        progressArea.style.display = 'block';
-        startButton.style.display = 'none';
-        cancelButton.style.display = 'none';
+        progressArea.hidden = false;
+        startButton.hidden = true;
+        cancelButton.hidden = true;
         progressMessage.textContent = '処理を開始しています...';
 
         let apiUrl = '/convert';
@@ -488,7 +279,7 @@
             is_sync_mode: isSyncMode,
             config_file: document.getElementById('config-file') ? document.getElementById('config-file').value : '',
         };
-        
+
         if (isSyncMode) {
             mode = 'sync';
         } else if (isP2OMode) {
@@ -514,9 +305,9 @@
 
             if (payload.topics.length === 0) {
                 messageArea.textContent = 'トピックを一つ以上選択してください。';
-                startButton.style.display = 'block'; // エラーでボタン再表示
-                cancelButton.style.display = 'inline-block';
-                progressArea.style.display = 'none';
+                startButton.hidden = false; // エラーでボタン再表示
+                cancelButton.hidden = false;
+                progressArea.hidden = true;
                 return;
             }
         }

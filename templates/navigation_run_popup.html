@@ -1,13 +1,13 @@
 <div class="navigation-run-popup-content">
     <p>自律移動の開始前に設定を確認してください。</p>
     <form id="navigationRunForm" method="post" action="/gui" target="_blank">
-        <div id="checklist-container">
+        <div id="checklist-container" class="checklist">
             <div><input type="checkbox" id="check1_navigation" name="check1_navigation" value="checked"><label for="check1_navigation">一時停止スイッチをオンしていること</label></div>
             <div><input type="checkbox" id="check2_navigation" name="check2_navigation" value="checked"><label for="check2_navigation">オペレータが周りの安全を確認していること</label></div>
             <div><input type="checkbox" id="check3_navigation" name="check3_navigation" value="checked"><label for="check3_navigation">フリースイッチをオフしていること</label></div>
         </div>
-        
-        <div class="input-field">
+
+        <div class="popup-field">
             <label for="arguments">NAVTYPE:</label>
             <select id="arguments" name="arguments">
                 <option value="single_map_gnss">single_map_gnss</option>
@@ -16,7 +16,7 @@
             </select>
         </div>
         <div id="additional-fields" style="display: none;">
-            <div class="input-field">
+            <div class="popup-field">
                 <label for="mapfile">MAPFILE:</label>
                 <select id="mapfile" name="mapfile">
                     {% for map in map_files %}
@@ -24,7 +24,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="input-field">
+            <div class="popup-field">
                 <label for="wpfile">WPFILE:</label>
                 <select id="wpfile" name="wpfile">
                     {% for wp in wp_files %}
@@ -34,7 +34,7 @@
             </div>
         </div>
         <div id="multi-map-field" style="display: none;">
-            <div class="input-field">
+            <div class="popup-field">
                 <label for="csvfile">CSVファイル:</label>
                 <select id="csvfile" name="csvfile">
                     {% for file in csv_files %}
@@ -44,35 +44,8 @@
             </div>
         </div>
         <input type="hidden" name="command" value="execute_navigation_run">
-        <div style="text-align: center; margin-top: 20px;">
-            <button type="submit" id="executeBtn_navigation" class="special inactive-button" disabled style="font-size: 200%;">自律走行開始</button>
+        <div class="popup-actions">
+            <button type="submit" id="executeBtn_navigation" class="inactive-button" disabled>自律走行開始</button>
         </div>
     </form>
 </div>
-<style>
-    .navigation-run-popup-content {
-        text-align: center;
-        padding: 10px;
-    }
-    .navigation-run-popup-content div {
-        margin-bottom: 10px;
-        text-align: left;
-    }
-    .navigation-run-popup-content label {
-        margin-left: 10px;
-    }
-    .input-field {
-        margin-top: 5px; /* プルダウン同士の間隔を狭くしました */
-        text-align: center;
-    }
-    .input-field select {
-        padding: 12px;
-        font-size: 1em; /* フォントサイズを小さくしました */
-        border: 2px solid #ccc;
-        border-radius: 8px;
-        width: 100%;
-        max-width: 400px;
-        box-sizing: border-box;
-        background-color: white;
-    }
-</style>

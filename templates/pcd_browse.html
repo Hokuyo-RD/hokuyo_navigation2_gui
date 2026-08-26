@@ -4,134 +4,13 @@
     <title>PCDファイル選択 - PCD to PGM 変換</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <style>
-        /* 基本スタイル */
-        body { 
-            font-family: sans-serif; 
-            padding: 20px; 
-            background-color: #f4f7f9; 
-            color: #333;
-        }
-        .container {
-            max-width: 600px; /* ウェイポイント選択画面に合わせる */
-            margin: auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            color: #007bff; /* メインカラー */
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 10px;
-            margin-bottom: 25px;
-            font-size: 1.5em;
-        }
-        p {
-            margin-bottom: 20px;
-            color: #555;
-        }
-
-        /* ファイルリストのスタイル (ウェイポイント画面から流用) */
-        .file-list {
-            list-style: none;
-            padding: 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            max-height: 250px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-            background-color: #f8f8f8;
-        }
-        .file-list li {
-            padding: 10px 15px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            transition: background-color 0.2s, color 0.2s;
-            font-size: 1em;
-            color: #333;
-        }
-        .file-list li:last-child {
-            border-bottom: none;
-        }
-        .file-list li:hover {
-            background-color: #e9ecef;
-        }
-        .file-list li.selected {
-            background-color: #007bff;
-            color: white;
-            font-weight: bold;
-        }
-        .file-list li.selected:hover {
-            background-color: #0056b3;
-        }
-
-        /* ボタン共通スタイル */
-        .button {
-            padding: 10px 20px;
-            margin-right: 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: none;
-            transition: background-color 0.2s, opacity 0.2s;
-            display: inline-block;
-            text-align: center;
-            margin-top: 15px; /* ボタンとリストの間隔を調整 */
-        }
-        
-        /* Primaryボタン (選択して次へ) */
-        .primary {
-            background-color: #28a745; 
-            color: white;
-        }
-        .primary:hover:not(:disabled) {
-            background-color: #1e7e34;
-        }
-        .primary:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-
-        /* Secondaryボタン (戻る) */
-        .secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        .secondary:hover {
-            background-color: #5a6268;
-        }
-
-        /* メッセージ/フラッシュ */
-        .flashes {
-            list-style: none;
-            padding: 0;
-            margin-top: 20px;
-        }
-        .flashes li {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            border: 1px solid;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-        }
-        /* success, warningなど他のスタイルも必要に応じて残す */
-    </style>
-
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <script src="{{ url_for('static', filename='js/jquery/jquery-3.6.0.min.js') }}"></script>
     <script>
         function closeCurrentTabAndReloadOpener() {
             try {
                 if (window.opener && !window.opener.closed) {
-                    window.opener.location.reload(); 
+                    window.opener.location.reload();
                 }
             } catch (e) {
                 console.warn("親ウィンドウのリロードに失敗しました:", e);
@@ -147,9 +26,9 @@
                 $('.file-list li').removeClass('selected');
                 $(this).addClass('selected');
                 // data-filename属性にファイル名が格納されていると想定
-                selectedPcdFile = $(this).data('filename'); 
+                selectedPcdFile = $(this).data('filename');
                 $('#submit_button').prop('disabled', false); // ファイルが選択されたら有効化
-                
+
                 // 隠しフィールドに選択値を設定
                 $('#pcd_filename_input').val(selectedPcdFile);
             });
@@ -164,7 +43,7 @@
         });
     </script>
 </head>
-<body>
+<body class="page">
     <div class="container">
         <h2>PCD to PGM 変換: PCDファイル選択</h2>
         <p>変換元のPCDファイル（`{{ map_dir }}` ディレクトリ内）を選択してください。</p>
@@ -174,25 +53,25 @@
 
             <h3>利用可能なPCDファイル (.pcd)</h3>
 
-            <ul class="file-list">
+            <ul class="file-list file-list--selectable">
                 {% for file in pcd_files %}
                     <li data-filename="{{ file }}">{{ file }}</li>
                 {% else %}
-                    <li style="color: #dc3545; cursor: default;">PCDファイルが見つかりません。マッピングを実行してPCDを作成してください。</li>
+                    <li class="is-empty">PCDファイルが見つかりません。マッピングを実行してPCDを作成してください。</li>
                 {% endfor %}
             </ul>
-            
-            <div class="action-buttons">
-                <button type="submit" id="submit_button" class="button primary">選択して次へ</button>
-                <a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="button secondary">戻る</a>
+
+            <div class="actions">
+                <button type="submit" id="submit_button" class="btn btn--success">選択して次へ</button>
+                <a href="javascript:void(0)" onclick="closeCurrentTabAndReloadOpener()" class="btn btn--secondary">戻る</a>
             </div>
         </form>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <ul class="flashes">
+                <ul class="alert-list">
                     {% for category, message in messages %}
-                        <li class="{{ category }}">{{ message }}</li>
+                        <li class="alert alert--{{ category }}">{{ message }}</li>
                     {% endfor %}
                 </ul>
             {% endif %}

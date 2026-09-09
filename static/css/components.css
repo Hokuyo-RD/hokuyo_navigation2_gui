@@ -353,6 +353,106 @@
 }
 
 /* ==========================================================================
+   指摘リスト（.issue-list）— 設定チェック結果・実行ログから読み取った問題
+   --------------------------------------------------------------------------
+   1件が .alert（種類は error / warning / info / success）1枚。
+   非エンジニアが読む前提なので「見出し → 状況 → 対処」の3段で書く。
+   <div class="issue-list">
+     <div class="issue alert alert--error">
+       <p class="issue__title">…</p>
+       <p class="issue__detail">…</p>
+       <p class="issue__hint">…</p>
+     </div>
+   </div>
+   ========================================================================== */
+.issue-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.issue {
+    margin-bottom: 0;
+    padding: var(--space-3) var(--space-4);
+}
+
+.issue__title {
+    font-weight: var(--fw-medium);
+}
+
+/* 進捗パネルの中に置かれても本文が太字にならないよう、太さを指定し直す */
+.issue__detail {
+    margin-top: var(--space-1);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-normal);
+}
+
+.issue__hint {
+    margin-top: var(--space-2);
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-normal);
+}
+
+.issue__hint::before {
+    content: '対処: ';
+    font-weight: var(--fw-medium);
+}
+
+/* 確認できた項目は数が多くなりがちなので、折りたたんで表示する */
+.issue-collapse {
+    margin-top: var(--space-3);
+}
+
+.issue-collapse > summary {
+    cursor: pointer;
+    color: var(--color-text-muted);
+    font-size: var(--fs-sm);
+}
+
+/* ==========================================================================
+   実行ログ（.log-console）— 別ターミナルで動く処理の出力をそのまま表示
+   ========================================================================== */
+.log-console {
+    margin-top: var(--space-4);
+}
+
+.log-console__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.log-console__title {
+    margin: 0;
+    font-size: var(--fs-md);
+    font-weight: var(--fw-medium);
+}
+
+.log-console__body {
+    max-height: 260px;
+    overflow: auto;
+    margin: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--viewer-border);
+    border-radius: var(--radius-md);
+    background-color: var(--viewer-surface-alt);
+    color: var(--viewer-text);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    line-height: var(--line-height);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.log-console__body:empty::before {
+    content: 'ログの出力を待っています…';
+    color: var(--viewer-text-muted);
+}
+
+/* ==========================================================================
    進捗パネル（.progress-panel）— 変換・マッピングの状態表示
    ========================================================================== */
 .progress-panel {
@@ -426,6 +526,76 @@
 .table td input[type="text"] {
     padding: var(--space-1);
     border-radius: var(--radius-sm);
+}
+
+/* ==========================================================================
+   設定ファイルの編集表（.config-table）— パラメータ設定CSVをその場で書き換える
+   --------------------------------------------------------------------------
+   .table を土台にして、1行 = CSVの1項目。トピック名や座標系はプルダウン、
+   それ以外は文字入力になる。
+   ========================================================================== */
+.config-table-wrap {
+    max-height: 420px;
+    overflow: auto;
+    margin-bottom: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.config-table {
+    margin: 0;
+    font-size: var(--fs-sm);
+}
+
+.config-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+/* CSV上のオプション名（項目名の下に小さく出す） */
+.config-table__name {
+    margin-top: 2px;
+    color: var(--color-text-subtle);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+}
+
+.config-table__select,
+.config-table__input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* プルダウンの下に直接入力欄が出るときの間隔 */
+.config-table__select + .config-table__input {
+    margin-top: var(--space-2);
+}
+
+/* プルダウンの色分け。
+   選択肢すべてに明示的に色を付けること。色を指定しない選択肢は
+   <select> 自身の色を受け継ぐため、選択中の色に引きずられてしまう。 */
+.config-option--plain {
+    color: var(--color-text);
+}
+
+/* 型が合っている／座標系が一致している候補 */
+.config-option--match,
+.config-table__select.is-match {
+    color: var(--color-success);
+}
+
+/* ROS Bag に存在しない値 */
+.config-option--missing,
+.config-table__select.is-missing {
+    color: var(--color-danger);
+}
+
+.config-table__default {
+    color: var(--color-text-subtle);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    white-space: nowrap;
 }
 
 /* ==========================================================================

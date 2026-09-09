@@ -57,6 +57,10 @@ static/css/
 | 情報リスト | `.info-list` / `.info-list__item` | 選択済みファイルなど読むだけの一覧 |
 | 通知 | `.alert` ＋ `.alert--success/error/warning/info` | flash メッセージ。修飾子は Flask の flash カテゴリと同名 |
 | 進捗 | `.progress-panel` / `.spinner` | 変換・マッピングの状態表示 |
+| 指摘 | `.issue-list` / `.issue` ＋ `.alert--*` | 設定チェック結果・実行ログから読み取った問題（見出し／状況／対処の3段） |
+| 折りたたみ | `.issue-collapse`（`<details>`） | 「確認できた項目」など、既定で畳んでおく一覧 |
+| 実行ログ | `.log-console` / `.log-console__body` | 別ターミナルで動く処理の出力をそのまま表示 |
+| 設定編集表 | `.config-table`（`.table` と併用） | パラメータ設定CSVをその場で書き換える表 |
 | 表 | `.table` | CSV 編集など |
 | トグル | `.switch` / `.switch__slider` / `.switch-row` | オン・オフ切替 |
 | オーバーレイ | `.popup-container` / `.popup-content` / `.modal` | ダイアログ |

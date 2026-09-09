@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/rosbag-topics.css') }}">
     <script src="{{ url_for('static', filename='js/jquery/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mapping_log.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/config_editor.js') }}"></script>
 </head>
 <body class="page">
 
@@ -30,6 +32,99 @@
             </strong>
         </li>
     </ul>
+
+    {% if bag_info %}
+    <h3>ROS Bag の内容</h3>
+    <div class="bag-summary">
+        <div class="bag-summary__item">
+            <span class="bag-summary__label">記録時間</span>
+            <span class="bag-summary__value">{{ bag_info.duration }}</span>
+        </div>
+        <div class="bag-summary__item">
+            <span class="bag-summary__label">記録開始</span>
+            <span class="bag-summary__value">{{ bag_info.start_time or '不明' }}</span>
+        </div>
+        <div class="bag-summary__item">
+            <span class="bag-summary__label">トピック数</span>
+            <span class="bag-summary__value">{{ bag_info.topic_count }}</span>
+        </div>
+        <div class="bag-summary__item">
+            <span class="bag-summary__label">メッセージ数</span>
+            <span class="bag-summary__value">{{ '{:,}'.format(bag_info.message_count) }}</span>
+        </div>
+        <div class="bag-summary__item">
+            <span class="bag-summary__label">ファイルサイズ</span>
+            <span class="bag-summary__value">{{ bag_info.size }}</span>
+        </div>
+        <div class="bag-summary__item">
+            <span class="bag-summary__label">保存形式</span>
+            <span class="bag-summary__value">{{ bag_info.storage_id }}</span>
+        </div>
+    </div>
+
+    <details class="issue-collapse" open>
+        <summary>記録されているトピック（{{ bag_info.topic_count }}件）</summary>
+        <div class="topic-table-wrap">
+            <table class="topic-table">
+                <thead>
+                    <tr>
+                        <th>トピック名 / 種類</th>
+                        <th class="topic-table__number">件数</th>
+                        <th class="topic-table__number">周波数</th>
+                        <th>座標系 (frame_id)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for topic in bag_info.topics %}
+                    <tr {% if topic.is_empty %}class="is-empty"{% endif %}>
+                        <td>
+                            <div class="topic-table__name">{{ topic.name }}</div>
+                            <div class="topic-table__type">
+                                {{ topic.type }}{% if topic.type_label %} — {{ topic.type_label }}{% endif %}
+                            </div>
+                        </td>
+                        <td class="topic-table__number">
+                            {{ '{:,}'.format(topic.message_count) }}{% if topic.is_empty %}（データなし）{% endif %}
+                        </td>
+                        <td class="topic-table__number">
+                            {% if topic.frequency %}約 {{ topic.frequency }} Hz{% else %}-{% endif %}
+                        </td>
+                        <td class="topic-table__frame">
+                            {% if topic.frame_id %}{{ topic.frame_id }}{% else %}-{% endif %}
+                            {%- if topic.child_frame_id %} → {{ topic.child_frame_id }}{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    {% if bag_info.frames %}
+    <details class="issue-collapse">
+        <summary>このROS Bagで使われている座標系（{{ bag_info.frames | length }}件）</summary>
+        <ul class="frame-list">
+            {% for frame in bag_info.frames %}
+            <li class="frame-list__item">{{ frame }}</li>
+            {% endfor %}
+        </ul>
+        {% for tf_topic, edges in bag_info.tf.items() %}
+            {% if edges %}
+            <p class="note">{{ tf_topic }} に記録されている座標変換:</p>
+            <ul class="frame-list">
+                {% for edge in edges %}
+                <li class="frame-list__item">{{ edge.parent }} → {{ edge.child }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endfor %}
+    </details>
+    {% endif %}
+    {% else %}
+    <div class="alert alert--warning">
+        <p>ROS Bag の詳細（メッセージ数・座標系）を読み取れませんでした。トピック名のみ表示します。</p>
+    </div>
+    {% endif %}
 
     <form id="processing-form">
         <input type="hidden" id="input-bag-path" value="{{ input_bag_path }}">
@@ -85,6 +180,24 @@
             </select>
         </div>
 
+        <details id="config-editor" class="issue-collapse" {% if not (sync_mode or p2o_mode or lio_raw_mode) %}hidden{% endif %}>
+            <summary>パラメータ設定ファイルを編集する</summary>
+            <p class="note">
+                トピック名と座標系は、選択中のROS Bagに実際に記録されているものから選べます。
+                行の順番は変えずに「指定値」だけを書き換えます。
+            </p>
+            <div id="config-editor-body">
+                <p class="text-muted">編集するには、上で設定ファイルを選択してください。</p>
+            </div>
+            <p id="config-save-message" class="note"></p>
+        </details>
+
+        <div id="diagnostics-area" {% if not (sync_mode or p2o_mode or lio_raw_mode) %}hidden{% endif %}>
+            <h3>設定チェック</h3>
+            <p id="diagnostics-summary" class="note">設定とROS Bagの内容を確認しています…</p>
+            <div id="diagnostics-issues"></div>
+        </div>
+
         <div class="actions">
             <button type="submit" id="start-button" class="btn btn--success">
                 {% if sync_mode %}
@@ -103,6 +216,7 @@
     <div id="progress-area" class="progress-panel" hidden>
         <p id="progress-message"></p>
         <div id="message-area"></div>
+        <div id="log-issues"></div>
         <div id="result-links" class="actions" hidden>
             <a id="download-link" class="btn btn--success" hidden>ダウンロード</a>
             <a id="viewer-link" class="btn btn--success" hidden target="_blank">3Dビューアで確認</a>
@@ -110,6 +224,15 @@
         </div>
     </div>
     <div id="loading_spinner" class="spinner" hidden>処理中...</div>
+
+    <div id="log-console" class="log-console" hidden>
+        <div class="log-console__header">
+            <h3 class="log-console__title">実行ログ</h3>
+            <button type="button" id="copy-log-button" class="btn btn--secondary btn--sm">ログをコピー</button>
+        </div>
+        <pre id="log-output" class="log-console__body"></pre>
+        <p class="note">うまくいかないときは、このログをそのまま担当者に送ってください。</p>
+    </div>
 </div>
 
 <script>
@@ -132,14 +255,152 @@
     const isMappingMode = isP2OMode || isLioRawMode; // マッピングモードの共通フラグ
     const bagDurationSec = {{ bag_duration_sec | default(120) }};
 
+    // 設定チェック（コンフィグとROS Bagの食い違い）関連
+    const mappingMode = {{ mapping_mode | default('filter') | tojson }};
+    const configSelect = document.getElementById('config-file');
+    const diagnosticsArea = document.getElementById('diagnostics-area');
+    const diagnosticsSummary = document.getElementById('diagnostics-summary');
+    const diagnosticsIssues = document.getElementById('diagnostics-issues');
+
+    // 設定ファイル編集関連
+    const configEditor = document.getElementById('config-editor');
+    const configEditorBody = document.getElementById('config-editor-body');
+    const configSaveMessage = document.getElementById('config-save-message');
+
+    // 実行ログ関連
+    const logConsole = document.getElementById('log-console');
+    const logOutput = document.getElementById('log-output');
+    const logIssues = document.getElementById('log-issues');
+    const copyLogButton = document.getElementById('copy-log-button');
+
     let pollingTimer = null;
     let totalPollingTime = 0;
+    let logViewer = null;
+    let diagnosticsStatus = null;   // 'ok' / 'warning' / 'error'
+    let currentOutputName = '';
+    let currentMode = 'filter';
+
+    // 設定チェックを実行して結果を描画する。
+    // 設定ファイルを選び直すたびに呼ばれる。
+    function refreshDiagnostics() {
+        if (mappingMode === 'filter' || !diagnosticsArea) { return; }
+        diagnosticsSummary.className = 'note';
+        diagnosticsSummary.textContent = '設定とROS Bagの内容を確認しています…';
+        diagnosticsIssues.innerHTML = '';
+
+        fetch('/rosbag_diagnostics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                input_bag_path: inputBagPath,
+                config_file: configSelect ? configSelect.value : '',
+                mode: mappingMode
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    diagnosticsStatus = null;
+                    diagnosticsSummary.textContent =
+                        data.message || '設定チェックを利用できませんでした。';
+                    return;
+                }
+                const result = data.diagnostics;
+                diagnosticsStatus = result.status;
+                diagnosticsSummary.textContent = result.message;
+                if (result.status === 'error') {
+                    diagnosticsSummary.className = 'text-error';
+                } else if (result.status === 'ok') {
+                    diagnosticsSummary.className = 'text-success';
+                } else {
+                    diagnosticsSummary.className = 'note';
+                }
+                MappingLog.renderIssues(diagnosticsIssues, result.findings);
+            })
+            .catch(error => {
+                console.error('設定チェックに失敗しました:', error);
+                diagnosticsStatus = null;
+                diagnosticsSummary.textContent = 'サーバーと通信できず、設定チェックを行えませんでした。';
+            });
+    }
+
+    // 実行ログの表示を開始する。
+    function startLogViewer(jobId) {
+        if (!jobId) { return; }
+        logConsole.hidden = false;
+        logViewer = MappingLog.createViewer({
+            logElement: logOutput,
+            issueElement: logIssues,
+            onFinished: function (exitCode) {
+                // 完了フラグを待たずに、実行ログの終了コードで失敗を判定する。
+                // これが無いと、処理が落ちても「処理を続行中です…」のままになる。
+                if (exitCode !== 0) {
+                    showDownloadResult('error', currentOutputName, currentMode);
+                }
+            }
+        });
+        logViewer.start(jobId);
+    }
+
+    if (copyLogButton) {
+        copyLogButton.addEventListener('click', () => {
+            const text = logOutput.textContent;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text)
+                    .then(() => { copyLogButton.textContent = 'コピーしました'; })
+                    .catch(() => { copyLogButton.textContent = 'コピーできませんでした'; });
+                return;
+            }
+            // http でのアクセス時は clipboard API が使えないため、選択状態にする。
+            const range = document.createRange();
+            range.selectNodeContents(logOutput);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            copyLogButton.textContent = 'ログを選択しました (Ctrl+C)';
+        });
+    }
+
+    // 設定ファイルの編集欄（共通部品 config_editor.js）
+    const configEditorInstance = ConfigEditor.create({
+        selectElement: configSelect,
+        bodyElement: configEditorBody,
+        messageElement: configSaveMessage,
+        bagPath: inputBagPath,
+        saveLabel: '保存して再チェック',
+        // 保存されたら、その内容で設定チェックをやり直す。
+        onSaved: refreshDiagnostics
+    });
+
+    if (configEditor) {
+        // 編集欄は実行フォームの中にあるため、Enter キーでマッピングが
+        // 始まってしまわないように打ち消す。
+        configEditor.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && event.target.tagName === 'INPUT') {
+                event.preventDefault();
+            }
+        });
+    }
+
+    if (configSelect) {
+        configSelect.addEventListener('change', () => {
+            configEditorInstance.setMessage('', 'note');
+            refreshDiagnostics();
+            configEditorInstance.reload();
+        });
+    }
+    refreshDiagnostics();
+    configEditorInstance.reload();
 
     // 処理結果を表示する関数 (成功/エラー)
     function showDownloadResult(status, filenameOrMapName, mode, downloadUrl = null) {
         if (pollingTimer) {
             clearInterval(pollingTimer);
             pollingTimer = null;
+        }
+        // 終了直前の数行が残っていることがあるので、最後に一度だけ読み込む。
+        if (logViewer) {
+            logViewer.flush();
         }
 
         const isMapping = (mode === 'p2o' || mode === 'lio_raw');
@@ -191,6 +452,7 @@
 
     // 処理状況をポーリングする関数
     function startPolling(outputFilename, mode) {
+        currentMode = mode;
         progressArea.hidden = false;
         startButton.hidden = true;
         cancelButton.hidden = true;
@@ -264,6 +526,15 @@
             return;
         }
 
+        // 設定チェックで「このままでは失敗する」問題が見つかっている場合は確認する。
+        if (diagnosticsStatus === 'error') {
+            const proceed = window.confirm(
+                '設定チェックで問題が見つかっています。\n'
+                + 'このまま実行すると失敗するか、中身のない地図ができる可能性があります。\n\n'
+                + 'それでも実行しますか？');
+            if (!proceed) { return; }
+        }
+
         messageArea.textContent = '';
         progressArea.hidden = false;
         startButton.hidden = true;
@@ -272,6 +543,7 @@
 
         let apiUrl = '/convert';
         let mode = 'filter'; // デフォルト
+        currentOutputName = outputFilename;
 
         let payload = {
             input_bag_path: inputBagPath,
@@ -323,6 +595,8 @@
 
             if (data.status === 'success') {
                 // 処理スクリプトは開始されたが、完了はしていない。ポーリングを開始する。
+                currentMode = mode;
+                startLogViewer(data.job_id);
                 startPolling(outputFilename, mode);
                 progressMessage.textContent = data.message;
             } else {

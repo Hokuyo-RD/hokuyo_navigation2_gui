@@ -6,6 +6,8 @@
     <title>PCD to PGM 変換設定</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <script src="{{ url_for('static', filename='js/jquery/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mapping_log.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/config_editor.js') }}"></script>
 
     <script>
         function closeCurrentTabAndReloadOpener() {
@@ -65,6 +67,18 @@
             </select>
         </div>
 
+        <details id="config-editor" class="issue-collapse">
+            <summary>パラメータ設定ファイルを編集する</summary>
+            <p class="note">
+                行の順番は変えずに「指定値」だけを書き換えます。
+                PCD→PGM 変換では、地図化する高さの範囲や解像度の項目が使われます。
+            </p>
+            <div id="config-editor-body">
+                <p class="text-muted">編集するには、上で設定ファイルを選択してください。</p>
+            </div>
+            <p id="config-save-message" class="note"></p>
+        </details>
+
         <div class="actions">
             <button id="start_convert_button" class="btn btn--success">変換開始</button>
             <button id="cancel_button" class="btn btn--secondary" onclick="closeCurrentTabAndReloadOpener()">キャンセル</button>
@@ -73,13 +87,58 @@
         <div id="status_message" class="progress-panel">
             <p>設定を確認し、「変換開始」ボタンを押してください。</p>
         </div>
+        <div id="log_issues"></div>
         <div id="loading_spinner" class="spinner" hidden>処理中...</div>
+
+        <div id="log_console" class="log-console" hidden>
+            <div class="log-console__header">
+                <h3 class="log-console__title">実行ログ</h3>
+            </div>
+            <pre id="log_output" class="log-console__body"></pre>
+            <p class="note">うまくいかないときは、このログをそのまま担当者に送ってください。</p>
+        </div>
 
         <script>
             $(document).ready(function() {
                 var pollingInterval;
                 var mapName;
                 var waypointFilename = $('#input_waypoint_filename').val();
+                var logViewer = null;
+
+                // 設定ファイルの編集欄（共通部品 config_editor.js）。
+                // この画面には ROS Bag が無いため、トピック名の候補は出ない。
+                var configSelect = document.getElementById('config-file');
+                var configEditorInstance = ConfigEditor.create({
+                    selectElement: configSelect,
+                    bodyElement: document.getElementById('config-editor-body'),
+                    messageElement: document.getElementById('config-save-message'),
+                    saveLabel: '保存'
+                });
+                configSelect.addEventListener('change', function () {
+                    configEditorInstance.setMessage('', 'note');
+                    configEditorInstance.reload();
+                });
+                configEditorInstance.reload();
+
+                // 別ターミナルで動く変換処理のログを画面に出す。
+                // 失敗の原因（PCDが無い・権限が無い等）を日本語で表示する。
+                function startLogViewer(jobId) {
+                    if (!jobId) { return; }
+                    $('#log_console').prop('hidden', false);
+                    logViewer = MappingLog.createViewer({
+                        logElement: document.getElementById('log_output'),
+                        issueElement: document.getElementById('log_issues'),
+                        onFinished: function (exitCode) {
+                            if (exitCode !== 0) {
+                                clearInterval(pollingInterval);
+                                $('#status_message').html(
+                                    '<p class="text-error">❌ 変換処理が途中で終了しました。</p>');
+                                cleanup();
+                            }
+                        }
+                    });
+                    logViewer.start(jobId);
+                }
 
                 $('#start_convert_button').click(function() {
                     mapName = $('#output_map_name').val().trim();
@@ -114,7 +173,8 @@
                         success: function(response) {
                             if (response.status === 'success') {
                                 $('#status_message').html('<p class="text-success">' + response.message + '</p>');
-                                // 2. ポーリングを開始
+                                // 2. 実行ログの表示とポーリングを開始
+                                startLogViewer(response.job_id);
                                 pollingInterval = setInterval(checkStatus, 5000);
                             } else {
                                 $('#status_message').html('<p class="text-error">エラー: ' + response.message + '</p>');
@@ -142,6 +202,7 @@
                             if (response.status === 'finished') {
                                 clearInterval(pollingInterval);
                                 $('#loading_spinner').prop('hidden', true);
+                                if (logViewer) { logViewer.flush(); }
 
                                 var viewerLink = '<a href="/map_viewer" target="_blank" class="btn btn--secondary">3Dビューアで確認</a>';
                                 var downloadLink = '<a href="' + response.download_url + '" class="btn btn--success">PGM/YAMLマップをダウンロード</a>';
@@ -173,6 +234,7 @@
                     $('#start_convert_button').prop('disabled', false);
                     $('#cancel_button').prop('disabled', false);
                     $('#loading_spinner').prop('hidden', true);
+                    if (logViewer) { logViewer.flush(); }
                 }
             });
         </script>

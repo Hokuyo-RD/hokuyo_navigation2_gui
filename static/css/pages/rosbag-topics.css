@@ -36,3 +36,115 @@
     color: var(--color-text-subtle);
     font-size: var(--fs-xs);
 }
+
+/* --------------------------------------------------------------------------
+   ROS Bag の概要（記録時間・容量・トピック数など）
+   -------------------------------------------------------------------------- */
+.bag-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-2) var(--space-4);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface-alt);
+}
+
+.bag-summary__item {
+    display: flex;
+    flex-direction: column;
+}
+
+.bag-summary__label {
+    color: var(--color-text-subtle);
+    font-size: var(--fs-xs);
+}
+
+.bag-summary__value {
+    font-weight: var(--fw-medium);
+    word-break: break-all;
+}
+
+/* --------------------------------------------------------------------------
+   記録されているトピックの一覧表
+   -------------------------------------------------------------------------- */
+.topic-table-wrap {
+    max-height: 380px;
+    overflow: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.topic-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-sm);
+}
+
+.topic-table th,
+.topic-table td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--color-border-subtle);
+    text-align: left;
+    vertical-align: top;
+}
+
+.topic-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: var(--color-surface-hover);
+    font-weight: var(--fw-medium);
+}
+
+.topic-table tbody tr:last-child td { border-bottom: none; }
+
+.topic-table__name {
+    font-family: var(--font-mono);
+    word-break: break-all;
+}
+
+.topic-table__type {
+    color: var(--color-text-muted);
+    font-size: var(--fs-xs);
+    word-break: break-all;
+}
+
+.topic-table__number {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.topic-table__frame {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    word-break: break-all;
+}
+
+/* メッセージが1件も無いトピックは、ひと目で分かるようにする */
+.topic-table tr.is-empty td {
+    background-color: var(--color-alert-warning-bg);
+    color: var(--color-alert-warning-fg);
+}
+
+/* --------------------------------------------------------------------------
+   TF（座標変換）の一覧
+   -------------------------------------------------------------------------- */
+.frame-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.frame-list__item {
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface-alt);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+}
+

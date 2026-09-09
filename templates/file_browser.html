@@ -75,6 +75,9 @@
                             {% if item.is_structured %}
                                 <a href="{{ url_for('edit_csv', filename=filename) }}" class="btn btn--primary btn--sm">編集</a>
                             {% endif %}
+                            {% if item.is_mapping_config %}
+                                <a href="{{ url_for('edit_mapping_config', filename=filename) }}" class="btn btn--primary btn--sm">マッピング設定を編集</a>
+                            {% endif %}
                             <a href="{{ url_for('edit_plain_text', dir_type=dir_type, filename=filename) }}" class="btn btn--secondary btn--sm">テキスト編集</a>
                         {% endif %}
                         {# Individual delete button #}
@@ -97,11 +100,32 @@
         {% if dir_type == 'config' %}
         <div class="new-file-form">
             <h3>新規CSVファイル作成</h3>
-            <form action="{{ url_for('create_csv') }}" method="post" class="new-file-form__row">
-                <input type="text" name="filename" placeholder="新しいファイル名 (.csv)" required>
-                <button type="submit" class="btn btn--success">作成</button>
+            <form action="{{ url_for('create_csv') }}" method="post">
+                <div class="field">
+                    <label for="csv-type">作成する形式:</label>
+                    <select id="csv-type" name="csv_type">
+                        <option value="mapping_config">マッピング用パラメータ設定（トピック名・座標系など）</option>
+                        <option value="multi_map">マルチマップ走行シナリオ（走行するマップとウェイポイントの並び）</option>
+                    </select>
+                </div>
+                <div class="field" id="reference-bag-field">
+                    <label for="reference-bag">参考にするROS Bag:</label>
+                    <select id="reference-bag" name="reference_bag">
+                        <option value="">-- 選択しない（既定値で作成） --</option>
+                        {% for bag in rosbags %}
+                        <option value="{{ bag.path }}">{{ bag.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="note">
+                        選ぶと、トピック名と座標系をそのROS Bagに記録されている名前で埋めた状態で作成します。
+                    </p>
+                </div>
+                <div class="new-file-form__row">
+                    <input type="text" name="filename" placeholder="新しいファイル名 (.csv)" required>
+                    <button type="submit" class="btn btn--success">作成</button>
+                </div>
             </form>
-            <a href="{{ url_for('create_plain_text') }}" class="btn btn--secondary btn--block">
+            <a id="create-plain-text-link" href="{{ url_for('create_plain_text') }}" class="btn btn--secondary btn--block">
                 テキストモードで新規作成
             </a>
         </div>
@@ -113,6 +137,29 @@
     </div>
 
     <script>
+        // 形式に合わせて「参考にするROS Bag」の表示を切り替え、
+        // テキストモードのリンクにも同じ条件を引き継ぐ。
+        const csvTypeSelect = document.getElementById('csv-type');
+        const referenceBagField = document.getElementById('reference-bag-field');
+        const referenceBagSelect = document.getElementById('reference-bag');
+        const createPlainTextLink = document.getElementById('create-plain-text-link');
+        if (csvTypeSelect && createPlainTextLink) {
+            const plainTextBaseUrl = createPlainTextLink.href;
+            function updateNewFileForm() {
+                const isMappingConfig = csvTypeSelect.value === 'mapping_config';
+                referenceBagField.hidden = !isMappingConfig;
+
+                let url = plainTextBaseUrl + '?csv_type=' + encodeURIComponent(csvTypeSelect.value);
+                if (isMappingConfig && referenceBagSelect.value) {
+                    url += '&reference_bag=' + encodeURIComponent(referenceBagSelect.value);
+                }
+                createPlainTextLink.href = url;
+            }
+            csvTypeSelect.addEventListener('change', updateNewFileForm);
+            referenceBagSelect.addEventListener('change', updateNewFileForm);
+            updateNewFileForm();
+        }
+
         // Function to handle individual file deletion
         function deleteIndividualItem(itemPath, dirType, currentPath, isDir) {
             const itemName = itemPath.split('/').pop();

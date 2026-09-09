@@ -21,9 +21,7 @@
         </li>
         <li class="info-list__item info-list__item--config">
             モード: <strong>
-            {% if sync_mode %}
-                トピック同期 (Sync)
-            {% elif p2o_mode %}
+            {% if p2o_mode %}
                 P2O マッピング
             {% elif lio_raw_mode %}
                 LIO-RAW マッピング {% else %}
@@ -128,7 +126,6 @@
 
     <form id="processing-form">
         <input type="hidden" id="input-bag-path" value="{{ input_bag_path }}">
-        <input type="hidden" id="is-sync-mode" value="{{ sync_mode | tojson }}">
         <input type="hidden" id="is-p2o-mode" value="{{ p2o_mode | tojson }}">
         <input type="hidden" id="is-lio-raw-mode" value="{{ lio_raw_mode | tojson }}">
 
@@ -143,7 +140,7 @@
             <input type="text" id="output-filename" placeholder="例: {{ default_name }}" value="{{ default_name }}" required>
         </div>
 
-        <div class="field" id="filter-options" {% if sync_mode or p2o_mode or lio_raw_mode %}hidden{% endif %}>
+        <div class="field" id="filter-options" {% if p2o_mode or lio_raw_mode %}hidden{% endif %}>
             <label>選択するトピック (フィルタリングモードのみ):</label>
             <div class="topic-list">
                 {% for topic_name, topic_type in topics_info %}
@@ -160,7 +157,7 @@
 
         <div id="p2o-options" {% if not p2o_mode %}hidden{% endif %}>
             <h3>P2O マッピング オプション</h3>
-            <p>P2Oモードでは、トピック同期処理後のクリーンなROS Bagを入力として使用することが推奨されます。</p>
+            <p>P2Oモードでは、必要なトピックだけを残したクリーンなROS Bag（トピックフィルタリングの出力）を入力として使用することが推奨されます。</p>
             <p><strong>出力マップ名:</strong> 上記の「出力ファイル/マップ名」がそのまま最終的なPCDファイル名に使用されます。</p>
         </div>
 
@@ -170,7 +167,7 @@
             <p><strong>出力マップ名:</strong> 上記の「出力ファイル/マップ名」がそのまま最終的なPCDファイル名に使用されます。</p>
         </div>
 
-        <div class="field" id="mapping-config-options" {% if not (sync_mode or p2o_mode or lio_raw_mode) %}hidden{% endif %}>
+        <div class="field" id="mapping-config-options" {% if not (p2o_mode or lio_raw_mode) %}hidden{% endif %}>
             <label for="config-file">パラメータ設定ファイル (CSV):</label>
             <select id="config-file">
                 <option value="">-- 設定ファイルを選択 (任意) --</option>
@@ -180,7 +177,7 @@
             </select>
         </div>
 
-        <details id="config-editor" class="issue-collapse" {% if not (sync_mode or p2o_mode or lio_raw_mode) %}hidden{% endif %}>
+        <details id="config-editor" class="issue-collapse" {% if not (p2o_mode or lio_raw_mode) %}hidden{% endif %}>
             <summary>パラメータ設定ファイルを編集する</summary>
             <p class="note">
                 トピック名と座標系は、選択中のROS Bagに実際に記録されているものから選べます。
@@ -192,7 +189,7 @@
             <p id="config-save-message" class="note"></p>
         </details>
 
-        <div id="diagnostics-area" {% if not (sync_mode or p2o_mode or lio_raw_mode) %}hidden{% endif %}>
+        <div id="diagnostics-area" {% if not (p2o_mode or lio_raw_mode) %}hidden{% endif %}>
             <h3>設定チェック</h3>
             <p id="diagnostics-summary" class="note">設定とROS Bagの内容を確認しています…</p>
             <div id="diagnostics-issues"></div>
@@ -200,9 +197,7 @@
 
         <div class="actions">
             <button type="submit" id="start-button" class="btn btn--success">
-                {% if sync_mode %}
-                    同期処理を開始
-                {% elif p2o_mode %}
+                {% if p2o_mode %}
                     P2O マッピングを開始
                 {% elif lio_raw_mode %}
                     LIO-RAW マッピングを開始 {% else %}
@@ -249,7 +244,6 @@
     const loadingSpinner = document.getElementById('loading_spinner');
     // 🌟 LIO-RAW モードのフラグを取得 🌟
     const inputBagPath = document.getElementById('input-bag-path').value;
-    const isSyncMode = JSON.parse(document.getElementById('is-sync-mode').value);
     const isP2OMode = JSON.parse(document.getElementById('is-p2o-mode').value);
     const isLioRawMode = JSON.parse(document.getElementById('is-lio-raw-mode').value); // 🌟 LIO-RAW フラグ 🌟
     const isMappingMode = isP2OMode || isLioRawMode; // マッピングモードの共通フラグ
@@ -440,7 +434,7 @@
                 }
 
             } else {
-                // Filter/Syncモード完了時
+                // フィルタリング完了時
                 progressMessage.textContent = '処理が完了しました。ファイルをダウンロードしてください。';
                 downloadLink.href = `/download/${filenameOrMapName}`;
                 downloadLink.textContent = `${filenameOrMapName}.zip をダウンロード`;
@@ -464,8 +458,6 @@
             endpoint = '/check_p2o_status';
         } else if (mode === 'lio_raw') {
             endpoint = '/check_lio_raw_status'; // 🌟 LIO-RAWのAPI 🌟
-        } else if (mode === 'sync' || mode === 'filter') {
-            endpoint = '/check_sync_status';
         } else {
             console.error("Unknown mode for polling:", mode);
             return;
@@ -498,9 +490,6 @@
 
                 // 進行中のプログレスバー更新
                 totalPollingTime += 1000; // 1秒ごとに増やす
-                // P2O/LIO-RAWは長めに設定 (Filter/Syncは1.5倍、Mappingは2倍)
-                const multiplier = isMapping ? 2 : 1.5;
-                const maxExpectedTime = bagDurationSec * 1000 * multiplier;
 
                 // プログレスメッセージの更新
                 progressMessage.textContent = `処理を続行中です... (経過時間: ${Math.round(totalPollingTime / 1000)}秒)`;
@@ -548,13 +537,10 @@
         let payload = {
             input_bag_path: inputBagPath,
             output_filename: outputFilename,
-            is_sync_mode: isSyncMode,
             config_file: document.getElementById('config-file') ? document.getElementById('config-file').value : '',
         };
 
-        if (isSyncMode) {
-            mode = 'sync';
-        } else if (isP2OMode) {
+        if (isP2OMode) {
             apiUrl = '/p2o_mapping';
             mode = 'p2o';
             payload = {
@@ -594,11 +580,18 @@
             const data = await response.json();
 
             if (data.status === 'success') {
-                // 処理スクリプトは開始されたが、完了はしていない。ポーリングを開始する。
                 currentMode = mode;
-                startLogViewer(data.job_id);
-                startPolling(outputFilename, mode);
-                progressMessage.textContent = data.message;
+                if (isMappingMode) {
+                    // マッピングは別プロセスで続くので、実行ログの表示と完了待ちを始める。
+                    startLogViewer(data.job_id);
+                    startPolling(outputFilename, mode);
+                    progressMessage.textContent = data.message;
+                } else {
+                    // フィルタリングはサーバ内で完了しているので、そのまま結果を表示する。
+                    progressArea.hidden = false;
+                    showDownloadResult('finished', outputFilename, mode);
+                    messageArea.textContent = data.message;
+                }
             } else {
                 progressMessage.textContent = 'エラー: ' + data.message;
                 messageArea.textContent = '処理の開始に失敗しました。';

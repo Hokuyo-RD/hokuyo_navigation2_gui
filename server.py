@@ -461,7 +461,7 @@ def navigation_executed():
 @app.route('/browse_rosbag', defaults={'path': ''}) 
 @app.route('/browse_rosbag/<path:path>')
 def browse_rosbag(path):
-    """ROS Bag フィルタ/同期/P2O/LIO-RAW用のファイルブラウザ"""
+    """ROS Bag フィルタ/P2O/LIO-RAW用のファイルブラウザ"""
     full_path = os.path.join(ROSBAG_ROOT_DIR, path)
     
     if not _is_safe_path(full_path, ROSBAG_ROOT_DIR):
@@ -479,7 +479,6 @@ def browse_rosbag(path):
         
         parent_path = os.path.dirname(path) if path else None
         
-        sync_mode_browse = request.args.get('mode') == 'sync'
         p2o_mode_browse = request.args.get('mode') == 'p2o'
         lio_raw_mode_browse = request.args.get('mode') == 'lio_raw'
         
@@ -490,7 +489,6 @@ def browse_rosbag(path):
                                current_dir_name=os.path.basename(full_path) if path else ROSBAG_ROOT_DIR, 
                                root_dir=ROSBAG_ROOT_DIR,
                                parent_path=parent_path,
-                               sync_mode=sync_mode_browse,
                                p2o_mode=p2o_mode_browse,
                                lio_raw_mode=lio_raw_mode_browse) 
 
@@ -514,7 +512,6 @@ def select_rosbag():
         flash("許可されていないパスへのアクセスが試行されました。", "error")
         return redirect(url_for('browse_rosbag', path=os.path.dirname(file_path)))
     
-    is_sync_mode = request.form.get('mode') == 'sync' 
     is_p2o_mode = request.form.get('mode') == 'p2o' 
     is_lio_raw_mode = request.form.get('mode') == 'lio_raw' 
 
@@ -573,9 +570,7 @@ def select_rosbag():
 
             flash(f'ROS Bag "{file_path}" を読み込みました。', 'success')
 
-            if is_sync_mode:
-                mapping_mode = 'sync'
-            elif is_p2o_mode:
+            if is_p2o_mode:
                 mapping_mode = 'p2o'
             elif is_lio_raw_mode:
                 mapping_mode = 'lio_raw'
@@ -587,7 +582,6 @@ def select_rosbag():
             return render_template('rosbag_select_topics.html', 
                                    topics_info=sorted_topics, 
                                    input_bag_path=full_path,
-                                   sync_mode=is_sync_mode,
                                    p2o_mode=is_p2o_mode, 
                                    lio_raw_mode=is_lio_raw_mode,
                                    bag_duration_sec=estimated_duration,
@@ -622,7 +616,7 @@ def rosbag_diagnostics():
     config_filename = os.path.basename(data.get('config_file', '') or '')
     mode = data.get('mode', 'p2o')
 
-    if mode not in ('p2o', 'lio_raw', 'sync', 'pcd2pgm', 'filter'):
+    if mode not in ('p2o', 'lio_raw', 'pcd2pgm', 'filter'):
         return jsonify({'status': 'error', 'message': '不明なモードが指定されました。'}), 400
 
     bag_info = None
@@ -805,7 +799,10 @@ def mapping_log():
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    """トピックフィルタリングまたはトピック同期を実行し、結果のダウンロードパスを返す (API)"""
+    """トピックフィルタリングを実行し、結果のダウンロードパスを返す (API)
+
+    この処理はサーバ内で完結するため、応答が返った時点で変換は終わっている。
+    """
     try:
         data = request.get_json()
     except Exception as e:
@@ -814,50 +811,24 @@ def convert():
     input_bag_path = data.get('input_bag_path')
     selected_topics = data.get('topics', [])
     output_filename_base = data.get('output_filename')
-    is_sync_mode = data.get('is_sync_mode', False)
-    config_filename = data.get('config_file', '')
-    config_file_path = os.path.join(CONFIG_DIR, config_filename) if config_filename else ''
 
     # 入力チェック 
     if not input_bag_path or not os.path.exists(input_bag_path):
         return jsonify({'status': 'error', 'message': '入力ファイルが見つかりません。パスを確認してください。'}), 400
     if not output_filename_base:
         return jsonify({'status': 'error', 'message': '出力ファイル名を入力してください。'}), 400
-    if not is_sync_mode and not selected_topics:
+    if not selected_topics:
         return jsonify({'status': 'error', 'message': 'トピックフィルタリングにはトピックを一つ以上選択してください。'}), 400
 
-    base_name = os.path.basename(input_bag_path)
-    if os.path.isfile(input_bag_path):
-        base_name = os.path.splitext(base_name)[0]
-    else:
-        base_name = os.path.basename(input_bag_path.rstrip('/'))
-        
     output_bag_dir = os.path.join(DOWNLOAD_FOLDER, output_filename_base)
-    
+
     try:
-        job_id = None
-        if is_sync_mode:
-            script_path = os.path.join(BASE_PATH, "start_mapping.sh")
-            command_list = [
-                script_path, 
-                "sync", 
-                base_name,
-                output_filename_base,
-                config_file_path
-            ]
-            
-            job_id, log_path = create_job('sync', output_filename_base)
-            Thread(target=run_subprocess, args=(command_list, log_path)).start()
-            result_message = f"トピック同期スクリプトがバックグラウンドで開始されました。出力ファイル名: {output_filename_base}。完了までお待ちください。"
-            
-        else:
-            result_message = filter_rosbag(input_bag_path, output_bag_dir, selected_topics)
+        result_message = filter_rosbag(input_bag_path, output_bag_dir, selected_topics)
 
         return jsonify({
             'status': 'success',
             'message': result_message,
-            'download_path': output_filename_base,
-            'job_id': job_id
+            'download_path': output_filename_base
         })
         
     except NameError:
@@ -985,45 +956,9 @@ def check_lio_raw_status():
     """LIO-RAW SLAM 処理の完了ステータスをチェックするAPI。"""
     return _check_mapping_status('lio_raw', request)
 
-@app.route('/check_sync_status', methods=['POST'])
-def check_sync_status():
-    """
-    トピック同期処理の完了ステータスをチェックするAPI。
-    """
-    data = request.get_json()
-    output_filename = data.get('output_filename')
-
-    if not output_filename:
-        return jsonify({'status': 'error', 'message': '出力ファイル名が指定されていません。'}), 400
-
-    flag_file_name = f'{output_filename}.SYNC_DONE'
-    flag_file_path = os.path.join(DOWNLOAD_FOLDER, flag_file_name) 
-    
-    if os.path.exists(flag_file_path):
-        try:
-            os.remove(flag_file_path)
-            print(f"Sync completion flag removed: {flag_file_path}")
-        except Exception as e:
-            print(f"Warning: Failed to remove flag file {flag_file_path}: {e}")
-            
-        download_url = url_for('download_file', filename=output_filename)
-            
-        return jsonify({
-            'status': 'finished', 
-            'message': 'トピック同期処理が完了しました。',
-            'download_path': output_filename,
-            'download_url': download_url 
-        })
-    else:
-        return jsonify({
-            'status': 'in_progress', 
-            'message': '処理を続行中です...'
-        })
-
-
 @app.route('/download/<path:filename>')
 def download_file(filename):
-    """フィルタリングされたBagディレクトリをZIP圧縮してダウンロードさせる (Filter/Sync用)"""
+    """フィルタリングされたBagディレクトリをZIP圧縮してダウンロードさせる (Filter用)"""
     bag_dir_path = os.path.join(DOWNLOAD_FOLDER, filename)
     zip_filename = f'{filename}.zip'
     zip_path = os.path.join(DOWNLOAD_FOLDER, zip_filename)
@@ -1965,11 +1900,6 @@ def trigger_script():
             return redirect('/navigation_executed')
         else:
             return render_template('navigation_run_popup.html', error="開始を確認してください。")
-    elif command == "execute_mapping_sync":
-        current_mode = "stopped"
-        flash("トピック同期に使用するROS Bagを選択してください。", "info")
-        return redirect(url_for('browse_rosbag', mode='sync')) 
-    
     elif command == "execute_mapping_filter":
         current_mode = "stopped" 
         flash("ROS Bagフィルタリング機能に遷移します。フィルタ対象のROS Bagを選択してください。", "info")

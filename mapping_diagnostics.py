@@ -123,21 +123,18 @@ REQUIRED_TOPICS = {
     'p2o': ['gnss_topic', 'pointcloud_topic', 'lio_topic'],
     'p2o_gravity': ['pointcloud_topic', 'lio_topic', 'imu_topic'],
     'lio_raw': ['pointcloud_topic', 'lio_topic'],
-    'sync': ['pointcloud_topic', 'lio_topic'],
 }
 
 # モードごとに実行される bash スクリプト（存在確認に使う）。
 MODE_SCRIPTS = {
     'p2o': 'mapping/hokuyo_slam.bash',
     'lio_raw': 'mapping/lio_raw.bash',
-    'sync': 'mapping/sync_topic.bash',
     'pcd2pgm': 'mapping/pcd2pgm.bash',
 }
 
 MODE_LABELS = {
     'p2o': 'P2O マッピング',
     'lio_raw': 'LIO-RAW マッピング',
-    'sync': 'トピック同期',
     'pcd2pgm': 'PCD→PGM 変換',
     'filter': 'トピックフィルタリング',
 }
@@ -656,7 +653,7 @@ def _check_frames(config_values, bag_info, findings):
 def diagnose(mode, config_path, bag_info, scripts_dir=None):
     """マッピング実行前の検査を行い、指摘の一覧と集計を返す。
 
-    mode: 'p2o' / 'lio_raw' / 'sync' / 'pcd2pgm' / 'filter'
+    mode: 'p2o' / 'lio_raw' / 'pcd2pgm' / 'filter'
     config_path: 選択されたコンフィグCSVのパス（未選択なら空文字）
     bag_info: rosbag_inspect.inspect_bag() の戻り値（無ければ None）
     scripts_dir: hokuyo_navigation2 の scripts ディレクトリ（実行スクリプトの存在確認用）
@@ -708,7 +705,7 @@ def diagnose(mode, config_path, bag_info, scripts_dir=None):
     # 何が使われるか分からないため、トピックや座標系の照合は行わない。
     has_config = bool(values)
 
-    if mode in ('p2o', 'lio_raw', 'sync') and bag_info and has_config:
+    if mode in ('p2o', 'lio_raw') and bag_info and has_config:
         required_key = mode
         if mode == 'p2o' and slam_mode == 'gravity':
             required_key = 'p2o_gravity'

@@ -40,7 +40,7 @@ LOG_RULES = [
     ),
     (
         'script_not_found',
-        re.compile(r'(sync_topic|hokuyo_slam|lio_raw|pcd2pgm)\.bash.*(No such file|見つかりません)'),
+        re.compile(r'(hokuyo_slam|lio_raw|pcd2pgm)\.bash.*(No such file|見つかりません)'),
         'error',
         '実行スクリプトが見つかりません',
         '処理を行うスクリプトファイルがインストールされていません。',
